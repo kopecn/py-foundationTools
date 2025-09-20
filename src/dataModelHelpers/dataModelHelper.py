@@ -75,7 +75,7 @@ class DataModelHelper:
         """
         raise NotImplementedError("to_dict must be implemented by subclasses")
 
-    def save_to_file(self, filename: Path) -> None:
+    def saveToFile(self, filename: Path) -> None:
         """
         Save the datamodel instance to a JSON file.
 
@@ -93,7 +93,7 @@ class DataModelHelper:
             json.dump(self.to_dict(), f, ensure_ascii=False, indent=4)
 
     @classmethod
-    def load_from_file(cls: Type[T], filename: Path) -> T:
+    def loadFromFile(cls: Type[T], filename: Path) -> T:
         """
         Load a datamodel instance from a JSON file.
 
