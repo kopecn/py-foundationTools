@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "pyFoundationTools"
+version = "0.0.1"
+description = "A compliation of code reuse for python, this is focusing on extending only the base python framework with no additional depenencies."
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">= 3.10"
+authors = [
+  {name = "Nicholas Bergantz", email = "nicholas.bergantz@gmail.com"}
+]
+keywords = [
+  
+]
+classifiers = [
+
+]
+license = {text = "MIT"}
+dependencies = [
+
+]
+
+[project.optional-dependencies]
+develop = [
+    "pytest",
+    "black",
+    "build",
+    "bump2version",
+    "pylint",
+    "mypy",
+    "twine",
+]
+personal_repos = []
+
+[project.urls]
+
+bugs = "https://github.com/kopecn/pyFoundationTools/issues"
+changelog = "https://github.com/kopecn/pyFoundationTools/blob/master/changelog.md"
+homepage = "https://github.com/kopecn/pyFoundationTools"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+"*" = ["*.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/*"]
+python_functions = ["test*"]
+python_files = ["test*.py"]
