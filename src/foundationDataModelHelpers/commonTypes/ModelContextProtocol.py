@@ -1,6 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
-from dataModelHelpers.dataModelHelper import DataModelHelper
+from foundationDataModelHelpers.dataModelHelper import DataModelHelper
 from typing import List, Optional, Any, Dict, Union, TypeVar, Callable, Type, cast
 
 

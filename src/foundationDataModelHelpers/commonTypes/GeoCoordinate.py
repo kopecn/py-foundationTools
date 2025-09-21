@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from dataModelHelpers.dataModelHelper import DataModelHelper
+from foundationDataModelHelpers.dataModelHelper import DataModelHelper
 from typing import Any, TypeVar, Type, cast
 
 

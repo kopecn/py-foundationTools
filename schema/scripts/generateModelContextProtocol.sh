@@ -7,7 +7,7 @@ INPUT_SCHEMA_FILES=(
 )
 
 # === Output Directory ===
-OUTPUT_PYTHON_FILE="src/dataModelHelpers/commonTypes/ModelContextProtocol.py"
+OUTPUT_PYTHON_FILE="src/foundationDataModelHelpers/commonTypes/ModelContextProtocol.py"
 
 # === Quicktype Arguements ===
 PYTHON_VERSION="3.7"
@@ -47,7 +47,7 @@ add_base_class() {
     local base_class="DataModelHelper"
 
     sed -i '' '/^from dataclasses import dataclass$/a\
-from dataModelHelpers.dataModelHelper import DataModelHelper
+from foundationDataModelHelpers.dataModelHelper import DataModelHelper
     ' "$file"
 
     if sed --version >/dev/null 2>&1; then

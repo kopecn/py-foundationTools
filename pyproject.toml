@@ -20,12 +20,13 @@ classifiers = [
 ]
 license = {text = "MIT"}
 dependencies = [
-
+  
 ]
 
 [project.optional-dependencies]
 develop = [
     "pytest",
+    "pytest-asyncio",
     "black",
     "build",
     "bump2version",

@@ -2,8 +2,8 @@ import unittest
 import tempfile
 import json
 from pathlib import Path
-from dataModelHelpers.dataModelHelper import DataModelHelper
-from dataModelHelpers.commonTypes.GeoCoordinate import GeoCoordinate
+from foundationDataModelHelpers.dataModelHelper import DataModelHelper
+from foundationDataModelHelpers.commonTypes.GeoCoordinate import GeoCoordinate
 
 
 class TestDataModelHelper(unittest.TestCase):
@@ -122,8 +122,12 @@ class TestDataModelHelper(unittest.TestCase):
             self.complete_model,
             self.partial_model,
             self.minimal_model,
-            GeoCoordinate(latitude=-90.0, longitude=-180.0),  # Edge case: negative extreme values
-            GeoCoordinate(latitude=90.0, longitude=180.0),   # Edge case: positive extreme values
+            GeoCoordinate(
+                latitude=-90.0, longitude=-180.0
+            ),  # Edge case: negative extreme values
+            GeoCoordinate(
+                latitude=90.0, longitude=180.0
+            ),  # Edge case: positive extreme values
         ]
 
         for i, model in enumerate(test_models):

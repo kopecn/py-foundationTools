@@ -1,4 +1,4 @@
-from dataModelHelpers.commonTypes.GeoCoordinate import GeoCoordinate
+from foundationDataModelHelpers.commonTypes.GeoCoordinate import GeoCoordinate
 from pathlib import Path
 
 
