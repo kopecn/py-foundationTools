@@ -5,17 +5,24 @@ Comprehensive test suite covering synchronous and asynchronous command execution
 timeout handling, success validation, and error scenarios.
 """
 
-import pytest
 import asyncio
-import sys
 import os
-from unittest.mock import patch, MagicMock
 import subprocess
+import sys
+from typing import Any
+from unittest.mock import patch, MagicMock
+
+import pytest
 
 # Add src to path for import
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from foundationCLIHelpers.cliTransact import CLITransact, CLITransactResult, ERROR_RETURN_CODE, SUCCESS_RETURN_CODE
+from foundationCLIHelpers.cliTransact import (  # type: ignore # pylint: disable=wrong-import-position
+    CLITransact,
+    CLITransactResult,
+    ERROR_RETURN_CODE,
+    SUCCESS_RETURN_CODE,
+)
 
 
 class TestCLITransactResult:
@@ -32,10 +39,7 @@ class TestCLITransactResult:
     def test_full_initialization(self):
         """Test CLITransactResult with all fields."""
         result = CLITransactResult(
-            return_code=0,
-            stdout="Hello World",
-            stderr="Warning message",
-            success=True
+            return_code=0, stdout="Hello World", stderr="Warning message", success=True
         )
         assert result.return_code == 0
         assert result.stdout == "Hello World"
@@ -59,64 +63,69 @@ class TestCLITransact:
     def test_validate_command_empty_string(self):
         """Test command validation with empty string."""
         cli = CLITransact()
-        result = cli._validate_command("")
+        result = cli._validate_command("")  # type: ignore[attr-defined] # pylint: disable=protected-access
         assert result is not None
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Empty command provided" in result.stderr
+        assert result.stderr is not None and "Empty command provided" in result.stderr
 
     def test_validate_command_empty_list(self):
         """Test command validation with empty list."""
         cli = CLITransact()
-        result = cli._validate_command([])
+        result = cli._validate_command([])  # type: ignore[attr-defined] # pylint: disable=protected-access
         assert result is not None
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Empty command provided" in result.stderr
+        assert result.stderr is not None and "Empty command provided" in result.stderr
 
     def test_validate_command_valid(self):
         """Test command validation with valid command."""
         cli = CLITransact()
-        result = cli._validate_command("echo hello")
+        result = cli._validate_command("echo hello")  # type: ignore[attr-defined] # pylint: disable=protected-access
         assert result is None
 
     def test_determine_success_with_return_code_zero(self):
         """Test success determination with return code 0."""
         cli = CLITransact()
-        assert cli._determine_success(SUCCESS_RETURN_CODE, "output") is True
+        assert cli._determine_success(SUCCESS_RETURN_CODE, "output") is True  # type: ignore[attr-defined] # pylint: disable=protected-access
 
     def test_determine_success_with_return_code_nonzero(self):
         """Test success determination with non-zero return code."""
         cli = CLITransact()
-        assert cli._determine_success(1, "output") is False
+        assert cli._determine_success(1, "output") is False  # type: ignore[attr-defined] # pylint: disable=protected-access
 
     def test_determine_success_with_success_string_present(self):
         """Test success determination with success string present."""
         cli = CLITransact(success_string="SUCCESS")
-        assert cli._determine_success(SUCCESS_RETURN_CODE, "Operation SUCCESS completed") is True
+        assert (
+            cli._determine_success(SUCCESS_RETURN_CODE, "Operation SUCCESS completed")  # type: ignore[attr-defined] # pylint: disable=protected-access
+            is True
+        )
 
     def test_determine_success_with_success_string_missing(self):
         """Test success determination with success string missing."""
         cli = CLITransact(success_string="SUCCESS")
-        assert cli._determine_success(SUCCESS_RETURN_CODE, "Operation completed") is False
+        assert (
+            cli._determine_success(SUCCESS_RETURN_CODE, "Operation completed") is False  # type: ignore[attr-defined] # pylint: disable=protected-access
+        )
 
     def test_normalize_output_none(self):
         """Test output normalization with None input."""
         cli = CLITransact()
-        assert cli._normalize_output(None) is None
+        assert cli._normalize_output(None) is None  # type: ignore[attr-defined] # pylint: disable=protected-access
 
     def test_normalize_output_empty_string(self):
         """Test output normalization with empty string."""
         cli = CLITransact()
-        assert cli._normalize_output("") is None
+        assert cli._normalize_output("") is None  # type: ignore[attr-defined] # pylint: disable=protected-access
 
     def test_normalize_output_whitespace_only(self):
         """Test output normalization with whitespace only."""
         cli = CLITransact()
-        assert cli._normalize_output("   \n\t  ") is None
+        assert cli._normalize_output("   \n\t  ") is None  # type: ignore[attr-defined] # pylint: disable=protected-access
 
     def test_normalize_output_with_content(self):
         """Test output normalization with actual content."""
         cli = CLITransact()
-        assert cli._normalize_output("  hello world  \n") == "hello world"
+        assert cli._normalize_output("  hello world  \n") == "hello world"  # type: ignore[attr-defined] # pylint: disable=protected-access
 
 
 class TestCLITransactSync:
@@ -127,7 +136,7 @@ class TestCLITransactSync:
         cli = CLITransact()
         result = cli.run_sync("")
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Empty command provided" in result.stderr
+        assert result.stderr is not None and "Empty command provided" in result.stderr
         assert result.success is False
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
@@ -172,8 +181,8 @@ class TestCLITransactSync:
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.success is False
 
-    @patch('subprocess.run')
-    def test_run_sync_timeout_exception(self, mock_run):
+    @patch("subprocess.run")
+    def test_run_sync_timeout_exception(self, mock_run: Any):
         """Test synchronous execution timeout handling."""
         mock_timeout = subprocess.TimeoutExpired(cmd=["sleep", "10"], timeout=1)
         mock_timeout.stdout = b"partial output"
@@ -182,19 +191,19 @@ class TestCLITransactSync:
         cli = CLITransact()
         result = cli.run_sync(["sleep", "10"], timeout=1)
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Timeout after 1 seconds" in result.stderr
+        assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
         assert result.stdout == "partial output"
         assert result.success is False
 
-    @patch('subprocess.run')
-    def test_run_sync_generic_exception(self, mock_run):
+    @patch("subprocess.run")
+    def test_run_sync_generic_exception(self, mock_run: Any):
         """Test synchronous execution with generic exception."""
         mock_run.side_effect = Exception("Command not found")
 
         cli = CLITransact()
         result = cli.run_sync(["nonexistent-command"])
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Command execution failed" in result.stderr
+        assert result.stderr is not None and "Command execution failed" in result.stderr
         assert result.success is False
 
 
@@ -207,7 +216,7 @@ class TestCLITransactAsync:
         cli = CLITransact()
         result = await cli.run_async("")
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Empty command provided" in result.stderr
+        assert result.stderr is not None and "Empty command provided" in result.stderr
         assert result.success is False
 
     @pytest.mark.asyncio
@@ -264,24 +273,24 @@ class TestCLITransactAsync:
         cli = CLITransact()
         result = await cli.run_async(["sleep", "2"], timeout=1)
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Timeout after 1 seconds" in result.stderr
+        assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
         assert result.success is False
 
     @pytest.mark.asyncio
-    @patch('asyncio.create_subprocess_exec')
-    async def test_run_async_exception_handling(self, mock_create_subprocess):
+    @patch("asyncio.create_subprocess_exec")
+    async def test_run_async_exception_handling(self, mock_create_subprocess: Any):
         """Test asynchronous execution exception handling."""
         mock_create_subprocess.side_effect = Exception("Process creation failed")
 
         cli = CLITransact()
         result = await cli.run_async(["nonexistent-command"])
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Command execution failed" in result.stderr
+        assert result.stderr is not None and "Command execution failed" in result.stderr
         assert result.success is False
 
     @pytest.mark.asyncio
-    @patch('asyncio.create_subprocess_exec')
-    async def test_run_async_timeout_with_cleanup(self, mock_create_subprocess):
+    @patch("asyncio.create_subprocess_exec")
+    async def test_run_async_timeout_with_cleanup(self, mock_create_subprocess: Any):
         """Test asynchronous execution timeout with proper process cleanup."""
         mock_proc = MagicMock()
 
@@ -304,7 +313,7 @@ class TestCLITransactAsync:
         # Verify cleanup was called
         mock_proc.kill.assert_called()
         assert result.return_code == ERROR_RETURN_CODE
-        assert "Timeout after 1 seconds" in result.stderr
+        assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
         assert result.success is False
 
 

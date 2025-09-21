@@ -74,6 +74,7 @@ class CLITransactResult:
             success=True
         )
     """
+
     return_code: int
     stdout: Optional[str] = None
     stderr: Optional[str] = None
@@ -116,7 +117,9 @@ class CLITransact:
         """
         self.success_string = success_string
 
-    def _validate_command(self, command: Union[str, List[str]]) -> Optional[CLITransactResult]:
+    def _validate_command(
+        self, command: Union[str, List[str]]
+    ) -> Optional[CLITransactResult]:
         """Validate command input and return error result if invalid."""
         if not command:
             return CLITransactResult(
@@ -187,6 +190,7 @@ class CLITransact:
                 text=True,
                 timeout=timeout,
                 shell=isinstance(command, str),
+                check=False,
             )
 
             stdout_text = result.stdout or ""
@@ -200,7 +204,13 @@ class CLITransact:
             )
         except subprocess.TimeoutExpired as e:
             # Handle text vs bytes output consistently
-            stdout_text = e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout
+            stdout_text: str | None = None
+            if e.stdout is not None:
+                if isinstance(e.stdout, str):
+                    stdout_text = e.stdout
+                else:
+                    # Handle bytes, bytearray, memoryview
+                    stdout_text = bytes(e.stdout).decode()
             return CLITransactResult(
                 return_code=ERROR_RETURN_CODE,
                 stdout=self._normalize_output(stdout_text),
@@ -290,10 +300,14 @@ class CLITransact:
             stdout_text = stdout.decode() if stdout else ""
             stderr_text = stderr.decode() if stderr else ""
 
-            success = self._determine_success(proc.returncode, stdout_text)
+            # proc.returncode should be set after communicate(), but handle None case
+            return_code = (
+                proc.returncode if proc.returncode is not None else ERROR_RETURN_CODE
+            )
+            success = self._determine_success(return_code, stdout_text)
 
             return CLITransactResult(
-                return_code=proc.returncode,
+                return_code=return_code,
                 stdout=self._normalize_output(stdout_text),
                 stderr=self._normalize_output(stderr_text),
                 success=success,
