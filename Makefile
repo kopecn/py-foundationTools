@@ -17,14 +17,14 @@ help:  ## Show available make commands with descriptions
 	@echo "Makefile for pyFoundationTools"
 	@awk 'BEGIN {FS = ":.*?## "}; /^[a-zA-Z0-9_-]+:.*?## / {printf "%-30s -> %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-bumpPatch:
-	bump2version patch
+bumpPatch:  ## Increment patch version (x.x.X)
+	bumpversion --allow-dirty patch
 
-bumpMinor:
-	bump2version minor
+bumpMinor:  ## Increment minor version (x.X.x)
+	bumpversion --allow-dirty minor
 
-bumpMajor:
-	bump2version major
+bumpMajor:  ## Increment major version (X.x.x)
+	bumpversion --allow-dirty major
 
 clean: cleanBuild cleanArtifacts cleanTest  ## Remove all build, Python, and test-related artifacts
 
