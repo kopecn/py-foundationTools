@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyFoundationTools"
-version = "0.0.1"
+version = "0.0.2"
 description = "A compliation of code reuse for python, this is focusing on extending only the base python framework with no additional depenencies."
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">= 3.10"
