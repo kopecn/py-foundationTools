@@ -20,9 +20,41 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from foundationCLIHelpers.cliTransact import (  # type: ignore # pylint: disable=wrong-import-position
     CLITransact,
     CLITransactResult,
+    CLITransactResultWithModel,
     ERROR_RETURN_CODE,
     SUCCESS_RETURN_CODE,
 )
+from foundationDataModelHelpers.dataModelHelper import DataModelHelper  # type: ignore # pylint: disable=wrong-import-position
+
+
+# Test data model for unit tests
+class MockDataModel(DataModelHelper):
+    """Simple test data model for testing serialization."""
+
+    def __init__(self, value: str, count: int):
+        self.value = value
+        self.count = count
+
+    @staticmethod
+    def from_dict(obj: Any) -> "MockDataModel":
+        return MockDataModel(obj["value"], obj["count"])
+
+    def to_dict(self) -> dict:
+        return {"value": self.value, "count": self.count}
+
+    def __eq__(self, other):
+        return isinstance(other, MockDataModel) and self.value == other.value and self.count == other.count
+
+
+def parse_echo_output(output: str) -> MockDataModel:
+    """Test serializer that parses echo output into MockDataModel."""
+    lines = output.strip().split('\n')
+    return MockDataModel(value=lines[0], count=len(lines))
+
+
+def parse_failing_serializer(output: str) -> MockDataModel:
+    """Test serializer that always fails."""
+    raise ValueError("Serialization failed")
 
 
 class TestCLITransactResult:
@@ -45,6 +77,37 @@ class TestCLITransactResult:
         assert result.stdout == "Hello World"
         assert result.stderr == "Warning message"
         assert result.success is True
+
+
+class TestCLITransactResultWithModel:
+    """Test cases for CLITransactResultWithModel data class."""
+
+    def test_default_initialization(self):
+        """Test default CLITransactResultWithModel initialization."""
+        result = CLITransactResultWithModel[MockDataModel](return_code=0)
+        assert result.return_code == 0
+        assert result.stdout is None
+        assert result.stderr is None
+        assert result.success is False
+        assert result.model is None
+
+    def test_full_initialization_with_model(self):
+        """Test CLITransactResultWithModel with all fields including model."""
+        test_model = MockDataModel("test", 42)
+        result = CLITransactResultWithModel[MockDataModel](
+            return_code=0,
+            stdout="Hello World",
+            stderr="Warning message",
+            success=True,
+            model=test_model
+        )
+        assert result.return_code == 0
+        assert result.stdout == "Hello World"
+        assert result.stderr == "Warning message"
+        assert result.success is True
+        assert result.model == test_model
+        assert result.model.value == "test"
+        assert result.model.count == 42
 
 
 class TestCLITransact:
@@ -315,6 +378,316 @@ class TestCLITransactAsync:
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
         assert result.success is False
+
+
+class TestCLITransactSyncWithModel:
+    """Test cases for synchronous command execution with model serialization."""
+
+    def test_run_sync_with_model_empty_command(self):
+        """Test sync with model execution with empty command."""
+        cli = CLITransact()
+        result = cli.run_sync_with_model("", parse_echo_output)
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "Empty command provided" in result.stderr
+        assert result.success is False
+        assert result.model is None
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_run_sync_with_model_successful_command(self):
+        """Test sync with model execution of successful command."""
+        cli = CLITransact()
+        result = cli.run_sync_with_model(["echo", "hello world"], parse_echo_output)
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.stdout == "hello world"
+        assert result.stderr is None
+        assert result.success is True
+        assert result.model is not None
+        assert result.model.value == "hello world"
+        assert result.model.count == 1
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_run_sync_with_model_failing_command(self):
+        """Test sync with model execution of failing command."""
+        cli = CLITransact()
+        result = cli.run_sync_with_model(["false"], parse_echo_output)
+
+        assert result.return_code != SUCCESS_RETURN_CODE
+        assert result.success is False
+        assert result.model is None  # Model should not be parsed on command failure
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_run_sync_with_model_serialization_failure(self):
+        """Test sync with model when serialization fails."""
+        cli = CLITransact()
+        result = cli.run_sync_with_model(["echo", "hello"], parse_failing_serializer)
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.stdout == "hello"
+        assert result.success is True  # Command succeeded
+        assert result.model is None  # Model parsing failed
+        assert result.stderr is not None and "Model parsing failed" in result.stderr
+        assert "Serialization failed" in result.stderr
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_run_sync_with_model_multiline_output(self):
+        """Test sync with model with multiline output."""
+        cli = CLITransact()
+        result = cli.run_sync_with_model(
+            ["sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"],
+            parse_echo_output
+        )
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+        assert result.model is not None
+        assert result.model.value == "line1"  # First line
+        assert result.model.count == 3  # Total lines
+
+    def test_run_sync_with_model_no_output(self):
+        """Test sync with model when command produces no output."""
+        cli = CLITransact()
+        result = cli.run_sync_with_model(["true"], parse_echo_output)
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+        assert result.model is None  # No output to parse
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_run_sync_with_model_success_string_validation(self):
+        """Test sync with model with success string validation."""
+        cli = CLITransact(success_string="SUCCESS")
+        result = cli.run_sync_with_model(
+            ["echo", "Operation SUCCESS completed"],
+            parse_echo_output
+        )
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+        assert result.model is not None
+        assert result.model.value == "Operation SUCCESS completed"
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_run_sync_with_model_success_string_missing(self):
+        """Test sync with model when success string is missing."""
+        cli = CLITransact(success_string="SUCCESS")
+        result = cli.run_sync_with_model(
+            ["echo", "Operation completed"],
+            parse_echo_output
+        )
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is False  # Success string not found
+        assert result.model is None  # Model not parsed due to success=False
+
+    @patch("subprocess.run")
+    def test_run_sync_with_model_timeout(self, mock_run: Any):
+        """Test sync with model timeout handling."""
+        mock_timeout = subprocess.TimeoutExpired(cmd=["sleep", "10"], timeout=1)
+        mock_timeout.stdout = b"partial output"
+        mock_run.side_effect = mock_timeout
+
+        cli = CLITransact()
+        result = cli.run_sync_with_model(["sleep", "10"], parse_echo_output, timeout=1)
+
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
+        assert result.stdout == "partial output"
+        assert result.success is False
+        assert result.model is None
+
+
+class TestCLITransactAsyncWithModel:
+    """Test cases for asynchronous command execution with model serialization."""
+
+    @pytest.mark.asyncio
+    async def test_run_async_with_model_empty_command(self):
+        """Test async with model execution with empty command."""
+        cli = CLITransact()
+        result = await cli.run_async_with_model("", parse_echo_output)
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "Empty command provided" in result.stderr
+        assert result.success is False
+        assert result.model is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_with_model_successful_command(self):
+        """Test async with model execution of successful command."""
+        cli = CLITransact()
+        result = await cli.run_async_with_model(["echo", "hello world"], parse_echo_output)
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.stdout == "hello world"
+        assert result.stderr is None
+        assert result.success is True
+        assert result.model is not None
+        assert result.model.value == "hello world"
+        assert result.model.count == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_with_model_failing_command(self):
+        """Test async with model execution of failing command."""
+        cli = CLITransact()
+        result = await cli.run_async_with_model(["false"], parse_echo_output)
+
+        assert result.return_code != SUCCESS_RETURN_CODE
+        assert result.success is False
+        assert result.model is None  # Model should not be parsed on command failure
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_with_model_serialization_failure(self):
+        """Test async with model when serialization fails."""
+        cli = CLITransact()
+        result = await cli.run_async_with_model(["echo", "hello"], parse_failing_serializer)
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.stdout == "hello"
+        assert result.success is True  # Command succeeded
+        assert result.model is None  # Model parsing failed
+        assert result.stderr is not None and "Model parsing failed" in result.stderr
+        assert "Serialization failed" in result.stderr
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_with_model_multiline_output(self):
+        """Test async with model with multiline output."""
+        cli = CLITransact()
+        result = await cli.run_async_with_model(
+            ["sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"],
+            parse_echo_output
+        )
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+        assert result.model is not None
+        assert result.model.value == "line1"  # First line
+        assert result.model.count == 3  # Total lines
+
+    @pytest.mark.asyncio
+    async def test_run_async_with_model_no_output(self):
+        """Test async with model when command produces no output."""
+        cli = CLITransact()
+        result = await cli.run_async_with_model(["true"], parse_echo_output)
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+        assert result.model is None  # No output to parse
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_with_model_success_string_validation(self):
+        """Test async with model with success string validation."""
+        cli = CLITransact(success_string="SUCCESS")
+        result = await cli.run_async_with_model(
+            ["echo", "Operation SUCCESS completed"],
+            parse_echo_output
+        )
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+        assert result.model is not None
+        assert result.model.value == "Operation SUCCESS completed"
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_with_model_success_string_missing(self):
+        """Test async with model when success string is missing."""
+        cli = CLITransact(success_string="SUCCESS")
+        result = await cli.run_async_with_model(
+            ["echo", "Operation completed"],
+            parse_echo_output
+        )
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is False  # Success string not found
+        assert result.model is None  # Model not parsed due to success=False
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_with_model_timeout(self):
+        """Test async with model timeout handling."""
+        cli = CLITransact()
+        result = await cli.run_async_with_model(["sleep", "2"], parse_echo_output, timeout=1)
+
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
+        assert result.success is False
+        assert result.model is None
+
+    @pytest.mark.asyncio
+    @patch("asyncio.create_subprocess_exec")
+    async def test_run_async_with_model_exception_handling(self, mock_create_subprocess: Any):
+        """Test async with model exception handling."""
+        mock_create_subprocess.side_effect = Exception("Process creation failed")
+
+        cli = CLITransact()
+        result = await cli.run_async_with_model(["nonexistent-command"], parse_echo_output)
+
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "Command execution failed" in result.stderr
+        assert result.success is False
+        assert result.model is None
+
+
+class TestCLITransactModelIntegration:
+    """Integration tests for CLI transaction with model serialization."""
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_sync_vs_async_with_model_consistency(self):
+        """Test that sync and async model methods produce consistent results."""
+        cli = CLITransact()
+
+        # Test successful command with model
+        sync_result = cli.run_sync_with_model(["echo", "test"], parse_echo_output)
+
+        async def async_test():
+            return await cli.run_async_with_model(["echo", "test"], parse_echo_output)
+
+        async_result = asyncio.run(async_test())
+
+        # Compare base properties
+        assert sync_result.return_code == async_result.return_code
+        assert sync_result.stdout == async_result.stdout
+        assert sync_result.success == async_result.success
+
+        # Compare models
+        assert sync_result.model == async_result.model
+        if sync_result.model and async_result.model:
+            assert sync_result.model.value == async_result.model.value
+            assert sync_result.model.count == async_result.model.count
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_model_serialization_roundtrip(self):
+        """Test that models can be serialized and deserialized correctly."""
+        cli = CLITransact()
+        result = cli.run_sync_with_model(["echo", "test data"], parse_echo_output)
+
+        assert result.success is True
+        assert result.model is not None
+
+        # Serialize to dict
+        model_dict = result.model.to_dict()
+        assert model_dict == {"value": "test data", "count": 1}
+
+        # Deserialize from dict
+        reconstructed_model = MockDataModel.from_dict(model_dict)
+        assert reconstructed_model == result.model
+
+    def test_model_inheritance_from_datamodelhelper(self):
+        """Test that MockDataModel properly inherits from DataModelHelper."""
+        model = MockDataModel("test", 5)
+        assert isinstance(model, DataModelHelper)
+
+        # Test abstract methods are implemented
+        model_dict = model.to_dict()
+        assert model_dict == {"value": "test", "count": 5}
+
+        reconstructed = MockDataModel.from_dict(model_dict)
+        assert reconstructed.value == "test"
+        assert reconstructed.count == 5
 
 
 class TestCLITransactIntegration:

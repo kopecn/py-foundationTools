@@ -42,12 +42,16 @@ err and the stdout.
 import subprocess
 import asyncio
 from dataclasses import dataclass
-from typing import Optional, Union, List
+from typing import Optional, Union, List, TypeVar, Generic, Callable
+from foundationDataModelHelpers.dataModelHelper import DataModelHelper
 
 
 # Constants
 ERROR_RETURN_CODE = -1
 SUCCESS_RETURN_CODE = 0
+
+# Type variables for generic serialization
+T = TypeVar("T", bound=DataModelHelper)
 
 
 @dataclass
@@ -79,6 +83,19 @@ class CLITransactResult:
     stdout: Optional[str] = None
     stderr: Optional[str] = None
     success: bool = False
+
+
+@dataclass
+class CLITransactResultWithModel(CLITransactResult, Generic[T]):
+    """
+    Extended result container that includes a parsed data model.
+
+    Attributes:
+        model (Optional[T]): Parsed data model instance created from stdout.
+                            None if parsing failed or stdout was empty.
+    """
+
+    model: Optional[T] = None
 
 
 class CLITransact:
@@ -224,6 +241,59 @@ class CLITransact:
                 success=False,
             )
 
+    def run_sync_with_model(
+        self,
+        command: Union[str, List[str]],
+        serializer: Callable[[str], T],
+        timeout: Optional[int] = None,
+    ) -> CLITransactResultWithModel[T]:
+        """
+        Execute a command synchronously and parse output into a data model.
+
+        Args:
+            command: Command to execute (string or list of arguments)
+            serializer: Function that takes stdout string and returns parsed model
+            timeout: Maximum execution time in seconds
+
+        Returns:
+            CLITransactResultWithModel containing both command result and parsed model
+
+        Example:
+            from foundationDataModelHelpers.commonTypes.DiskUsage import DiskUsage
+
+            cli = CLITransact()
+            result = cli.run_sync_with_model(
+                "df -h",
+                DiskUsage.from_df_output
+            )
+            if result.success and result.model:
+                for entry in result.model.entries:
+                    print(f"{entry.filesystem}: {entry.use_percent} used")
+        """
+        # Execute the command normally
+        base_result = self.run_sync(command, timeout)
+
+        # Create extended result
+        extended_result = CLITransactResultWithModel[T](
+            return_code=base_result.return_code,
+            stdout=base_result.stdout,
+            stderr=base_result.stderr,
+            success=base_result.success,
+            model=None,
+        )
+
+        # Parse model if command was successful and has output
+        if base_result.success and base_result.stdout:
+            try:
+                extended_result.model = serializer(base_result.stdout)
+            except Exception as e:
+                # Model parsing failed, but keep original command success
+                extended_result.stderr = (
+                    f"{base_result.stderr or ''}\nModel parsing failed: {str(e)}"
+                ).strip()
+
+        return extended_result
+
     async def run_async(
         self, command: Union[str, List[str]], timeout: Optional[int] = None
     ) -> CLITransactResult:
@@ -325,3 +395,61 @@ class CLITransact:
                 stderr=f"Command execution failed: {str(e)}",
                 success=False,
             )
+
+    async def run_async_with_model(
+        self,
+        command: Union[str, List[str]],
+        serializer: Callable[[str], T],
+        timeout: Optional[int] = None,
+    ) -> CLITransactResultWithModel[T]:
+        """
+        Execute a command asynchronously and parse output into a data model.
+
+        Args:
+            command: Command to execute (string or list of arguments)
+            serializer: Function that takes stdout string and returns parsed model
+            timeout: Maximum execution time in seconds
+
+        Returns:
+            CLITransactResultWithModel containing both command result and parsed model
+
+        Example:
+            import asyncio
+            from foundationDataModelHelpers.commonTypes.DiskUsage import DiskUsage
+
+            async def main():
+                cli = CLITransact()
+                result = await cli.run_async_with_model(
+                    "df -h",
+                    DiskUsage.from_df_output
+                )
+                if result.success and result.model:
+                    for entry in result.model.entries:
+                        print(f"{entry.filesystem}: {entry.use_percent} used")
+                return result
+
+            result = asyncio.run(main())
+        """
+        # Execute the command normally
+        base_result = await self.run_async(command, timeout)
+
+        # Create extended result
+        extended_result = CLITransactResultWithModel[T](
+            return_code=base_result.return_code,
+            stdout=base_result.stdout,
+            stderr=base_result.stderr,
+            success=base_result.success,
+            model=None,
+        )
+
+        # Parse model if command was successful and has output
+        if base_result.success and base_result.stdout:
+            try:
+                extended_result.model = serializer(base_result.stdout)
+            except Exception as e:
+                # Model parsing failed, but keep original command success
+                extended_result.stderr = (
+                    f"{base_result.stderr or ''}\nModel parsing failed: {str(e)}"
+                ).strip()
+
+        return extended_result
