@@ -1,0 +1,282 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "annotations": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Annotations"
+        },
+        "audiocontent": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/AudioContent"
+        },
+        "basemetadata": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/BaseMetadata"
+        },
+        "blobresourcecontents": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/BlobResourceContents"
+        },
+        "booleanschema": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/BooleanSchema"
+        },
+        "calltoolrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/CallToolRequest"
+        },
+        "calltoolresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/CallToolResult"
+        },
+        "cancellednotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/CancelledNotification"
+        },
+        "clientcapabilities": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ClientCapabilities"
+        },
+        "clientnotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ClientNotification"
+        },
+        "clientrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ClientRequest"
+        },
+        "clientresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ClientResult"
+        },
+        "completerequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/CompleteRequest"
+        },
+        "completeresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/CompleteResult"
+        },
+        "contentblock": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ContentBlock"
+        },
+        "createmessagerequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/CreateMessageRequest"
+        },
+        "createmessageresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/CreateMessageResult"
+        },
+        "cursor": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Cursor"
+        },
+        "elicitrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ElicitRequest"
+        },
+        "elicitresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ElicitResult"
+        },
+        "embeddedresource": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/EmbeddedResource"
+        },
+        "emptyresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/EmptyResult"
+        },
+        "enumschema": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/EnumSchema"
+        },
+        "getpromptrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/GetPromptRequest"
+        },
+        "getpromptresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/GetPromptResult"
+        },
+        "imagecontent": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ImageContent"
+        },
+        "implementation": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Implementation"
+        },
+        "initializednotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/InitializedNotification"
+        },
+        "initializerequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/InitializeRequest"
+        },
+        "initializeresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/InitializeResult"
+        },
+        "jsonrpcerror": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/JSONRPCError"
+        },
+        "jsonrpcmessage": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/JSONRPCMessage"
+        },
+        "jsonrpcnotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/JSONRPCNotification"
+        },
+        "jsonrpcrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/JSONRPCRequest"
+        },
+        "jsonrpcresponse": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/JSONRPCResponse"
+        },
+        "listpromptsrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListPromptsRequest"
+        },
+        "listpromptsresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListPromptsResult"
+        },
+        "listresourcesrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListResourcesRequest"
+        },
+        "listresourcesresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListResourcesResult"
+        },
+        "listresourcetemplatesrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListResourceTemplatesRequest"
+        },
+        "listresourcetemplatesresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListResourceTemplatesResult"
+        },
+        "listrootsrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListRootsRequest"
+        },
+        "listrootsresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListRootsResult"
+        },
+        "listtoolsrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListToolsRequest"
+        },
+        "listtoolsresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ListToolsResult"
+        },
+        "logginglevel": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/LoggingLevel"
+        },
+        "loggingmessagenotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/LoggingMessageNotification"
+        },
+        "modelhint": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ModelHint"
+        },
+        "modelpreferences": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ModelPreferences"
+        },
+        "notification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Notification"
+        },
+        "numberschema": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/NumberSchema"
+        },
+        "paginatedrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/PaginatedRequest"
+        },
+        "paginatedresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/PaginatedResult"
+        },
+        "pingrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/PingRequest"
+        },
+        "primitiveschemadefinition": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/PrimitiveSchemaDefinition"
+        },
+        "progressnotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ProgressNotification"
+        },
+        "progresstoken": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ProgressToken"
+        },
+        "prompt": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Prompt"
+        },
+        "promptargument": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/PromptArgument"
+        },
+        "promptlistchangednotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/PromptListChangedNotification"
+        },
+        "promptmessage": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/PromptMessage"
+        },
+        "promptreference": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/PromptReference"
+        },
+        "readresourcerequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ReadResourceRequest"
+        },
+        "readresourceresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ReadResourceResult"
+        },
+        "request": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Request"
+        },
+        "requestid": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/RequestId"
+        },
+        "resource": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Resource"
+        },
+        "resourcecontents": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ResourceContents"
+        },
+        "resourcelink": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ResourceLink"
+        },
+        "resourcelistchangednotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ResourceListChangedNotification"
+        },
+        "resourcetemplate": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ResourceTemplate"
+        },
+        "resourcetemplatereference": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ResourceTemplateReference"
+        },
+        "resourceupdatednotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ResourceUpdatedNotification"
+        },
+        "result": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Result"
+        },
+        "role": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Role"
+        },
+        "root": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Root"
+        },
+        "rootslistchangednotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/RootsListChangedNotification"
+        },
+        "samplingmessage": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/SamplingMessage"
+        },
+        "servercapabilities": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ServerCapabilities"
+        },
+        "servernotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ServerNotification"
+        },
+        "serverrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ServerRequest"
+        },
+        "serverresult": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ServerResult"
+        },
+        "setlevelrequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/SetLevelRequest"
+        },
+        "stringschema": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/StringSchema"
+        },
+        "subscriberequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/SubscribeRequest"
+        },
+        "textcontent": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/TextContent"
+        },
+        "textresourcecontents": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/TextResourceContents"
+        },
+        "tool": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/Tool"
+        },
+        "toolannotations": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ToolAnnotations"
+        },
+        "toollistchangednotification": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/ToolListChangedNotification"
+        },
+        "unsubscriberequest": {
+            "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/definitions/UnsubscribeRequest"
+        },
+    },
+    "required": [
+        "annotations"
+    ]
+}

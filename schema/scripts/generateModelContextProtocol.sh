@@ -2,14 +2,12 @@
 
 # === Input Schemas ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/GeoCoordinate-schema.json"
-)
-CLASSES_FOR_BASE_PARENT=(
-    "GeoCoordinate"
+  "schema/schemas/ModelContextProtocolTypes-schema.json"
+  "schema/schemas/MCP/ModelContextProtocol-2025-06-18-schema.json"
 )
 
 # === Output Directory ===
-OUTPUT_PYTHON_FILE="src/dataModelHelpers/commonTypes/GeoCoordinate.py"
+OUTPUT_PYTHON_FILE="src/dataModelHelpers/commonTypes/ModelContextProtocol.py"
 
 # === Quicktype Arguements ===
 PYTHON_VERSION="3.7"
@@ -37,7 +35,7 @@ run_quicktype() {
     --out "$OUTPUT_PYTHON_FILE" \
     --telemetry disable \
     --no-pydantic-base-model \
-    "$INPUT_SCHEMA_FILES"
+    "${INPUT_SCHEMA_FILES[@]}"
 
     echo "✅ Generated: $output_file"
 
@@ -46,23 +44,19 @@ run_quicktype() {
 
 add_base_class() {
     local file="$1"
-    shift
     local base_class="DataModelHelper"
-    local classes=("$@")
 
     sed -i '' '/^from dataclasses import dataclass$/a\
 from dataModelHelpers.dataModelHelper import DataModelHelper
     ' "$file"
 
-    for class in "${classes[@]}"; do
-        if sed --version >/dev/null 2>&1; then
-            # GNU sed (Linux)
-            sed -i "s/^class $class:$/class $class($base_class):/" "$file"
-        else
-            # BSD sed (macOS)
-            sed -i '' "s/^class $class:$/class $class($base_class):/" "$file"
-        fi
-    done
+    if sed --version >/dev/null 2>&1; then
+        # GNU sed (Linux)
+        sed -i "s/^class \([A-Za-z0-9_]*\):$/class \1($base_class):/" "$file"
+    else
+        # BSD sed (macOS)
+        sed -i '' "s/^class \([A-Za-z0-9_]*\):$/class \1($base_class):/" "$file"
+    fi
 }
 
 run_black() {
@@ -72,5 +66,5 @@ run_black() {
 
 setup_and_run_quicktype
 run_quicktype
-add_base_class "$OUTPUT_PYTHON_FILE" "${CLASSES_FOR_BASE_PARENT[@]}"
+add_base_class "$OUTPUT_PYTHON_FILE"
 run_black

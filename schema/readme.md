@@ -23,7 +23,7 @@ pip install black  # For code formatting
 ## How to Extend: Creating New Data Models
 
 ### Step 1: Create JSON Schema
-Create a new schema file in `schema/schemas/` (GeoCoordinate.json is provided as an example):
+Create a new schema file in `schema/schemas/` (GeoCoordinate-schema.json is provided as an example):
 
 ```json
 {
