@@ -36,7 +36,7 @@ class UnitSphericalSmallCircle(DataModelHelper):
     """Polar angle in radians (-pi/2 to pi/2).  Represents the latitudinal position, where 0 is
     the equator,  pi/2 is the north pole, and -pi/2 is the south pole.
     """
-    radius: float
+    radius_angle: float
     """Angular radius of the small circle in radians.  Represents the angular distance from the
     center point.
     """
@@ -46,14 +46,14 @@ class UnitSphericalSmallCircle(DataModelHelper):
         assert isinstance(obj, dict)
         azimuth = from_float(obj.get("azimuth"))
         polar = from_float(obj.get("polar"))
-        radius = from_float(obj.get("radius"))
-        return UnitSphericalSmallCircle(azimuth, polar, radius)
+        radius_angle = from_float(obj.get("radiusAngle"))
+        return UnitSphericalSmallCircle(azimuth, polar, radius_angle)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["azimuth"] = to_float(self.azimuth)
         result["polar"] = to_float(self.polar)
-        result["radius"] = to_float(self.radius)
+        result["radiusAngle"] = to_float(self.radius_angle)
         return result
 
 

@@ -17,24 +17,24 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
         """Set up test fixtures before each test method."""
         # Test data with various coordinate values
         self.equator_circle = UnitSphericalSmallCircle(
-            azimuth=0.0, polar=0.0, radius=math.pi / 4
+            azimuth=0.0, polar=0.0, radius_angle=math.pi / 4
         )
         self.north_pole_circle = UnitSphericalSmallCircle(
-            azimuth=math.pi, polar=math.pi / 2, radius=math.pi / 6
+            azimuth=math.pi, polar=math.pi / 2, radius_angle=math.pi / 6
         )
         self.arbitrary_circle = UnitSphericalSmallCircle(
-            azimuth=1.5, polar=-0.5, radius=0.8
+            azimuth=1.5, polar=-0.5, radius_angle=0.8
         )
 
     def test_from_dict_creates_valid_instance(self):
         """Test that from_dict creates a valid UnitSphericalSmallCircle instance."""
-        test_data = {"azimuth": 1.0, "polar": 0.5, "radius": 0.3}
+        test_data = {"azimuth": 1.0, "polar": 0.5, "radiusAngle": 0.3}
         circle = UnitSphericalSmallCircle.from_dict(test_data)
 
         self.assertIsInstance(circle, UnitSphericalSmallCircle)
         self.assertEqual(circle.azimuth, 1.0)
         self.assertEqual(circle.polar, 0.5)
-        self.assertEqual(circle.radius, 0.3)
+        self.assertEqual(circle.radius_angle, 0.3)
 
     def test_to_dict_produces_correct_structure(self):
         """Test that to_dict produces the correct dictionary structure."""
@@ -43,10 +43,10 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
         self.assertIsInstance(result, dict)
         self.assertIn("azimuth", result)
         self.assertIn("polar", result)
-        self.assertIn("radius", result)
+        self.assertIn("radiusAngle", result)
         self.assertEqual(result["azimuth"], 0.0)
         self.assertEqual(result["polar"], 0.0)
-        self.assertEqual(result["radius"], math.pi / 4)
+        self.assertEqual(result["radiusAngle"], math.pi / 4)
 
     def test_roundtrip_data_integrity(self):
         """Test that to_dict followed by from_dict preserves data."""
@@ -54,9 +54,9 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
             self.equator_circle,
             self.north_pole_circle,
             self.arbitrary_circle,
-            UnitSphericalSmallCircle(azimuth=0.0, polar=0.0, radius=0.0),
+            UnitSphericalSmallCircle(azimuth=0.0, polar=0.0, radius_angle=0.0),
             UnitSphericalSmallCircle(
-                azimuth=2 * math.pi, polar=-math.pi / 2, radius=math.pi
+                azimuth=2 * math.pi, polar=-math.pi / 2, radius_angle=math.pi
             ),
         ]
 
@@ -71,7 +71,7 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
                 # Verify data integrity
                 self.assertEqual(circle.azimuth, restored_circle.azimuth)
                 self.assertEqual(circle.polar, restored_circle.polar)
-                self.assertEqual(circle.radius, restored_circle.radius)
+                self.assertEqual(circle.radius_angle, restored_circle.radius_angle)
 
     def test_from_dict_requires_all_fields(self):
         """Test that from_dict requires all three fields."""
@@ -90,24 +90,24 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
 
     def test_from_dict_accepts_integers(self):
         """Test that from_dict accepts integers and converts to float."""
-        test_data = {"azimuth": 1, "polar": 2, "radius": 3}
+        test_data = {"azimuth": 1, "polar": 2, "radiusAngle": 3}
         circle = UnitSphericalSmallCircle.from_dict(test_data)
 
         self.assertIsInstance(circle.azimuth, float)
         self.assertIsInstance(circle.polar, float)
-        self.assertIsInstance(circle.radius, float)
+        self.assertIsInstance(circle.radius_angle, float)
         self.assertEqual(circle.azimuth, 1.0)
         self.assertEqual(circle.polar, 2.0)
-        self.assertEqual(circle.radius, 3.0)
+        self.assertEqual(circle.radius_angle, 3.0)
 
     def test_to_dict_preserves_numeric_types(self):
         """Test that to_dict preserves numeric types correctly."""
-        circle = UnitSphericalSmallCircle(azimuth=1.5, polar=2.5, radius=3.5)
+        circle = UnitSphericalSmallCircle(azimuth=1.5, polar=2.5, radius_angle=3.5)
         result = circle.to_dict()
 
         self.assertIsInstance(result["azimuth"], (int, float))
         self.assertIsInstance(result["polar"], (int, float))
-        self.assertIsInstance(result["radius"], (int, float))
+        self.assertIsInstance(result["radiusAngle"], (int, float))
 
 
 if __name__ == "__main__":
