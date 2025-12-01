@@ -1,9 +1,17 @@
+"""
+Unit tests for DataModelHelper base class.
+
+This test suite verifies the serialization, deserialization, and file I/O
+functionality provided by the DataModelHelper base class using GeoCoordinate
+as a concrete implementation.
+"""
+
 import unittest
 import tempfile
 import json
 from pathlib import Path
-from foundationDataModelHelpers.dataModelHelper import DataModelHelper
-from foundationDataModelHelpers.commonTypes.GeoCoordinate import GeoCoordinate
+from foundationTypes.dataModelHelper import DataModelHelper
+from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 
 
 class TestDataModelHelper(unittest.TestCase):
@@ -150,7 +158,7 @@ class TestDataModelHelper(unittest.TestCase):
     def test_loadFromFile_error_handling_invalid_json(self):
         """Test that loadFromFile properly raises exceptions for invalid JSON."""
         # Create file with invalid JSON
-        with open(self.test_file, "w") as f:
+        with open(self.test_file, "w", encoding="utf-8") as f:
             f.write("invalid json content")
 
         with self.assertRaises(json.JSONDecodeError):

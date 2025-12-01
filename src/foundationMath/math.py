@@ -1,3 +1,11 @@
+"""
+Mathematical utility functions.
+
+This module provides common mathematical operations and utilities
+for numerical computations and value manipulation.
+"""
+
+
 def clamp(x: float, lo: float, hi: float) -> float:
     """
     Clamp a value between a minimum and maximum bound.

@@ -43,7 +43,7 @@ import subprocess
 import asyncio
 from dataclasses import dataclass
 from typing import Optional, Union, List, TypeVar, Generic, Callable
-from foundationDataModelHelpers.dataModelHelper import DataModelHelper
+from foundationTypes.dataModelHelper import DataModelHelper
 
 
 # Constants
@@ -259,7 +259,7 @@ class CLITransact:
             CLITransactResultWithModel containing both command result and parsed model
 
         Example:
-            from foundationDataModelHelpers.commonTypes.DiskUsage import DiskUsage
+            from foundationTypes.commonTypes.DiskUsage import DiskUsage
 
             cli = CLITransact()
             result = cli.run_sync_with_model(
@@ -415,7 +415,7 @@ class CLITransact:
 
         Example:
             import asyncio
-            from foundationDataModelHelpers.commonTypes.DiskUsage import DiskUsage
+            from foundationTypes.commonTypes.DiskUsage import DiskUsage
 
             async def main():
                 cli = CLITransact()

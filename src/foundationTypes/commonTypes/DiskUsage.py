@@ -8,7 +8,7 @@ disk usage data, compatible with both Linux and macOS df command formats.
 from dataclasses import dataclass
 from typing import Any, TypeVar, Type, cast, List, Optional
 
-from foundationDataModelHelpers.dataModelHelper import DataModelHelper
+from foundationTypes.dataModelHelper import DataModelHelper
 
 
 T = TypeVar("T")
@@ -53,7 +53,9 @@ class DiskUsageEntry(DataModelHelper):
         available = from_str(obj.get("available"))
         use_percent = from_str(obj.get("use_percent"))
         mounted_on = from_str(obj.get("mounted_on"))
-        return DiskUsageEntry(filesystem, size, used, available, use_percent, mounted_on)
+        return DiskUsageEntry(
+            filesystem, size, used, available, use_percent, mounted_on
+        )
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -103,7 +105,7 @@ class DiskUsage(DataModelHelper):
         Returns:
             DiskUsage object containing parsed entries
         """
-        lines = output.strip().split('\n')
+        lines = output.strip().split("\n")
 
         # Skip header line
         if not lines or len(lines) < 2:
@@ -128,19 +130,29 @@ class DiskUsage(DataModelHelper):
                 # macOS format with inode info
                 if len(parts) > 9:
                     # Handle cases where filesystem or mount point might contain spaces
-                    filesystem = ' '.join(parts[:-8])
+                    filesystem = " ".join(parts[:-8])
                     size, used, available, use_percent = parts[-8:-4]
-                    mounted_on = ' '.join(parts[-1:])  # Only take the last part as mount point
+                    mounted_on = " ".join(
+                        parts[-1:]
+                    )  # Only take the last part as mount point
                 else:
-                    filesystem, size, used, available, use_percent = parts[0], parts[1], parts[2], parts[3], parts[4]
+                    filesystem, size, used, available, use_percent = (
+                        parts[0],
+                        parts[1],
+                        parts[2],
+                        parts[3],
+                        parts[4],
+                    )
                     mounted_on = parts[8]
             else:
                 # Linux format or simpler format
                 if len(parts) > 6:
-                    filesystem = ' '.join(parts[:-5])
+                    filesystem = " ".join(parts[:-5])
                     size, used, available, use_percent, mounted_on = parts[-5:]
                 else:
-                    filesystem, size, used, available, use_percent, mounted_on = parts[0:6]
+                    filesystem, size, used, available, use_percent, mounted_on = parts[
+                        0:6
+                    ]
 
             entry = DiskUsageEntry(
                 filesystem=filesystem,
@@ -148,7 +160,7 @@ class DiskUsage(DataModelHelper):
                 used=used,
                 available=available,
                 use_percent=use_percent,
-                mounted_on=mounted_on
+                mounted_on=mounted_on,
             )
             entries.append(entry)
 

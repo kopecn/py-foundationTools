@@ -11,7 +11,7 @@ A comprehensive collection of Python foundation utilities designed to extend the
 - **Structured results** - Type-safe result objects with return codes, stdout, stderr
 - **Model parsing** - Direct parsing of command output into structured data models
 
-### 📊 Data Model Helpers (`foundationDataModelHelpers`)
+### 📊 Data Model Helpers (`foundationTypes`)
 - **Base DataModelHelper class** - Foundation for JSON-serializable data models
 - **File I/O operations** - Save/load data models to/from JSON files
 - **Type-safe serialization** - Robust dictionary conversion with type validation
@@ -53,7 +53,7 @@ async def main():
     return result
 
 # Parse command output into structured data
-from foundationDataModelHelpers.commonTypes.DiskUsage import DiskUsage
+from foundationTypes.commonTypes.DiskUsage import DiskUsage
 result = cli.run_sync_with_model("df -h", DiskUsage.from_df_output)
 if result.success and result.model:
     for entry in result.model.entries:
@@ -62,8 +62,8 @@ if result.success and result.model:
 
 ### Data Model Management
 ```python
-from foundationDataModelHelpers.dataModelHelper import DataModelHelper
-from foundationDataModelHelpers.commonTypes.GeoCoordinate import GeoCoordinate
+from foundationTypes.dataModelHelper import DataModelHelper
+from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 from pathlib import Path
 import json
 

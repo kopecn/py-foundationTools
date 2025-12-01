@@ -2,14 +2,14 @@
 
 # === Input Schemas ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/UnitSphericalSmallCircle-schema.json"
+  "schema/schemas/Math/UnitSphericalSmallCircle-schema.json"
 )
 CLASSES_FOR_BASE_PARENT=(
     "UnitSphericalSmallCircle"
 )
 
 # === Output Directory ===
-OUTPUT_PYTHON_FILE="src/foundationDataModelHelpers/mathTypes/UnitSphericalSmallCircle.py"
+OUTPUT_PYTHON_FILE="src/foundationTypes/mathTypes/UnitSphericalSmallCircle.py"
 
 # === Quicktype Arguements ===
 PYTHON_VERSION="3.7"
@@ -51,7 +51,7 @@ add_base_class() {
     local classes=("$@")
 
     sed -i '' '/^from dataclasses import dataclass$/a\
-from foundationDataModelHelpers.dataModelHelper import DataModelHelper
+from foundationTypes.dataModelHelper import DataModelHelper
     ' "$file"
 
     for class in "${classes[@]}"; do

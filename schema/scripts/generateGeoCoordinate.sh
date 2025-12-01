@@ -9,7 +9,7 @@ CLASSES_FOR_BASE_PARENT=(
 )
 
 # === Output Directory ===
-OUTPUT_PYTHON_FILE="src/foundationDataModelHelpers/commonTypes/GeoCoordinate.py"
+OUTPUT_PYTHON_FILE="src/foundationTypes/commonTypes/GeoCoordinate.py"
 
 # === Quicktype Arguements ===
 PYTHON_VERSION="3.7"
@@ -51,7 +51,7 @@ add_base_class() {
     local classes=("$@")
 
     sed -i '' '/^from dataclasses import dataclass$/a\
-from foundationDataModelHelpers.dataModelHelper import DataModelHelper
+from foundationTypes.dataModelHelper import DataModelHelper
     ' "$file"
 
     for class in "${classes[@]}"; do

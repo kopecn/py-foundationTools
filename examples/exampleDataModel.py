@@ -15,8 +15,8 @@ import asyncio
 from pathlib import Path
 
 from foundationCLIHelpers.cliTransact import CLITransact
-from foundationDataModelHelpers.commonTypes.DiskUsage import DiskUsage
-from foundationDataModelHelpers.commonTypes.GeoCoordinate import GeoCoordinate
+from foundationTypes.commonTypes.DiskUsage import DiskUsage
+from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 
 
 def example_basic_datamodel():
@@ -33,7 +33,9 @@ def example_basic_datamodel():
     reloadedCoord = GeoCoordinate.loadFromFile(aCoordfile)
     print(f"Original: {geoCoord}")
     print(f"Reloaded: {reloadedCoord}")
-    print(f"Coordinates match: {geoCoord.latitude == reloadedCoord.latitude and geoCoord.longitude == reloadedCoord.longitude}")
+    print(
+        f"Coordinates match: {geoCoord.latitude == reloadedCoord.latitude and geoCoord.longitude == reloadedCoord.longitude}"
+    )
 
     if aCoordfile.exists() and aCoordfile.is_file():
         aCoordfile.unlink()
@@ -57,7 +59,9 @@ def example_cli_with_datamodel():
         # Show first 3 entries as example
         for i, entry in enumerate(result.model.entries[:3]):
             print(f"  {i+1}. {entry.filesystem}")
-            print(f"     Size: {entry.size}, Used: {entry.used}, Available: {entry.available}")
+            print(
+                f"     Size: {entry.size}, Used: {entry.used}, Available: {entry.available}"
+            )
             print(f"     Usage: {entry.use_percent}, Mounted: {entry.mounted_on}")
 
         if len(result.model.entries) > 3:
@@ -65,11 +69,15 @@ def example_cli_with_datamodel():
 
         # Demonstrate serialization to dict/JSON
         disk_data = result.model.to_dict()
-        print(f"\nModel serializes to dictionary with {len(disk_data['entries'])} entries")
+        print(
+            f"\nModel serializes to dictionary with {len(disk_data['entries'])} entries"
+        )
 
         # Round-trip test
         reconstructed = DiskUsage.from_dict(disk_data)
-        print(f"Round-trip serialization successful: {len(reconstructed.entries) == len(result.model.entries)}")
+        print(
+            f"Round-trip serialization successful: {len(reconstructed.entries) == len(result.model.entries)}"
+        )
     else:
         print("No model data was parsed")
         if result.stderr:
@@ -90,9 +98,13 @@ async def example_async_cli_with_datamodel():
         # Find the largest filesystem by size
         largest_entry = None
         for entry in result.model.entries:
-            if entry.size != '0Bi' and (largest_entry is None or
-                                      entry.size.replace('Gi', '').replace('Mi', '').replace('Ki', '') >
-                                      largest_entry.size.replace('Gi', '').replace('Mi', '').replace('Ki', '')):
+            if entry.size != "0Bi" and (
+                largest_entry is None
+                or entry.size.replace("Gi", "").replace("Mi", "").replace("Ki", "")
+                > largest_entry.size.replace("Gi", "")
+                .replace("Mi", "")
+                .replace("Ki", "")
+            ):
                 largest_entry = entry
 
         if largest_entry:
@@ -108,7 +120,7 @@ def example_custom_serializer():
 
     # Simple serializer that just counts lines
     def count_lines(output: str) -> int:
-        return len(output.strip().split('\n')) if output else 0
+        return len(output.strip().split("\n")) if output else 0
 
     cli = CLITransact()
 
