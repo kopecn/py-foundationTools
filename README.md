@@ -19,6 +19,10 @@ A comprehensive collection of Python foundation utilities designed to extend the
   - `GeoCoordinate` - Geographical coordinate handling
   - `DiskUsage` - Parse and structure `df` command output
   - `ModelContextProtocol` - Protocol for model context management
+- **Mathematical data types** (`mathTypes`):
+  - `UnitSphericalSmallCircle` - Small circles on unit spheres using spherical coordinates
+  - `UnitSphericalArc` - Arcs on unit spheres with orientation and arc length
+  - `QuaternionType` - Abstract base class for quaternion representations (3D rotations)
 
 ### 🧮 Mathematical Utilities (`foundationMath`)
 - **Clamping functions** - Constrain values within specified bounds with validation
@@ -83,6 +87,37 @@ from foundationMath.math import clamp
 # Constrain values within bounds
 value = clamp(150, 0, 100)  # Returns 100
 safe_percentage = clamp(user_input, 0.0, 100.0)
+```
+
+### Mathematical Data Types
+```python
+import math
+from foundationTypes.mathTypes.UnitSphericalSmallCircle import UnitSphericalSmallCircle
+from foundationTypes.mathTypes.UnitSphericalArc import UnitSphericalArc
+from foundationTypes.mathTypes.QuaternionType import QuaternionType
+
+# Create a small circle on a unit sphere
+circle = UnitSphericalSmallCircle(
+    azimuth=0.0,              # Longitudinal position (0 to 2*pi)
+    polar=math.pi / 4,        # Latitudinal position (-pi/2 to pi/2)
+    radius_angle=math.pi / 6  # Angular radius
+)
+
+# Serialize to JSON
+circle_dict = circle.to_dict()
+# Save to file
+circle.saveToFile(Path("circle.json"))
+
+# Create an arc on a unit sphere
+arc = UnitSphericalArc(
+    arc_length=math.pi / 2,  # Arc length in radians
+    azimuth=math.pi / 4,     # Starting longitudinal position
+    orient=0.0,              # Rotational orientation
+    polar=0.0                # Starting latitudinal position
+)
+
+# Use QuaternionType as base for custom quaternion implementations
+# (Subclass and implement the abstract methods)
 ```
 
 ## Development Workflows

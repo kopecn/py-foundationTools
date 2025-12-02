@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from foundationTypes.dataModelHelper import DataModelHelper
 from typing import Any, TypeVar, Type
+
+from foundationTypes.dataModelHelper import DataModelHelper
 
 
 T = TypeVar("T", bound="QuaternionType")
