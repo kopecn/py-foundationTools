@@ -3,18 +3,18 @@
   "$schema": "http://json-schema.org/draft-06/schema#",
   "description": "Represents an arc on a unit sphere in spherical coordinates.  This arc is formed by a spherical reference point and then projected from that start point along the unit circle for the length of the arc in radians.",
   "type": "object",
-  "required": ["radiusAngle", "azimuth","arcLength"],
+  "required": ["polar", "azimuth","arcLength"],
   "properties": {
     "azimuth": {
       "description": "Azimuthal angle in radians (0 to 2*pi).  Represents the longitudinal position around the sphere.",
       "type": "number"
     },
-    "radiusAngle": {
-      "description": "Angular radius of the small circle in radians.  Represents the angular distance from the center point.",
+    "arcLength": {
+      "description": "The arc length in radians (-2*pi to 2*pi.",
       "type": "number"
     },
-    "arcLength": {
-      "description": "The arc lenght in radians (-2*pi to 2*pi.",
+    "polar": {
+      "description": "Polar angle in radians (-pi/2 to pi/2).  Represents the latitudinal position, where 0 is the equator,  pi/2 is the north pole, and -pi/2 is the south pole.",
       "type": "number"
     }
   }
