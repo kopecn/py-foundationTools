@@ -5,6 +5,8 @@ This module provides common mathematical operations and utilities
 for numerical computations and value manipulation.
 """
 
+from math import pi
+
 
 def clamp(x: float, lo: float, hi: float) -> float:
     """
@@ -23,3 +25,19 @@ def clamp(x: float, lo: float, hi: float) -> float:
         )
 
     return max(lo, min(x, hi))
+
+
+def wrap(a: float, lo: float = -pi, hi: float = pi) -> float:
+    """
+    Normalize a value to the range [lo, hi].
+
+    Args:
+        a: Value to normalize (e.g., angle in radians).
+        lo: Lower bound of the range (inclusive, default: -pi).
+        hi: Upper bound of the range (exclusive, default: pi).
+
+    Returns:
+        Value normalized to [lo, hi).
+    """
+    span = hi - lo
+    return ((a - lo) % span) + lo
