@@ -1,0 +1,25 @@
+{
+  "id": "http://json-schema.org/geo",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "description": "Represents an arc on a unit sphere in spherical coordinates using physics convention.  This arc is formed by a spherical reference point and then projected from that start point along the unit circle for the length of the arc in radians.",
+  "type": "object",
+  "required": ["polar", "azimuth","arcLength","orient"],
+  "properties": {
+    "azimuth": {
+      "description": "Azimuthal angle in radians (0 to 2*pi).  Represents the longitudinal position around the sphere.",
+      "type": "number"
+    },
+    "arcLength": {
+      "description": "The arc length in radians (-2*pi to 2*pi.",
+      "type": "number"
+    },
+    "orient": {
+      "description": "The rotated orientation about the vector from the sphere's origin through the start point in radians (-pi to pi.",
+      "type": "number"
+    },
+    "polar": {
+      "description": "Polar angle in radians (-pi/2 to pi/2).  Represents the latitudinal position, where 0 is the equator,  pi/2 is the north pole, and -pi/2 is the south pole.",
+      "type": "number"
+    }
+  }
+}

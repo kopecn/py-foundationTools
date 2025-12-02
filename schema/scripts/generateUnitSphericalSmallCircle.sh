@@ -2,14 +2,14 @@
 
 # === Input Schemas ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/GeoCoordinate-schema.json"
+  "schema/schemas/Math/UnitSphericalSmallCircle-schema.json"
 )
 CLASSES_FOR_BASE_PARENT=(
-    "GeoCoordinate"
+    "UnitSphericalSmallCircle"
 )
 
 # === Output Directory ===
-OUTPUT_PYTHON_FILE="src/foundationTypes/commonTypes/GeoCoordinate.py"
+OUTPUT_PYTHON_FILE="src/foundationTypes/mathTypes/UnitSphericalSmallCircle.py"
 
 # === Quicktype Arguements ===
 PYTHON_VERSION="3.7"

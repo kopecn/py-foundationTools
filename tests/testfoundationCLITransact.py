@@ -24,7 +24,7 @@ from foundationCLIHelpers.cliTransact import (  # type: ignore # pylint: disable
     ERROR_RETURN_CODE,
     SUCCESS_RETURN_CODE,
 )
-from foundationDataModelHelpers.dataModelHelper import DataModelHelper  # type: ignore # pylint: disable=wrong-import-position
+from foundationTypes.dataModelHelper import DataModelHelper  # type: ignore # pylint: disable=wrong-import-position
 
 
 # Test data model for unit tests
@@ -43,12 +43,16 @@ class MockDataModel(DataModelHelper):
         return {"value": self.value, "count": self.count}
 
     def __eq__(self, other):
-        return isinstance(other, MockDataModel) and self.value == other.value and self.count == other.count
+        return (
+            isinstance(other, MockDataModel)
+            and self.value == other.value
+            and self.count == other.count
+        )
 
 
 def parse_echo_output(output: str) -> MockDataModel:
     """Test serializer that parses echo output into MockDataModel."""
-    lines = output.strip().split('\n')
+    lines = output.strip().split("\n")
     return MockDataModel(value=lines[0], count=len(lines))
 
 
@@ -99,13 +103,14 @@ class TestCLITransactResultWithModel:
             stdout="Hello World",
             stderr="Warning message",
             success=True,
-            model=test_model
+            model=test_model,
         )
         assert result.return_code == 0
         assert result.stdout == "Hello World"
         assert result.stderr == "Warning message"
         assert result.success is True
         assert result.model == test_model
+        assert result.model is not None
         assert result.model.value == "test"
         assert result.model.count == 42
 
@@ -434,8 +439,7 @@ class TestCLITransactSyncWithModel:
         """Test sync with model with multiline output."""
         cli = CLITransact()
         result = cli.run_sync_with_model(
-            ["sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"],
-            parse_echo_output
+            ["sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"], parse_echo_output
         )
 
         assert result.return_code == SUCCESS_RETURN_CODE
@@ -458,8 +462,7 @@ class TestCLITransactSyncWithModel:
         """Test sync with model with success string validation."""
         cli = CLITransact(success_string="SUCCESS")
         result = cli.run_sync_with_model(
-            ["echo", "Operation SUCCESS completed"],
-            parse_echo_output
+            ["echo", "Operation SUCCESS completed"], parse_echo_output
         )
 
         assert result.return_code == SUCCESS_RETURN_CODE
@@ -472,8 +475,7 @@ class TestCLITransactSyncWithModel:
         """Test sync with model when success string is missing."""
         cli = CLITransact(success_string="SUCCESS")
         result = cli.run_sync_with_model(
-            ["echo", "Operation completed"],
-            parse_echo_output
+            ["echo", "Operation completed"], parse_echo_output
         )
 
         assert result.return_code == SUCCESS_RETURN_CODE
@@ -515,7 +517,9 @@ class TestCLITransactAsyncWithModel:
     async def test_run_async_with_model_successful_command(self):
         """Test async with model execution of successful command."""
         cli = CLITransact()
-        result = await cli.run_async_with_model(["echo", "hello world"], parse_echo_output)
+        result = await cli.run_async_with_model(
+            ["echo", "hello world"], parse_echo_output
+        )
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "hello world"
@@ -541,7 +545,9 @@ class TestCLITransactAsyncWithModel:
     async def test_run_async_with_model_serialization_failure(self):
         """Test async with model when serialization fails."""
         cli = CLITransact()
-        result = await cli.run_async_with_model(["echo", "hello"], parse_failing_serializer)
+        result = await cli.run_async_with_model(
+            ["echo", "hello"], parse_failing_serializer
+        )
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "hello"
@@ -556,8 +562,7 @@ class TestCLITransactAsyncWithModel:
         """Test async with model with multiline output."""
         cli = CLITransact()
         result = await cli.run_async_with_model(
-            ["sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"],
-            parse_echo_output
+            ["sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"], parse_echo_output
         )
 
         assert result.return_code == SUCCESS_RETURN_CODE
@@ -582,8 +587,7 @@ class TestCLITransactAsyncWithModel:
         """Test async with model with success string validation."""
         cli = CLITransact(success_string="SUCCESS")
         result = await cli.run_async_with_model(
-            ["echo", "Operation SUCCESS completed"],
-            parse_echo_output
+            ["echo", "Operation SUCCESS completed"], parse_echo_output
         )
 
         assert result.return_code == SUCCESS_RETURN_CODE
@@ -597,8 +601,7 @@ class TestCLITransactAsyncWithModel:
         """Test async with model when success string is missing."""
         cli = CLITransact(success_string="SUCCESS")
         result = await cli.run_async_with_model(
-            ["echo", "Operation completed"],
-            parse_echo_output
+            ["echo", "Operation completed"], parse_echo_output
         )
 
         assert result.return_code == SUCCESS_RETURN_CODE
@@ -610,7 +613,9 @@ class TestCLITransactAsyncWithModel:
     async def test_run_async_with_model_timeout(self):
         """Test async with model timeout handling."""
         cli = CLITransact()
-        result = await cli.run_async_with_model(["sleep", "2"], parse_echo_output, timeout=1)
+        result = await cli.run_async_with_model(
+            ["sleep", "2"], parse_echo_output, timeout=1
+        )
 
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
@@ -619,12 +624,16 @@ class TestCLITransactAsyncWithModel:
 
     @pytest.mark.asyncio
     @patch("asyncio.create_subprocess_exec")
-    async def test_run_async_with_model_exception_handling(self, mock_create_subprocess: Any):
+    async def test_run_async_with_model_exception_handling(
+        self, mock_create_subprocess: Any
+    ):
         """Test async with model exception handling."""
         mock_create_subprocess.side_effect = Exception("Process creation failed")
 
         cli = CLITransact()
-        result = await cli.run_async_with_model(["nonexistent-command"], parse_echo_output)
+        result = await cli.run_async_with_model(
+            ["nonexistent-command"], parse_echo_output
+        )
 
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Command execution failed" in result.stderr

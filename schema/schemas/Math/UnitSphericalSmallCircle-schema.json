@@ -1,0 +1,21 @@
+{
+  "id": "http://json-schema.org/geo",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "description": "Represents a small circle on a unit sphere in spherical coordinates using physics convention.  A small circle is formed by intersecting the sphere with a plane that does notpass through the sphere's center, creating a circular path at a constantangular distance from a reference point.",
+  "type": "object",
+  "required": ["radiusAngle", "azimuth","polar"],
+  "properties": {
+    "azimuth": {
+      "description": "Azimuthal angle in radians (0 to 2*pi).  Represents the longitudinal position around the sphere.",
+      "type": "number"
+    },
+    "radiusAngle": {
+      "description": "Angular radius of the small circle in radians.  Represents the angular distance from the center point.",
+      "type": "number"
+    },
+    "polar": {
+      "description": "Polar angle in radians (-pi/2 to pi/2).  Represents the latitudinal position, where 0 is the equator,  pi/2 is the north pole, and -pi/2 is the south pole.",
+      "type": "number"
+    }
+  }
+}

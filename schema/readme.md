@@ -54,7 +54,7 @@ CLASSES_FOR_BASE_PARENT=(
 )
 
 # === Output Directory ===
-OUTPUT_PYTHON_FILE="src/foundationDataModelHelpers/commonTypes/YourModel.py"
+OUTPUT_PYTHON_FILE="src/foundationTypes/commonTypes/YourModel.py"
 
 # Rest of script remains the same...
 ```
@@ -83,7 +83,7 @@ class YourModel(DataModelHelper):
 
 ### Step 5: Use Your Data Model
 ```python
-from foundationDataModelHelpers.commonTypes.YourModel import YourModel
+from foundationTypes.commonTypes.YourModel import YourModel
 
 # Create instance
 model = YourModel(field1="test", field2=123.45)

@@ -2,14 +2,14 @@
 
 # === Input Schemas ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/GeoCoordinate-schema.json"
+  "schema/schemas/Math/UnitSphericalArc-schema.json"
 )
 CLASSES_FOR_BASE_PARENT=(
-    "GeoCoordinate"
+    "UnitSphericalArc"
 )
 
 # === Output Directory ===
-OUTPUT_PYTHON_FILE="src/foundationTypes/commonTypes/GeoCoordinate.py"
+OUTPUT_PYTHON_FILE="src/foundationTypes/mathTypes/UnitSphericalArc.py"
 
 # === Quicktype Arguements ===
 PYTHON_VERSION="3.7"
