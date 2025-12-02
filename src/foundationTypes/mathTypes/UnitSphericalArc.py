@@ -23,9 +23,9 @@ def to_class(c: Type[T], x: Any) -> dict:
 
 @dataclass
 class UnitSphericalArc(DataModelHelper):
-    """Represents an arc on a unit sphere in spherical coordinates.  This arc is formed by a
-    spherical reference point and then projected from that start point along the unit circle
-    for the length of the arc in radians.
+    """Represents an arc on a unit sphere in spherical coordinates using physics convention.
+    This arc is formed by a spherical reference point and then projected from that start
+    point along the unit circle for the length of the arc in radians.
     """
 
     arc_length: float

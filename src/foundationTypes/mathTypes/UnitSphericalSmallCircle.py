@@ -23,9 +23,10 @@ def to_class(c: Type[T], x: Any) -> dict:
 
 @dataclass
 class UnitSphericalSmallCircle(DataModelHelper):
-    """Represents a small circle on a unit sphere in spherical coordinates.  A small circle is
-    formed by intersecting the sphere with a plane that does notpass through the sphere's
-    center, creating a circular path at a constantangular distance from a reference point.
+    """Represents a small circle on a unit sphere in spherical coordinates using physics
+    convention.  A small circle is formed by intersecting the sphere with a plane that does
+    notpass through the sphere's center, creating a circular path at a constantangular
+    distance from a reference point.
     """
 
     azimuth: float
