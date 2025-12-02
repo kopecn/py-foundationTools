@@ -35,6 +35,10 @@ class UnitSphericalArc(DataModelHelper):
     """Azimuthal angle in radians (0 to 2*pi).  Represents the longitudinal position around the
     sphere.
     """
+    orient: float
+    """The rotated orientation about the vector from the sphere's origin through the start point
+    in radians (-pi to pi.
+    """
     polar: float
     """Polar angle in radians (-pi/2 to pi/2).  Represents the latitudinal position, where 0 is
     the equator,  pi/2 is the north pole, and -pi/2 is the south pole.
@@ -45,13 +49,15 @@ class UnitSphericalArc(DataModelHelper):
         assert isinstance(obj, dict)
         arc_length = from_float(obj.get("arcLength"))
         azimuth = from_float(obj.get("azimuth"))
+        orient = from_float(obj.get("orient"))
         polar = from_float(obj.get("polar"))
-        return UnitSphericalArc(arc_length, azimuth, polar)
+        return UnitSphericalArc(arc_length, azimuth, orient, polar)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["arcLength"] = to_float(self.arc_length)
         result["azimuth"] = to_float(self.azimuth)
+        result["orient"] = to_float(self.orient)
         result["polar"] = to_float(self.polar)
         return result
 
