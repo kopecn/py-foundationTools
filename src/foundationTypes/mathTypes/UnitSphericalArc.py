@@ -40,8 +40,9 @@ class UnitSphericalArc(DataModelHelper):
     in radians (-pi to pi.
     """
     polar: float
-    """Polar angle in radians (-pi/2 to pi/2).  Represents the latitudinal position, where 0 is
-    the equator,  pi/2 is the north pole, and -pi/2 is the south pole.
+    """Polar angle (colatitude/zenith angle) in radians (0 to pi), measured from the positive
+    z-axis following ISO 80000-2:2019 physics convention. 0 is the north pole (+z axis), pi/2
+    is the equator (xy-plane), and pi is the south pole (-z axis).
     """
 
     @staticmethod
