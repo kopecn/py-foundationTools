@@ -6,12 +6,13 @@ functionality provided by the DataModelHelper base class using GeoCoordinate
 as a concrete implementation.
 """
 
-import unittest
-import tempfile
 import json
+import tempfile
+import unittest
 from pathlib import Path
-from foundationTypes.dataModelHelper import DataModelHelper
+
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
+from foundationTypes.dataModelHelper import DataModelHelper
 
 
 class TestDataModelHelper(unittest.TestCase):
@@ -40,13 +41,13 @@ class TestDataModelHelper(unittest.TestCase):
 
     def test_saveToFile_creates_valid_json(self):
         """Test that DataModelHelper.saveToFile creates properly formatted JSON."""
-        self.complete_model.saveToFile(self.test_file)
+        self.complete_model.save_to_file(self.test_file)
 
         # Verify file exists
         self.assertTrue(self.test_file.exists())
 
         # Verify JSON structure and formatting
-        with open(self.test_file, "r", encoding="utf-8") as f:
+        with open(self.test_file, encoding="utf-8") as f:
             content = f.read()
             data = json.loads(content)
 
@@ -59,9 +60,9 @@ class TestDataModelHelper(unittest.TestCase):
 
     def test_saveToFile_uses_to_dict_method(self):
         """Test that saveToFile correctly uses the subclass's to_dict method."""
-        self.partial_model.saveToFile(self.test_file)
+        self.partial_model.save_to_file(self.test_file)
 
-        with open(self.test_file, "r", encoding="utf-8") as f:
+        with open(self.test_file, encoding="utf-8") as f:
             data = json.load(f)
 
         # Should contain both latitude and longitude (both are now required)
@@ -71,9 +72,9 @@ class TestDataModelHelper(unittest.TestCase):
 
     def test_saveToFile_handles_minimal_data(self):
         """Test that saveToFile handles models with minimal valid data."""
-        self.minimal_model.saveToFile(self.test_file)
+        self.minimal_model.save_to_file(self.test_file)
 
-        with open(self.test_file, "r", encoding="utf-8") as f:
+        with open(self.test_file, encoding="utf-8") as f:
             data = json.load(f)
 
         # Should contain both latitude and longitude with zero values
@@ -82,10 +83,10 @@ class TestDataModelHelper(unittest.TestCase):
 
     def test_saveToFile_utf8_encoding(self):
         """Test that saveToFile uses UTF-8 encoding."""
-        self.complete_model.saveToFile(self.test_file)
+        self.complete_model.save_to_file(self.test_file)
 
         # Read with explicit encoding to verify
-        with open(self.test_file, "r", encoding="utf-8") as f:
+        with open(self.test_file, encoding="utf-8") as f:
             data = json.load(f)
 
         self.assertEqual(data["latitude"], 40.7128)
@@ -98,7 +99,7 @@ class TestDataModelHelper(unittest.TestCase):
             json.dump(test_data, f)
 
         # Load using DataModelHelper method
-        loaded_model = GeoCoordinate.loadFromFile(self.test_file)
+        loaded_model = GeoCoordinate.load_from_file(self.test_file)
 
         # Verify it's the correct type and has correct data
         self.assertIsInstance(loaded_model, GeoCoordinate)
@@ -113,7 +114,7 @@ class TestDataModelHelper(unittest.TestCase):
             json.dump(test_data, f)
 
         with self.assertRaises(AssertionError):
-            GeoCoordinate.loadFromFile(self.test_file)
+            GeoCoordinate.load_from_file(self.test_file)
 
     def test_loadFromFile_requires_non_empty_data(self):
         """Test that loadFromFile requires non-empty JSON object."""
@@ -122,7 +123,7 @@ class TestDataModelHelper(unittest.TestCase):
             json.dump(test_data, f)
 
         with self.assertRaises(AssertionError):
-            GeoCoordinate.loadFromFile(self.test_file)
+            GeoCoordinate.load_from_file(self.test_file)
 
     def test_roundtrip_data_integrity(self):
         """Test that saveToFile followed by loadFromFile preserves data."""
@@ -130,12 +131,8 @@ class TestDataModelHelper(unittest.TestCase):
             self.complete_model,
             self.partial_model,
             self.minimal_model,
-            GeoCoordinate(
-                latitude=-90.0, longitude=-180.0
-            ),  # Edge case: negative extreme values
-            GeoCoordinate(
-                latitude=90.0, longitude=180.0
-            ),  # Edge case: positive extreme values
+            GeoCoordinate(latitude=-90.0, longitude=-180.0),  # Edge case: negative extreme values
+            GeoCoordinate(latitude=90.0, longitude=180.0),  # Edge case: positive extreme values
         ]
 
         for i, model in enumerate(test_models):
@@ -143,10 +140,10 @@ class TestDataModelHelper(unittest.TestCase):
                 test_file = self.temp_dir / f"roundtrip_{i}.json"
 
                 # Save using DataModelHelper
-                model.saveToFile(test_file)
+                model.save_to_file(test_file)
 
                 # Load using DataModelHelper
-                loaded_model = GeoCoordinate.loadFromFile(test_file)
+                loaded_model = GeoCoordinate.load_from_file(test_file)
 
                 # Verify data integrity
                 self.assertEqual(model.latitude, loaded_model.latitude)
@@ -162,27 +159,27 @@ class TestDataModelHelper(unittest.TestCase):
             f.write("invalid json content")
 
         with self.assertRaises(json.JSONDecodeError):
-            GeoCoordinate.loadFromFile(self.test_file)
+            GeoCoordinate.load_from_file(self.test_file)
 
     def test_loadFromFile_error_handling_missing_file(self):
         """Test that loadFromFile properly raises exceptions for missing files."""
         nonexistent_file = self.temp_dir / "does_not_exist.json"
 
         with self.assertRaises(FileNotFoundError):
-            GeoCoordinate.loadFromFile(nonexistent_file)
+            GeoCoordinate.load_from_file(nonexistent_file)
 
     def test_saveToFile_error_handling_invalid_path(self):
         """Test that saveToFile properly raises exceptions for invalid paths."""
         invalid_path = Path("/invalid/directory/that/does/not/exist/test.json")
 
         with self.assertRaises(OSError):
-            self.complete_model.saveToFile(invalid_path)
+            self.complete_model.save_to_file(invalid_path)
 
     def test_datamodel_helper_inheritance(self):
         """Test that GeoCoordinate properly inherits from DataModelHelper."""
         self.assertIsInstance(self.complete_model, DataModelHelper)
-        self.assertTrue(hasattr(self.complete_model, "saveToFile"))
-        self.assertTrue(hasattr(self.complete_model, "loadFromFile"))
+        self.assertTrue(hasattr(self.complete_model, "save_to_file"))
+        self.assertTrue(hasattr(self.complete_model, "load_from_file"))
         self.assertTrue(hasattr(self.complete_model, "to_dict"))
         self.assertTrue(hasattr(self.complete_model, "from_dict"))
 
@@ -193,7 +190,7 @@ class TestDataModelHelper(unittest.TestCase):
             json.dump(test_data, f)
 
         # Call on the subclass
-        loaded_model = GeoCoordinate.loadFromFile(self.test_file)
+        loaded_model = GeoCoordinate.load_from_file(self.test_file)
 
         # Should return GeoCoordinate, not DataModelHelper
         self.assertIsInstance(loaded_model, GeoCoordinate)

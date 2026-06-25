@@ -7,12 +7,90 @@ or manually created. It offers a consistent interface for converting between
 Python dataclass instances, dictionaries, and JSON files.
 """
 
+from collections.abc import Callable
+from enum import Enum
+from json import dump, dumps, load, loads
+from logging import getLogger
+from os import getenv
 from pathlib import Path
-from typing import TypeVar, Type, Any
-import json
+from typing import Any, ClassVar, TypeVar, cast
+
+_log = getLogger(__name__)
+
+DMH = TypeVar("DMH", bound="DataModelHelper")
+T = TypeVar("T")
+EnumT = TypeVar("EnumT", bound=Enum)
 
 
-T = TypeVar("T", bound="DataModelHelper")
+def from_bool(x: Any) -> bool:
+    if not isinstance(x, bool):
+        raise TypeError(f"Expected bool, got {type(x).__name__}")
+    return x
+
+
+def to_class(c: type[DMH], x: Any) -> dict[str, Any]:
+    if not isinstance(x, c):
+        raise TypeError(f"Expected {c.__name__}, got {type(x).__name__}")
+    return x.to_dict()
+
+
+def from_dict(f: Callable[[Any], T], x: Any) -> dict[str, T]:
+    if not isinstance(x, dict):
+        raise TypeError(f"Expected dict, got {type(x).__name__}")
+    return {k: f(v) for (k, v) in x.items()}
+
+
+def to_enum(c: type[EnumT], x: Any) -> Any:
+    if not isinstance(x, c):
+        raise TypeError(f"Expected {c.__name__}, got {type(x).__name__}")
+    return x.value
+
+
+def from_float(x: Any) -> float:
+    if not isinstance(x, float | int) or isinstance(x, bool):
+        raise TypeError(f"Expected float, got {type(x).__name__}")
+    return float(x)
+
+
+def from_int(x: Any) -> int:
+    if not isinstance(x, int) or isinstance(x, bool):
+        raise TypeError(f"Expected int, got {type(x).__name__}")
+    return x
+
+
+def to_float(x: Any) -> float:
+    return from_float(x)
+
+
+def from_list(f: Callable[[Any], T], x: Any) -> list[T]:
+    if not isinstance(x, list):
+        raise TypeError(f"Expected list, got {type(x).__name__}")
+    return [f(y) for y in x]
+
+
+def from_none(x: Any) -> None:
+    if x is not None:
+        raise TypeError(f"Expected None, got {type(x).__name__}")
+    return None
+
+
+def from_str(x: Any) -> str:
+    if not isinstance(x, str):
+        raise TypeError(f"Expected str, got {type(x).__name__}")
+    return x
+
+
+def from_union(fs: list[Callable[[Any], Any]], x: Any) -> Any:
+    errors: list[str] = []
+    for f in fs:
+        try:
+            return f(x)
+        except (TypeError, ValueError, KeyError) as exc:
+            errors.append(f"{getattr(f, '__name__', repr(f))}: {exc}")
+    summary = repr(x)
+    if len(summary) > 200:
+        summary = summary[:200] + "..."
+    raise ValueError(f"Could not deserialize {summary}; tried: {'; '.join(errors)}")
 
 
 class DataModelHelper:
@@ -32,9 +110,9 @@ class DataModelHelper:
             name: str
             age: int
 
-            @staticmethod
-            def from_dict(obj: Any) -> "UserModel":
-                return UserModel(
+            @classmethod
+            def from_dict(cls, obj: Any) -> "UserModel":
+                return cls(
                     name=obj["name"],
                     age=obj["age"]
                 )
@@ -46,8 +124,17 @@ class DataModelHelper:
                 }
     """
 
-    @staticmethod
-    def from_dict(obj: Any) -> "DataModelHelper":
+    # Subclasses must *reassign* this (e.g. `_env_mapping = {...}`), never mutate
+    # it in place — the default empty dict is shared by every subclass that does
+    # not override it.
+    _env_mapping: ClassVar[dict[str, tuple[str, Any, Callable[[str], Any]]]] = {}
+
+    wire_encode: ClassVar[Callable[..., str] | None] = None
+
+    wire_decode: ClassVar[Callable[..., Any] | None] = None
+
+    @classmethod
+    def from_dict(cls: type[DMH], obj: Any) -> DMH:
         """
         Create an instance from a dictionary representation.
 
@@ -67,7 +154,7 @@ class DataModelHelper:
         """
         raise NotImplementedError("from_dict must be implemented by subclasses")
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert the instance to a dictionary representation.
 
@@ -83,7 +170,7 @@ class DataModelHelper:
         """
         raise NotImplementedError("to_dict must be implemented by subclasses")
 
-    def saveToFile(self, filename: Path) -> None:
+    def save_to_file(self, filename: Path) -> None:
         """
         Save the datamodel instance to a JSON file.
 
@@ -97,11 +184,18 @@ class DataModelHelper:
             OSError: If the file cannot be written.
             NotImplementedError: If to_dict() is not implemented in subclass.
         """
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(self.to_dict(), f, ensure_ascii=False, indent=4)
+        _log.debug("save_to_file: %s -> %s", type(self).__name__, filename)
+        try:
+            filename.parent.mkdir(parents=True, exist_ok=True)
+            with filename.open("w", encoding="utf-8") as f:
+                dump(self.to_dict(), f, ensure_ascii=False, indent=4)
+            _log.debug("save_to_file: %s saved OK", type(self).__name__)
+        except Exception:
+            _log.error("save_to_file failed: %s -> %s", type(self).__name__, filename, exc_info=True)
+            raise
 
     @classmethod
-    def loadFromFile(cls: Type[T], filename: Path) -> T:
+    def load_from_file(cls: type[DMH], filename: Path) -> DMH:
         """
         Load a datamodel instance from a JSON file.
 
@@ -119,6 +213,91 @@ class DataModelHelper:
             json.JSONDecodeError: If the file contains invalid JSON.
             NotImplementedError: If from_dict() is not implemented in subclass.
         """
-        with open(filename, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return cls.from_dict(data)
+        _log.debug("load_from_file: %s <- %s", cls.__name__, filename)
+        try:
+            with filename.open(encoding="utf-8") as f:
+                data = load(f)
+            instance = cls.from_dict(data)
+            _log.debug("load_from_file: %s loaded OK", cls.__name__)
+            return instance
+        except Exception:
+            _log.error("load_from_file failed: %s <- %s", cls.__name__, filename, exc_info=True)
+            raise
+
+    @classmethod
+    def _resolve_from_env(cls, obj: dict[str, Any] | None = None) -> dict[str, Any]:
+        resolved = dict(obj) if obj else {}
+        for json_key, (env_var, default, coercer) in cls._env_mapping.items():
+            if json_key not in resolved or resolved[json_key] is None:
+                env_val = getenv(env_var)
+                if env_val is not None:
+                    resolved[json_key] = coercer(env_val)
+                else:
+                    resolved[json_key] = default
+        return resolved
+
+    @classmethod
+    def from_env(cls: type[DMH], obj: dict[str, Any] | None = None) -> DMH:
+        _log.debug("from_env: %s", cls.__name__)
+        try:
+            resolved = cls._resolve_from_env(obj)
+            instance = cls.from_dict(resolved)
+            _log.debug("from_env: %s loaded OK", cls.__name__)
+            return instance
+        except Exception:
+            _log.error("from_env failed: %s", cls.__name__, exc_info=True)
+            raise
+
+    def to_wire(self, **kwargs: Any) -> str:
+        encoder = type(self).wire_encode
+        if encoder is None:
+            raise NotImplementedError(
+                f"to_wire not configured for {type(self).__name__}. "
+                "Assign wire_encode in wire_config.py."
+            )
+        _log.debug("to_wire: %s", type(self).__name__)
+        try:
+            result = encoder(self, **kwargs)
+            _log.debug("to_wire: %s encoded OK", type(self).__name__)
+            return result
+        except Exception:
+            _log.error("to_wire failed: %s", type(self).__name__, exc_info=True)
+            raise
+
+    @classmethod
+    def from_wire(cls: "type[DMH]", wire_str: str) -> "DMH":
+        decoder = cls.wire_decode
+        if decoder is None:
+            raise NotImplementedError(
+                f"from_wire not configured for {cls.__name__}. "
+                "Assign wire_decode in wire_config.py."
+            )
+        _log.debug("from_wire: %s", cls.__name__)
+        try:
+            instance = cast("DMH", decoder(cls, wire_str))
+            _log.debug("from_wire: %s decoded OK", cls.__name__)
+            return instance
+        except Exception:
+            _log.error("from_wire failed: %s", cls.__name__, exc_info=True)
+            raise
+
+    def to_bytes(self, encoding: str = "utf-8") -> bytes:
+        _log.debug("to_bytes: %s", type(self).__name__)
+        try:
+            result = dumps(self.to_dict(), ensure_ascii=False).encode(encoding)
+            _log.debug("to_bytes: %s serialized OK", type(self).__name__)
+            return result
+        except Exception:
+            _log.error("to_bytes failed: %s", type(self).__name__, exc_info=True)
+            raise
+
+    @classmethod
+    def from_bytes(cls: type[DMH], data: bytes, encoding: str = "utf-8") -> DMH:
+        _log.debug("from_bytes: %s (%d bytes)", cls.__name__, len(data))
+        try:
+            instance = cls.from_dict(loads(data.decode(encoding)))
+            _log.debug("from_bytes: %s loaded OK", cls.__name__)
+            return instance
+        except Exception:
+            _log.error("from_bytes failed: %s", cls.__name__, exc_info=True)
+            raise
