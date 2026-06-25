@@ -124,16 +124,34 @@ class DataModelHelper:
                 }
     """
 
-    # Subclasses must *reassign* this (e.g. `_env_mapping = {...}`), never mutate
-    # it in place — the default empty dict is shared by every subclass that does
-    # not override it.
     _env_mapping: ClassVar[dict[str, tuple[str, Any, Callable[[str], Any]]]] = {}
+    """
+    Mapping of JSON keys to environment variable overrides.
+
+    Format:
+        {
+            json_key: (env_var_name, default_value, coercion_function)
+        }
+
+    Used by from_env() to populate missing configuration values
+    from environment variables.
+    """
 
     wire_encode: ClassVar[Callable[..., str] | None] = None
+    """
+    Optional encoder used for wire-format serialization.
+
+    Must be assigned externally (e.g., wire_config.py).
+    """
 
     wire_decode: ClassVar[Callable[..., Any] | None] = None
+    """
+    Optional decoder used for wire-format deserialization.
 
-    @classmethod
+    Must be assigned externally (e.g., wire_config.py).
+    """
+
+    @staticmethod
     def from_dict(cls: type[DMH], obj: Any) -> DMH:
         """
         Create an instance from a dictionary representation.
@@ -191,7 +209,9 @@ class DataModelHelper:
                 dump(self.to_dict(), f, ensure_ascii=False, indent=4)
             _log.debug("save_to_file: %s saved OK", type(self).__name__)
         except Exception:
-            _log.error("save_to_file failed: %s -> %s", type(self).__name__, filename, exc_info=True)
+            _log.error(
+                "save_to_file failed: %s -> %s", type(self).__name__, filename, exc_info=True
+            )
             raise
 
     @classmethod
@@ -226,6 +246,29 @@ class DataModelHelper:
 
     @classmethod
     def _resolve_from_env(cls, obj: dict[str, Any] | None = None) -> dict[str, Any]:
+        """
+        Resolve configuration values using environment variables with fallbacks.
+
+        Merges an optional input dictionary with values sourced from environment
+        variables defined in `_env_mapping`. For each configured JSON key:
+
+        - If the key is missing or None in `obj`, attempt to read from the
+        corresponding environment variable.
+        - If the environment variable exists, its value is coerced using the
+        provided coercion function.
+        - Otherwise, the configured default value is used.
+
+        Args:
+            obj: Optional base dictionary of configuration values.
+
+        Returns:
+            A new dictionary with all values resolved from input, environment,
+            or defaults.
+
+        Notes:
+            This method does not perform validation beyond coercion and presence
+            checks. It is intended as a preprocessing step before `from_dict()`.
+        """
         resolved = dict(obj) if obj else {}
         for json_key, (env_var, default, coercer) in cls._env_mapping.items():
             if json_key not in resolved or resolved[json_key] is None:
@@ -238,6 +281,27 @@ class DataModelHelper:
 
     @classmethod
     def from_env(cls: type[DMH], obj: dict[str, Any] | None = None) -> DMH:
+        """
+        Create an instance using environment-variable-aware configuration.
+
+        Resolves missing or None values using `_resolve_from_env`, then
+        constructs an instance using `from_dict()`.
+
+        Args:
+            obj: Optional dictionary overriding environment/default values.
+
+        Returns:
+            An initialized datamodel instance.
+
+        Raises:
+            NotImplementedError: If `from_dict` is not implemented in subclass.
+            Exception: Propagates any errors raised during resolution or construction.
+
+        Notes:
+            Useful for configuration-driven models where runtime environment
+            variables provide fallback or override behavior.
+        """
+
         _log.debug("from_env: %s", cls.__name__)
         try:
             resolved = cls._resolve_from_env(obj)
@@ -249,6 +313,26 @@ class DataModelHelper:
             raise
 
     def to_wire(self, **kwargs: Any) -> str:
+        """
+        Serialize the instance to a wire-format string using a configured encoder.
+
+        Uses the class-level `wire_encode` callable to transform the instance
+        into a transport-ready string format (e.g., custom protocol, compact JSON,
+        or schema-specific encoding).
+
+        Args:
+            **kwargs: Optional keyword arguments forwarded to the encoder.
+
+        Returns:
+            A string representing the serialized wire format.
+
+        Raises:
+            NotImplementedError: If `wire_encode` is not configured.
+            Exception: Propagates errors raised by the encoder.
+
+        Notes:
+            The encoder must accept the instance as its first argument.
+        """
         encoder = type(self).wire_encode
         if encoder is None:
             raise NotImplementedError(
@@ -266,6 +350,26 @@ class DataModelHelper:
 
     @classmethod
     def from_wire(cls: "type[DMH]", wire_str: str) -> "DMH":
+        """
+        Deserialize an instance from a wire-format string using a configured decoder.
+
+        Uses the class-level `wire_decode` callable to reconstruct an instance
+        from a transport-format string.
+
+        Args:
+            wire_str: Serialized wire-format string.
+
+        Returns:
+            A reconstructed instance of the datamodel.
+
+        Raises:
+            NotImplementedError: If `wire_decode` is not configured.
+            Exception: Propagates errors raised by the decoder.
+
+        Notes:
+            The decoder is expected to accept (cls, wire_str) as arguments.
+        """
+
         decoder = cls.wire_decode
         if decoder is None:
             raise NotImplementedError(
@@ -282,6 +386,25 @@ class DataModelHelper:
             raise
 
     def to_bytes(self, encoding: str = "utf-8") -> bytes:
+        """
+        Serialize the instance to UTF-8 encoded JSON bytes.
+
+        Converts the instance to a dictionary via `to_dict()`, serializes it
+        to a JSON string, and encodes it into bytes.
+
+        Args:
+            encoding: Character encoding used for the output bytes.
+
+        Returns:
+            JSON-encoded byte representation of the instance.
+
+        Raises:
+            Exception: Propagates errors from serialization or encoding steps.
+
+        Notes:
+            This is a convenience method for storage or network transmission
+            where raw JSON bytes are required.
+        """
         _log.debug("to_bytes: %s", type(self).__name__)
         try:
             result = dumps(self.to_dict(), ensure_ascii=False).encode(encoding)
@@ -293,6 +416,26 @@ class DataModelHelper:
 
     @classmethod
     def from_bytes(cls: type[DMH], data: bytes, encoding: str = "utf-8") -> DMH:
+        """
+        Deserialize an instance from JSON-encoded bytes.
+
+        Decodes bytes into a JSON string, parses it into a dictionary,
+        and constructs an instance using `from_dict()`.
+
+        Args:
+            data: JSON-encoded byte payload.
+            encoding: Character encoding used to decode the input bytes.
+
+        Returns:
+            A reconstructed instance of the datamodel.
+
+        Raises:
+            Exception: Propagates decoding, JSON parsing, or construction errors.
+
+        Notes:
+            This method assumes the input is valid JSON produced by `to_bytes()`
+            or a compatible serializer.
+        """
         _log.debug("from_bytes: %s (%d bytes)", cls.__name__, len(data))
         try:
             instance = cls.from_dict(loads(data.decode(encoding)))

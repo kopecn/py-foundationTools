@@ -1,24 +1,21 @@
-from dataclasses import dataclass
-from foundationTypes.dataModelHelper import DataModelHelper
-from typing import Any, TypeVar, Type, cast
+# =============================================================================
+# AUTO-GENERATED FILE — DO NOT EDIT
+# Generated from JSON Schema via quicktype. Any manual edits will be
+# overwritten the next time codegen runs (make codegen-all).
+# To modify, update the source schema in schema/schemas/ and re-run codegen.
+# =============================================================================
 
+from dataclasses import dataclass
+from typing import Any, TypeVar
+
+from foundationTypes.dataModelHelper import (
+    DataModelHelper,
+    from_float,
+    to_class,
+    to_float,
+)
 
 T = TypeVar("T")
-
-
-def from_float(x: Any) -> float:
-    assert isinstance(x, (float, int)) and not isinstance(x, bool)
-    return float(x)
-
-
-def to_float(x: Any) -> float:
-    assert isinstance(x, (int, float))
-    return x
-
-
-def to_class(c: Type[T], x: Any) -> dict:
-    assert isinstance(x, c)
-    return cast(Any, x).to_dict()
 
 
 @dataclass
@@ -54,8 +51,8 @@ class UnitSphericalArc(DataModelHelper):
         polar = from_float(obj.get("polar"))
         return UnitSphericalArc(arc_length, azimuth, orient, polar)
 
-    def to_dict(self) -> dict:
-        result: dict = {}
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         result["arcLength"] = to_float(self.arc_length)
         result["azimuth"] = to_float(self.azimuth)
         result["orient"] = to_float(self.orient)

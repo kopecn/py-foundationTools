@@ -438,3 +438,13 @@ list: ## List pip packages in available environments
 		echo; \
 	done
 	
+# ============================================================================
+# MARK: - Codegen
+# ============================================================================
+
+codegen-all:  ## Run all schema codegen scripts in schema/scripts/
+	@for script in schema/scripts/*.sh; do \
+		echo "Generating: $$script"; \
+		bash "$$script"; \
+	done
+	@echo "-- fini --"

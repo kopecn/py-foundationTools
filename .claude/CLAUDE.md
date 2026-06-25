@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`pyFoundationTools` is a zero-dependency Python library (>= 3.10) that extends the standard library with reusable utilities. The **zero external runtime dependencies** rule is a core design constraint: `[project].dependencies` must stay empty. Anything added there breaks the project's stated purpose. Tooling-only deps go under `[project.optional-dependencies].develop`.
+`pyFoundationTools` is a zero-dependency Python library (>= 3.10) that extends the standard library with reusable utilities. The **zero external runtime dependencies** rule is a core design constraint: `[project].dependencies` must stay empty. Anything added there breaks the project's stated purpose. Tooling-only deps go under `[project.optional-dependencies].dev`.
 
 ## Commands
 
