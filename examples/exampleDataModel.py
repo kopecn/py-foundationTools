@@ -58,10 +58,8 @@ def example_cli_with_datamodel():
 
         # Show first 3 entries as example
         for i, entry in enumerate(result.model.entries[:3]):
-            print(f"  {i+1}. {entry.filesystem}")
-            print(
-                f"     Size: {entry.size}, Used: {entry.used}, Available: {entry.available}"
-            )
+            print(f"  {i + 1}. {entry.filesystem}")
+            print(f"     Size: {entry.size}, Used: {entry.used}, Available: {entry.available}")
             print(f"     Usage: {entry.use_percent}, Mounted: {entry.mounted_on}")
 
         if len(result.model.entries) > 3:
@@ -69,9 +67,7 @@ def example_cli_with_datamodel():
 
         # Demonstrate serialization to dict/JSON
         disk_data = result.model.to_dict()
-        print(
-            f"\nModel serializes to dictionary with {len(disk_data['entries'])} entries"
-        )
+        print(f"\nModel serializes to dictionary with {len(disk_data['entries'])} entries")
 
         # Round-trip test
         reconstructed = DiskUsage.from_dict(disk_data)
@@ -101,9 +97,7 @@ async def example_async_cli_with_datamodel():
             if entry.size != "0Bi" and (
                 largest_entry is None
                 or entry.size.replace("Gi", "").replace("Mi", "").replace("Ki", "")
-                > largest_entry.size.replace("Gi", "")
-                .replace("Mi", "")
-                .replace("Ki", "")
+                > largest_entry.size.replace("Gi", "").replace("Mi", "").replace("Ki", "")
             ):
                 largest_entry = entry
 

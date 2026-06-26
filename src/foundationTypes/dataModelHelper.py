@@ -151,7 +151,7 @@ class DataModelHelper:
     Must be assigned externally (e.g., wire_config.py).
     """
 
-    @staticmethod
+    @classmethod
     def from_dict(cls: type[DMH], obj: Any) -> DMH:
         """
         Create an instance from a dictionary representation.

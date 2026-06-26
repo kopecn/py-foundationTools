@@ -1,5 +1,6 @@
-import unittest
 import math
+import unittest
+
 from foundationTypes.mathTypes.UnitSphericalArc import (
     UnitSphericalArc,
 )
@@ -59,7 +60,9 @@ class TestUnitSphericalArc(unittest.TestCase):
             UnitSphericalArc(
                 arc_length=2 * math.pi, azimuth=2 * math.pi, orient=math.pi, polar=math.pi
             ),
-            UnitSphericalArc(arc_length=-math.pi, azimuth=math.pi, orient=-math.pi / 2, polar=math.pi / 2),
+            UnitSphericalArc(
+                arc_length=-math.pi, azimuth=math.pi, orient=-math.pi / 2, polar=math.pi / 2
+            ),
         ]
 
         for i, arc in enumerate(test_arcs):

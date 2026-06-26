@@ -1,5 +1,6 @@
-import unittest
 import math
+import unittest
+
 from foundationTypes.mathTypes.UnitSphericalSmallCircle import (
     UnitSphericalSmallCircle,
 )
@@ -22,9 +23,7 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
         self.north_pole_circle = UnitSphericalSmallCircle(
             azimuth=math.pi, polar=math.pi / 2, radius_angle=math.pi / 6
         )
-        self.arbitrary_circle = UnitSphericalSmallCircle(
-            azimuth=1.5, polar=-0.5, radius_angle=0.8
-        )
+        self.arbitrary_circle = UnitSphericalSmallCircle(azimuth=1.5, polar=-0.5, radius_angle=0.8)
 
     def test_from_dict_creates_valid_instance(self):
         """Test that from_dict creates a valid UnitSphericalSmallCircle instance."""
@@ -55,9 +54,7 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
             self.north_pole_circle,
             self.arbitrary_circle,
             UnitSphericalSmallCircle(azimuth=0.0, polar=0.0, radius_angle=0.0),
-            UnitSphericalSmallCircle(
-                azimuth=2 * math.pi, polar=-math.pi / 2, radius_angle=math.pi
-            ),
+            UnitSphericalSmallCircle(azimuth=2 * math.pi, polar=-math.pi / 2, radius_angle=math.pi),
         ]
 
         for i, circle in enumerate(test_circles):

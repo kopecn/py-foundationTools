@@ -37,9 +37,9 @@ RELEASE_ENABLED ?= false
 
 # Quality-target paths. ROOT half has NO src/ — its Python lives in hooks/ + tests/
 # (see GAPS.md §6). The template half overrides these to src/. Overridable via .env.
-PY_SRC ?= hooks
+PY_SRC ?= src
 PY_TESTS ?= tests
-PY_EXAMPLES ?=
+PY_EXAMPLES ?= examples
 PY_ALL ?= $(PY_SRC) $(PY_TESTS) $(PY_EXAMPLES)
 
 # Derived
@@ -240,11 +240,9 @@ uv-refresh: check-uv  ## Clean cache + upgrade all deps to latest
 uv-lint: check-uv  ## Run ruff linter
 	$(UV) ruff check $(PY_ALL)
 
-uv-lintFix: check-uv  ## Run ruff linter with auto-fix
-	$(UV) ruff check --fix $(PY_ALL)
-
 uv-format: check-uv  ## Format code with ruff
 	$(UV) ruff format $(PY_ALL)
+	$(UV) ruff check --fix --unsafe-fixes $(PY_ALL)
 
 uv-typecheck: check-uv  ## Strict type check with mypy
 	$(UV) mypy $(PY_SRC) $(PY_TESTS) $(PY_EXAMPLES)

@@ -20,9 +20,7 @@ def clamp(x: float, lo: float, hi: float) -> float:
     Raises: ValueError: If lo > hi
     """
     if lo > hi:
-        raise ValueError(
-            f"Lower bound ({lo}) cannot be greater than upper bound ({hi})"
-        )
+        raise ValueError(f"Lower bound ({lo}) cannot be greater than upper bound ({hi})")
 
     return max(lo, min(x, hi))
 

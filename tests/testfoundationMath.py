@@ -2,8 +2,9 @@
 Unit tests for foundationMath module.
 """
 
-import pytest
 from math import pi
+
+import pytest
 from src.foundationMath.math import clamp, wrap
 
 
@@ -34,9 +35,7 @@ class TestClamp:
 
     def test_clamp_invalid_bounds(self):
         """Test that invalid bounds (lo > hi) raise ValueError."""
-        with pytest.raises(
-            ValueError, match="Lower bound \\(10\\).*upper bound \\(0\\)"
-        ):
+        with pytest.raises(ValueError, match="Lower bound \\(10\\).*upper bound \\(0\\)"):
             clamp(5, 10, 0)
 
     def test_clamp_equal_bounds(self):

@@ -39,12 +39,13 @@ string, and maintain a simple type for the return code, which contains an option
 err and the stdout.
 """
 
-import subprocess
 import asyncio
+import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Optional, Union, List, TypeVar, Generic, Callable
-from foundationTypes.dataModelHelper import DataModelHelper
+from typing import Generic, TypeVar
 
+from foundationTypes.dataModelHelper import DataModelHelper
 
 # Constants
 ERROR_RETURN_CODE = -1
@@ -80,8 +81,8 @@ class CLITransactResult:
     """
 
     return_code: int
-    stdout: Optional[str] = None
-    stderr: Optional[str] = None
+    stdout: str | None = None
+    stderr: str | None = None
     success: bool = False
 
 
@@ -95,7 +96,7 @@ class CLITransactResultWithModel(CLITransactResult, Generic[T]):
                             None if parsing failed or stdout was empty.
     """
 
-    model: Optional[T] = None
+    model: T | None = None
 
 
 class CLITransact:
@@ -122,7 +123,7 @@ class CLITransact:
             print("Deployment successful")
     """
 
-    def __init__(self, success_string: Optional[str] = None):
+    def __init__(self, success_string: str | None = None):
         """
         Initialize CLITransact instance.
 
@@ -134,9 +135,7 @@ class CLITransact:
         """
         self.success_string = success_string
 
-    def _validate_command(
-        self, command: Union[str, List[str]]
-    ) -> Optional[CLITransactResult]:
+    def _validate_command(self, command: str | list[str]) -> CLITransactResult | None:
         """Validate command input and return error result if invalid."""
         if not command:
             return CLITransactResult(
@@ -154,16 +153,14 @@ class CLITransact:
             return False
         return True
 
-    def _normalize_output(self, output: Optional[str]) -> Optional[str]:
+    def _normalize_output(self, output: str | None) -> str | None:
         """Normalize output string, returning None for empty strings."""
         if not output:
             return None
         stripped = output.strip()
         return stripped if stripped else None
 
-    def run_sync(
-        self, command: Union[str, List[str]], timeout: Optional[int] = None
-    ) -> CLITransactResult:
+    def run_sync(self, command: str | list[str], timeout: int | None = None) -> CLITransactResult:
         """
         Execute a command synchronously.
 
@@ -202,8 +199,7 @@ class CLITransact:
         try:
             result = subprocess.run(
                 command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
                 timeout=timeout,
                 shell=isinstance(command, str),
@@ -243,9 +239,9 @@ class CLITransact:
 
     def run_sync_with_model(
         self,
-        command: Union[str, List[str]],
+        command: str | list[str],
         serializer: Callable[[str], T],
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ) -> CLITransactResultWithModel[T]:
         """
         Execute a command synchronously and parse output into a data model.
@@ -295,7 +291,7 @@ class CLITransact:
         return extended_result
 
     async def run_async(
-        self, command: Union[str, List[str]], timeout: Optional[int] = None
+        self, command: str | list[str], timeout: int | None = None
     ) -> CLITransactResult:
         """
         Execute a command asynchronously.
@@ -371,9 +367,7 @@ class CLITransact:
             stderr_text = stderr.decode() if stderr else ""
 
             # proc.returncode should be set after communicate(), but handle None case
-            return_code = (
-                proc.returncode if proc.returncode is not None else ERROR_RETURN_CODE
-            )
+            return_code = proc.returncode if proc.returncode is not None else ERROR_RETURN_CODE
             success = self._determine_success(return_code, stdout_text)
 
             return CLITransactResult(
@@ -398,9 +392,9 @@ class CLITransact:
 
     async def run_async_with_model(
         self,
-        command: Union[str, List[str]],
+        command: str | list[str],
         serializer: Callable[[str], T],
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ) -> CLITransactResultWithModel[T]:
         """
         Execute a command asynchronously and parse output into a data model.

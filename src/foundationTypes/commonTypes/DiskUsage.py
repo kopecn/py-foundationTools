@@ -6,10 +6,9 @@ disk usage data, compatible with both Linux and macOS df command formats.
 """
 
 from dataclasses import dataclass
-from typing import Any, TypeVar, Type, cast, List, Optional
+from typing import Any, TypeVar, cast
 
 from foundationTypes.dataModelHelper import DataModelHelper
-
 
 T = TypeVar("T")
 
@@ -24,11 +23,11 @@ def from_int(x: Any) -> int:
     return x
 
 
-def from_optional_str(x: Any) -> Optional[str]:
+def from_optional_str(x: Any) -> str | None:
     return from_str(x) if x is not None else None
 
 
-def to_class(c: Type[T], x: Any) -> dict:
+def to_class(c: type[T], x: Any) -> dict:
     assert isinstance(x, c)
     return cast(Any, x).to_dict()
 
@@ -53,9 +52,7 @@ class DiskUsageEntry(DataModelHelper):
         available = from_str(obj.get("available"))
         use_percent = from_str(obj.get("use_percent"))
         mounted_on = from_str(obj.get("mounted_on"))
-        return DiskUsageEntry(
-            filesystem, size, used, available, use_percent, mounted_on
-        )
+        return DiskUsageEntry(filesystem, size, used, available, use_percent, mounted_on)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -72,7 +69,7 @@ class DiskUsageEntry(DataModelHelper):
 class DiskUsage(DataModelHelper):
     """Collection of disk usage entries parsed from df -h output"""
 
-    entries: List[DiskUsageEntry]
+    entries: list[DiskUsageEntry]
 
     @staticmethod
     def from_dict(obj: Any) -> "DiskUsage":
@@ -132,9 +129,7 @@ class DiskUsage(DataModelHelper):
                     # Handle cases where filesystem or mount point might contain spaces
                     filesystem = " ".join(parts[:-8])
                     size, used, available, use_percent = parts[-8:-4]
-                    mounted_on = " ".join(
-                        parts[-1:]
-                    )  # Only take the last part as mount point
+                    mounted_on = " ".join(parts[-1:])  # Only take the last part as mount point
                 else:
                     filesystem, size, used, available, use_percent = (
                         parts[0],
@@ -150,9 +145,7 @@ class DiskUsage(DataModelHelper):
                     filesystem = " ".join(parts[:-5])
                     size, used, available, use_percent, mounted_on = parts[-5:]
                 else:
-                    filesystem, size, used, available, use_percent, mounted_on = parts[
-                        0:6
-                    ]
+                    filesystem, size, used, available, use_percent, mounted_on = parts[0:6]
 
             entry = DiskUsageEntry(
                 filesystem=filesystem,

@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar, Type
+from typing import Any, TypeVar
 
 from foundationTypes.dataModelHelper import DataModelHelper
-
 
 T = TypeVar("T", bound="QuaternionType")
 
@@ -49,7 +48,7 @@ class QuaternionType(ABC, DataModelHelper):
 
     @classmethod
     @abstractmethod
-    def from_components(cls: Type[T], w: float, x: float, y: float, z: float) -> T:
+    def from_components(cls: type[T], w: float, x: float, y: float, z: float) -> T:
         """Create a quaternion instance from individual w, x, y, z components.
 
         Args:

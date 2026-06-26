@@ -343,7 +343,7 @@ name = "importlib-metadata"
 version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version < '3.15'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/01/15bb152d77b21318514a96f43af312635eb2500c96b55398d020c93d86ea/importlib_metadata-9.0.0.tar.gz", hash = "sha256:a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc", size = 56405, upload-time = "2026-03-20T06:42:56.999Z" }
 wheels = [
@@ -681,7 +681,7 @@ version = "0.0.2"
 source = { editable = "." }
 
 [package.optional-dependencies]
-develop = [
+dev = [
     { name = "build" },
     { name = "bump2version" },
     { name = "mypy" },
@@ -694,16 +694,16 @@ develop = [
 
 [package.metadata]
 requires-dist = [
-    { name = "build", marker = "extra == 'develop'" },
-    { name = "bump2version", marker = "extra == 'develop'" },
-    { name = "mypy", marker = "extra == 'develop'" },
-    { name = "pytest", marker = "extra == 'develop'" },
-    { name = "pytest-asyncio", marker = "extra == 'develop'" },
-    { name = "ruff", marker = "extra == 'develop'" },
-    { name = "twine", marker = "extra == 'develop'" },
-    { name = "ty", marker = "extra == 'develop'" },
+    { name = "build", marker = "extra == 'dev'" },
+    { name = "bump2version", marker = "extra == 'dev'" },
+    { name = "mypy", marker = "extra == 'dev'" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+    { name = "ruff", marker = "extra == 'dev'" },
+    { name = "twine", marker = "extra == 'dev'" },
+    { name = "ty", marker = "extra == 'dev'" },
 ]
-provides-extras = ["develop", "personal-repos"]
+provides-extras = ["dev", "personal-repos"]
 
 [[package]]
 name = "pygments"
