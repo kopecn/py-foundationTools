@@ -55,6 +55,8 @@ Models under `foundationTypes/commonTypes/` and `foundationTypes/mathTypes/` are
 
 Requires `quicktype` (npm global) and a formatter. **To change a model's shape, edit its schema and regenerate** — editing the generated `.py` directly will be lost on the next run. The generation scripts assume they're run from anywhere (they `cd` to repo root) and use BSD-`sed` syntax for macOS.
 
+The full codegen contract — the golden script template (`generateUnitSphericalSmallCircle.sh`), the required pipeline order, the shared libraries, and the strict-typing requirement — is specified in [`.claude/specs/schemaCodegen.md`](specs/schemaCodegen.md). Consult it before adding or modifying a schema, codegen script, or generated type. Run `make codegen-all` to regenerate all models in one pass.
+
 ### CLITransact pattern
 
 `foundationCLIHelpers/cliTransact.py` wraps `subprocess`/`asyncio` subprocess execution. It never raises — all failures (timeouts, exceptions, non-zero exit) are captured into a `CLITransactResult` dataclass (`return_code`, `stdout`, `stderr`, `success`). `success` is `return_code == 0` AND (if a `success_string` was configured) that string appearing in stdout. The `*_with_model` variants take a serializer callable and return a `CLITransactResultWithModel[T]` where `T` is bound to `DataModelHelper` — this is the bridge between CLI output and the data-model layer (e.g. `df -h` → `DiskUsage`). String commands run via `shell=True` (injection risk); list commands are preferred.

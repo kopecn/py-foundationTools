@@ -69,13 +69,13 @@ class QuaternionType(ABC, DataModelHelper):
         """
         raise NotImplementedError("from_dict must be implemented by subclasses")
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, float]:
         """Convert the quaternion instance to a dictionary representation.
 
         Returns:
             Dictionary with 'w', 'x', 'y', 'z' keys
         """
-        result: dict = {}
+        result: dict[str, float] = {}
         result["w"] = to_float(self.w)
         result["x"] = to_float(self.x)
         result["y"] = to_float(self.y)
