@@ -27,9 +27,10 @@ def from_optional_str(x: Any) -> str | None:
     return from_str(x) if x is not None else None
 
 
-def to_class(c: type[T], x: Any) -> dict:
+def to_class(c: type[T], x: Any) -> dict[str, Any]:
     assert isinstance(x, c)
-    return cast(Any, x).to_dict()
+    result: dict[str, Any] = cast(Any, x).to_dict()
+    return result
 
 
 @dataclass
@@ -43,8 +44,8 @@ class DiskUsageEntry(DataModelHelper):
     use_percent: str
     mounted_on: str
 
-    @staticmethod
-    def from_dict(obj: Any) -> "DiskUsageEntry":
+    @classmethod
+    def from_dict(cls, obj: Any) -> "DiskUsageEntry":
         assert isinstance(obj, dict)
         filesystem = from_str(obj.get("filesystem"))
         size = from_str(obj.get("size"))
@@ -54,8 +55,8 @@ class DiskUsageEntry(DataModelHelper):
         mounted_on = from_str(obj.get("mounted_on"))
         return DiskUsageEntry(filesystem, size, used, available, use_percent, mounted_on)
 
-    def to_dict(self) -> dict:
-        result: dict = {}
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         result["filesystem"] = from_str(self.filesystem)
         result["size"] = from_str(self.size)
         result["used"] = from_str(self.used)
@@ -71,14 +72,14 @@ class DiskUsage(DataModelHelper):
 
     entries: list[DiskUsageEntry]
 
-    @staticmethod
-    def from_dict(obj: Any) -> "DiskUsage":
+    @classmethod
+    def from_dict(cls, obj: Any) -> "DiskUsage":
         assert isinstance(obj, dict)
         entries = [DiskUsageEntry.from_dict(y) for y in obj.get("entries", [])]
         return DiskUsage(entries)
 
-    def to_dict(self) -> dict:
-        result: dict = {}
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         result["entries"] = [to_class(DiskUsageEntry, x) for x in self.entries]
         return result
 
@@ -101,7 +102,7 @@ class DiskUsage(DataModelHelper):
 
         Returns:
             DiskUsage object containing parsed entries
-        """
+        """  # noqa: E501
         lines = output.strip().split("\n")
 
         # Skip header line

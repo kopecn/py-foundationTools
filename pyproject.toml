@@ -5,22 +5,34 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyFoundationTools"
-version = "0.0.2"
-description = "A compliation of code reuse for python, this is focusing on extending only the base python framework with no additional depenencies."
+version = "0.0.3"
+description = "A dependency-free Python collection providing reusable code extensions and foundational type utilities built exclusively on Python’s standard library. Designed to establish a consistent type foundation across automation modules."
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">= 3.10"
+requires-python = ">=3.10"
 authors = [
   {name = "Nicholas Bergantz", email = "nicholas.bergantz@gmail.com"}
 ]
-keywords = [
-  
-]
+keywords = ["foundation_cli_helpers", "python", "package"]
 classifiers = [
-
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
 ]
 license = {text = "MIT"}
+# Runtime dependencies — NAMES ONLY, never version-pinned (BKM: only the application
+# layer pins; module-level pins cause dependency conflicts). Put any version pins,
+# tag-pins, or git-based pointers in requirements*.txt — NEVER here (git URLs in
+# pyproject are a module-deployment disaster). e.g.:
+#   dependencies = ["requests"]
 dependencies = [
-  
 ]
 
 [project.optional-dependencies]
@@ -34,13 +46,12 @@ dev = [
     "ty",
     "twine",
 ]
-personal_repos = []
 
 [project.urls]
 
-bugs = "https://github.com/kopecn/pyFoundationTools/issues"
-changelog = "https://github.com/kopecn/pyFoundationTools/blob/master/changelog.md"
-homepage = "https://github.com/kopecn/pyFoundationTools"
+bugs = "https://github.com/kopecn/py_foundation_tools/issues"
+changelog = "https://github.com/kopecn/py_foundation_tools/blob/prod/HISTORY.md"
+homepage = "https://github.com/kopecn/py_foundation_tools"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -52,28 +63,37 @@ package-dir = {"" = "src"}
 testpaths = ["tests/*"]
 python_functions = ["test*"]
 python_files = ["test*.py"]
+# src/ layout: let pytest import the package without an install (so `make test` and a
+# bare `pytest` work on a fresh checkout).
+pythonpath = ["src"]
 
+# Path resolution: the Makefile scopes quality targets via PY_* vars (.env sets
+# PY_SRC=src for this src/ layout). The src/files config below is the fallback that
+# makes a bare `ruff check .` / `mypy .` (no path args) and IDE integrations resolve
+# the same scope. The Makefile is byte-identical across halves.
 [tool.ruff]
-target-version = "py310"
+target-version = "py310"  # support floor; default dev interpreter is 3.13
 line-length = 100
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-# E/W: pycodestyle, F: pyflakes, I: isort, UP: pyupgrade, B: bugbear
-select = ["E", "W", "F", "I", "UP", "B"]
-ignore = ["E501"]  # line length handled by the formatter
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["D301"]  # example
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
+[tool.ruff.lint.per-file-ignores]
+# Test docstrings carry long descriptive lines; don't wrap them for E501.
+"tests/testfoundationDataModelHelper.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.10"
-files = ["src"]
-ignore_missing_imports = true
-warn_unused_ignores = true
-warn_redundant_casts = true
+strict = true
+files = ["src", "tests"]
+# src/ layout: treat src as the package root so foundationMath.math resolves once,
+# not also as src.foundationMath.math (duplicate-module error otherwise).
+mypy_path = "src"
+explicit_package_bases = true
 
-[tool.ty.environment]
-python-version = "3.10"
-root = ["src"]
+# Multi-repo co-development: local editable sibling repos and any git-based pointers
+# go in requirements-local.txt (NEVER in pyproject — git URLs / path overrides here
+# are a module-deployment disaster). `make uv-sync-local` installs that overlay on top
+# of the normal env; it is gitignored and never read by CI/release.

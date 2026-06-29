@@ -217,20 +217,20 @@ class CLITransact:
             )
         except subprocess.TimeoutExpired as e:
             # Handle text vs bytes output consistently
-            stdout_text: str | None = None
+            timeout_stdout: str | None = None
             if e.stdout is not None:
                 if isinstance(e.stdout, str):
-                    stdout_text = e.stdout
+                    timeout_stdout = e.stdout
                 else:
                     # Handle bytes, bytearray, memoryview
-                    stdout_text = bytes(e.stdout).decode()
+                    timeout_stdout = bytes(e.stdout).decode()
             return CLITransactResult(
                 return_code=ERROR_RETURN_CODE,
-                stdout=self._normalize_output(stdout_text),
+                stdout=self._normalize_output(timeout_stdout),
                 stderr=f"Timeout after {timeout} seconds",
                 success=False,
             )
-        except Exception as e:
+        except (OSError, ValueError, subprocess.SubprocessError) as e:
             return CLITransactResult(
                 return_code=ERROR_RETURN_CODE,
                 stderr=f"Command execution failed: {str(e)}",
@@ -282,8 +282,7 @@ class CLITransact:
         if base_result.success and base_result.stdout:
             try:
                 extended_result.model = serializer(base_result.stdout)
-            except Exception as e:
-                # Model parsing failed, but keep original command success
+            except (AssertionError, ValueError, TypeError, KeyError) as e:
                 extended_result.stderr = (
                     f"{base_result.stderr or ''}\nModel parsing failed: {str(e)}"
                 ).strip()
@@ -376,13 +375,12 @@ class CLITransact:
                 stderr=self._normalize_output(stderr_text),
                 success=success,
             )
-        except Exception as e:
-            # Cleanup on exception
+        except (OSError, ValueError, subprocess.SubprocessError) as e:
             if proc:
                 try:
                     proc.kill()
                     await proc.wait()
-                except:
+                except ProcessLookupError:
                     pass
             return CLITransactResult(
                 return_code=ERROR_RETURN_CODE,
@@ -440,7 +438,7 @@ class CLITransact:
         if base_result.success and base_result.stdout:
             try:
                 extended_result.model = serializer(base_result.stdout)
-            except Exception as e:
+            except (AssertionError, ValueError, TypeError, KeyError) as e:
                 # Model parsing failed, but keep original command success
                 extended_result.stderr = (
                     f"{base_result.stderr or ''}\nModel parsing failed: {str(e)}"
