@@ -240,7 +240,7 @@ class CLITransact:
                 stderr=f"Timeout after {timeout} seconds",
                 success=False,
             )
-        except Exception as exec_error:  # noqa: BLE001 # pylint: disable=broad-exception-caught
+        except Exception as exec_error:  # pylint: disable=broad-exception-caught
             # Total containment: no exception escapes the public API. BaseException
             # (KeyboardInterrupt / SystemExit) is intentionally allowed to propagate.
             return CLITransactResult(
@@ -268,7 +268,7 @@ class CLITransact:
         if base_result.success and base_result.stdout:
             try:
                 extended_result.model = output_parser(base_result.stdout)
-            except Exception as parse_error:  # noqa: BLE001 # pylint: disable=broad-exception-caught
+            except Exception as parse_error:  # pylint: disable=broad-exception-caught
                 # Parsing is advisory: any parser failure is contained and never changes
                 # the execution success flag — raw execution truth wins.
                 extended_result.stderr = (
@@ -328,14 +328,14 @@ class CLITransact:
                 stderr=self._normalize_output(stderr_text),
                 success=success,
             )
-        except Exception as exec_error:  # noqa: BLE001 # pylint: disable=broad-exception-caught
+        except Exception as exec_error:  # pylint: disable=broad-exception-caught
             # Total containment: no exception escapes the public API. BaseException
             # (KeyboardInterrupt / SystemExit) is intentionally allowed to propagate.
             if process:
                 try:
                     process.kill()
                     await process.wait()
-                except Exception:  # noqa: BLE001 # pylint: disable=broad-exception-caught
+                except Exception:  # pylint: disable=broad-exception-caught
                     # Best-effort cleanup; the process may already be gone.
                     pass
 
@@ -364,7 +364,7 @@ class CLITransact:
         if base_result.success and base_result.stdout:
             try:
                 extended_result.model = output_parser(base_result.stdout)
-            except Exception as parse_error:  # noqa: BLE001 # pylint: disable=broad-exception-caught
+            except Exception as parse_error:  # pylint: disable=broad-exception-caught
                 # Parsing is advisory: any parser failure is contained and never changes
                 # the execution success flag — raw execution truth wins.
                 extended_result.stderr = (
