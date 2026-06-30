@@ -1,0 +1,8 @@
+{
+  "id": "http://json-schema.org/timescale",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "Timescale",
+  "description": "Time scale specification for precision timestamps (e.g. TAI, UTC, GPS-derived scales). Mirrors the FoundationTypes Swift Timescale enum.",
+  "type": "string",
+  "enum": ["TAI", "TT", "TCB", "TDB", "UTC", "UT1", "TCG"]
+}

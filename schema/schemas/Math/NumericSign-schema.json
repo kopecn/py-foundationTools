@@ -1,0 +1,8 @@
+{
+  "id": "http://json-schema.org/numeric-sign",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "NumericSign",
+  "description": "The sign of a numeric value: positive, negative, or zero.",
+  "type": "string",
+  "enum": ["positive", "negative", "zero"]
+}

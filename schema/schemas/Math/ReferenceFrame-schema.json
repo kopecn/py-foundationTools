@@ -1,0 +1,14 @@
+{
+  "id": "http://json-schema.org/reference-frame",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "ReferenceFrame",
+  "description": "Spatial reference frame for precision timestamps, accounting for relativistic effects. Mirrors the FoundationTypes Swift ReferenceFrame enum.",
+  "type": "string",
+  "enum": [
+    "EarthCenter",
+    "SolarSystemBarycenter",
+    "Topocentric",
+    "Heliocentric",
+    "LunarCenter"
+  ]
+}

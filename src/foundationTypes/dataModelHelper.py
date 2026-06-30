@@ -13,13 +13,17 @@ from json import dump, dumps, load, loads
 from logging import getLogger
 from os import getenv
 from pathlib import Path
-from typing import Any, ClassVar, TypeVar, cast
+from typing import Any, ClassVar, TypeGuard, TypeVar, cast
 
 _log = getLogger(__name__)
 
 DMH = TypeVar("DMH", bound="DataModelHelper")
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
+
+
+def is_callable(x: object) -> TypeGuard[Callable[..., object]]:
+    return callable(x)
 
 
 def from_bool(x: Any) -> bool:
@@ -341,7 +345,8 @@ class DataModelHelper:
             )
         _log.debug("to_wire: %s", type(self).__name__)
         try:
-            result = encoder(self, **kwargs)
+            result = encoder(self, **kwargs)  # pylint: disable=not-callable
+            # Python has known issue with casting to the callable.  so the check is disabled
             _log.debug("to_wire: %s encoded OK", type(self).__name__)
             return result
         except Exception:
@@ -378,7 +383,8 @@ class DataModelHelper:
             )
         _log.debug("from_wire: %s", cls.__name__)
         try:
-            instance = cast("DMH", decoder(cls, wire_str))
+            instance = cast("DMH", decoder(cls, wire_str))  # pylint: disable=not-callable
+            # Python has known issue with casting to the callable.  so the check is disabled
             _log.debug("from_wire: %s decoded OK", cls.__name__)
             return instance
         except Exception:
