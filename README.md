@@ -40,25 +40,23 @@ pip install pyFoundationTools
 ```python
 from foundationCLIHelpers.cliTransact import CLITransact
 
-# Basic command execution
-cli = CLITransact()
-result = cli.run_sync("ls -la")
+# Basic command execution (stateless classmethods)
+result = CLITransact.run_sync("ls -la")
 if result.success:
     print(result.stdout)
 
-# With success validation
-cli = CLITransact(success_string="deployment complete")
-result = cli.run_sync("./deploy.sh")
+# With success validation (per-call marker)
+result = CLITransact.run_sync("./deploy.sh", success_marker="deployment complete")
 
 # Async execution with timeout
 import asyncio
 async def main():
-    result = await cli.run_async(["python", "script.py"], timeout=30)
+    result = await CLITransact.run_async(["python", "script.py"], timeout=30)
     return result
 
 # Parse command output into structured data
 from foundationTypes.commonTypes.DiskUsage import DiskUsage
-result = cli.run_sync_with_model("df -h", DiskUsage.from_df_output)
+result = CLITransact.run_sync_with_model("df -h", DiskUsage.from_df_output)
 if result.success and result.model:
     for entry in result.model.entries:
         print(f"{entry.filesystem}: {entry.use_percent} used")

@@ -491,9 +491,19 @@ list: ## List pip packages in available environments
 # MARK: - Codegen
 # ============================================================================
 
-codegen-all:  ## Run all schema codegen scripts in schema/scripts/
+# Base dir for generated Python types; mirrors _PYTHON_TYPES_BASE in
+# schema/scripts/reuse/codegen.sh. Kept in sync so the fleet-wide normalization
+# sweep targets every generated model regardless of its generate script.
+_PYTHON_TYPES_BASE := src/foundationTypes
+
+codegen-all: check-uv  ## Run all schema codegen scripts in schema/scripts/
 	@for script in schema/scripts/*.sh; do \
 		echo "Generating: $$script"; \
 		bash "$$script"; \
 	done
+	@echo "Normalizing all generated models (fleet-wide DataModelHelper contract)..."
+	@bash schema/scripts/reuse/normalize_generated.sh $(_PYTHON_TYPES_BASE)
+	@echo "Formatting + autofixing the generated tree (same level as source)..."
+	$(UV) ruff format $(_PYTHON_TYPES_BASE)
+	$(UV) ruff check --fix --unsafe-fixes $(_PYTHON_TYPES_BASE)
 	@echo "-- fini --"

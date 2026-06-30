@@ -40,8 +40,8 @@ class UnitSphericalSmallCircle(DataModelHelper):
     center point.
     """
 
-    @staticmethod
-    def from_dict(obj: Any) -> "UnitSphericalSmallCircle":
+    @classmethod
+    def from_dict(cls, obj: Any) -> "UnitSphericalSmallCircle":
         assert isinstance(obj, dict)
         azimuth = from_float(obj.get("azimuth"))
         polar = from_float(obj.get("polar"))

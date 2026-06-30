@@ -61,8 +61,8 @@ class QuaternionType(ABC, DataModelHelper):
             A concrete QuaternionType instance of the calling class type
         """
 
-    @staticmethod
-    def from_dict(obj: Any) -> "QuaternionType":
+    @classmethod
+    def from_dict(cls, obj: Any) -> "QuaternionType":
         """
         Must be implemented by child class.  dictionary would have the following structure:
         {w:float,x:float,y:float,z:float}

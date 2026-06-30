@@ -74,7 +74,7 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
         """Test that from_dict requires all three fields."""
         incomplete_data = {"azimuth": 1.0, "polar": 0.5}
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             UnitSphericalSmallCircle.from_dict(incomplete_data)
 
     def test_from_dict_validates_types(self):
@@ -82,7 +82,7 @@ class TestUnitSphericalSmallCircle(unittest.TestCase):
         # Test with invalid type (string instead of number)
         invalid_data = {"azimuth": "not a number", "polar": 0.5, "radius": 0.3}
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             UnitSphericalSmallCircle.from_dict(invalid_data)
 
     def test_from_dict_accepts_integers(self):

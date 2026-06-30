@@ -8,14 +8,16 @@ from foundationCLIHelpers.cliTransact import CLITransact, CLITransactResult
 
 
 def runSync():
-    cli = CLITransact(success_string="hello")
-    result: CLITransactResult = cli.run_sync("echo hello", timeout=5)
+    result: CLITransactResult = CLITransact.run_sync(
+        "echo hello", timeout=5, success_marker="hello"
+    )
     print(result)
 
 
 async def run_async():
-    cli = CLITransact(success_string="hello")
-    result: CLITransactResult = await cli.run_async("echo hello", timeout=5)
+    result: CLITransactResult = await CLITransact.run_async(
+        "echo hello", timeout=5, success_marker="hello"
+    )
     print(result)
 
 

@@ -42,8 +42,8 @@ class UnitSphericalArc(DataModelHelper):
     is the equator (xy-plane), and pi is the south pole (-z axis).
     """
 
-    @staticmethod
-    def from_dict(obj: Any) -> "UnitSphericalArc":
+    @classmethod
+    def from_dict(cls, obj: Any) -> "UnitSphericalArc":
         assert isinstance(obj, dict)
         arc_length = from_float(obj.get("arcLength"))
         azimuth = from_float(obj.get("azimuth"))

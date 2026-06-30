@@ -83,7 +83,7 @@ class TestUnitSphericalArc(unittest.TestCase):
         """Test that from_dict requires all four fields."""
         incomplete_data = {"arcLength": 1.0, "azimuth": 0.5, "polar": 0.3}
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             UnitSphericalArc.from_dict(incomplete_data)
 
     def test_from_dict_validates_types(self):
@@ -91,7 +91,7 @@ class TestUnitSphericalArc(unittest.TestCase):
         # Test with invalid type (string instead of number)
         invalid_data = {"arcLength": "not a number", "azimuth": 0.5, "orient": 0.2, "polar": 0.3}
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             UnitSphericalArc.from_dict(invalid_data)
 
     def test_from_dict_accepts_integers(self):

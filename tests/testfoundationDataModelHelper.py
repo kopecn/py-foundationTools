@@ -113,7 +113,7 @@ class TestDataModelHelper(unittest.TestCase):
         with open(self.test_file, "w", encoding="utf-8") as f:
             json.dump(test_data, f)
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             GeoCoordinate.load_from_file(self.test_file)
 
     def test_loadFromFile_requires_non_empty_data(self):
@@ -122,7 +122,7 @@ class TestDataModelHelper(unittest.TestCase):
         with open(self.test_file, "w", encoding="utf-8") as f:
             json.dump(test_data, f)
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             GeoCoordinate.load_from_file(self.test_file)
 
     def test_roundtrip_data_integrity(self):

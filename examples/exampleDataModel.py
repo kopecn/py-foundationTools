@@ -33,9 +33,11 @@ def example_basic_datamodel():
     reloadedCoord = GeoCoordinate.loadFromFile(aCoordfile)
     print(f"Original: {geoCoord}")
     print(f"Reloaded: {reloadedCoord}")
-    print(
-        f"Coordinates match: {geoCoord.latitude == reloadedCoord.latitude and geoCoord.longitude == reloadedCoord.longitude}"
+    coords_match = (
+        geoCoord.latitude == reloadedCoord.latitude
+        and geoCoord.longitude == reloadedCoord.longitude
     )
+    print(f"Coordinates match: {coords_match}")
 
     if aCoordfile.exists() and aCoordfile.is_file():
         aCoordfile.unlink()
@@ -47,8 +49,7 @@ def example_cli_with_datamodel():
     print("=== CLI Transaction with Data Model Example ===")
 
     # Execute df -h command and automatically parse into DiskUsage model
-    cli = CLITransact()
-    result = cli.run_sync_with_model("df -h", DiskUsage.from_df_output)
+    result = CLITransact.run_sync_with_model("df -h", DiskUsage.from_df_output)
 
     print(f"Command success: {result.success}")
     print(f"Return code: {result.return_code}")
@@ -71,9 +72,8 @@ def example_cli_with_datamodel():
 
         # Round-trip test
         reconstructed = DiskUsage.from_dict(disk_data)
-        print(
-            f"Round-trip serialization successful: {len(reconstructed.entries) == len(result.model.entries)}"
-        )
+        roundtrip_ok = len(reconstructed.entries) == len(result.model.entries)
+        print(f"Round-trip serialization successful: {roundtrip_ok}")
     else:
         print("No model data was parsed")
         if result.stderr:
@@ -85,8 +85,7 @@ async def example_async_cli_with_datamodel():
     """Demonstrate asynchronous CLI transaction with data model serialization."""
     print("=== Async CLI Transaction with Data Model Example ===")
 
-    cli = CLITransact()
-    result = await cli.run_async_with_model("df -h", DiskUsage.from_df_output)
+    result = await CLITransact.run_async_with_model("df -h", DiskUsage.from_df_output)
 
     print(f"Async command success: {result.success}")
 
@@ -116,11 +115,9 @@ def example_custom_serializer():
     def count_lines(output: str) -> int:
         return len(output.strip().split("\n")) if output else 0
 
-    cli = CLITransact()
-
     # This won't work directly since count_lines doesn't return DataModelHelper
     # But shows the concept of custom serializers
-    result = cli.run_sync("ls -la")
+    result = CLITransact.run_sync("ls -la")
     if result.success and result.stdout:
         line_count = count_lines(result.stdout)
         print(f"Command 'ls -la' produced {line_count} lines of output")

@@ -2,7 +2,9 @@
 Unit tests for CLITransact module.
 
 Comprehensive test suite covering synchronous and asynchronous command execution,
-timeout handling, success validation, and error scenarios.
+timeout handling, success validation, and error scenarios. Exercises the stateless
+classmethod API (``run_sync`` / ``run_async`` / ``*_with_model``) with the per-call
+``success_marker`` keyword.
 """
 
 import asyncio
@@ -22,7 +24,7 @@ from foundationCLIHelpers.cliTransact import (  # type: ignore # pylint: disable
     SUCCESS_RETURN_CODE,
     CLITransact,
     CLITransactResult,
-    CLITransactResultWithModel,
+    CLITransactResultModel,
 )
 from foundationTypes.dataModelHelper import (
     DataModelHelper,  # type: ignore # pylint: disable=wrong-import-position
@@ -53,14 +55,19 @@ class MockDataModel(DataModelHelper):
 
 
 def parse_echo_output(output: str) -> MockDataModel:
-    """Test serializer that parses echo output into MockDataModel."""
+    """Test parser that parses echo output into MockDataModel."""
     lines = output.strip().split("\n")
     return MockDataModel(value=lines[0], count=len(lines))
 
 
 def parse_failing_serializer(output: str) -> MockDataModel:
-    """Test serializer that always fails."""
+    """Test parser that always fails."""
     raise ValueError("Serialization failed")
+
+
+def parse_nonstdlib_failing_serializer(output: str) -> MockDataModel:
+    """Test parser that fails with a non-stdlib-validation exception type."""
+    raise RuntimeError("Unexpected serializer failure")
 
 
 class TestCLITransactResult:
@@ -85,12 +92,12 @@ class TestCLITransactResult:
         assert result.success is True
 
 
-class TestCLITransactResultWithModel:
-    """Test cases for CLITransactResultWithModel data class."""
+class TestCLITransactResultModel:
+    """Test cases for CLITransactResultModel data class."""
 
     def test_default_initialization(self):
-        """Test default CLITransactResultWithModel initialization."""
-        result = CLITransactResultWithModel[MockDataModel](return_code=0)
+        """Test default CLITransactResultModel initialization."""
+        result = CLITransactResultModel[MockDataModel](return_code=0)
         assert result.return_code == 0
         assert result.stdout is None
         assert result.stderr is None
@@ -98,9 +105,9 @@ class TestCLITransactResultWithModel:
         assert result.model is None
 
     def test_full_initialization_with_model(self):
-        """Test CLITransactResultWithModel with all fields including model."""
+        """Test CLITransactResultModel with all fields including model."""
         test_model = MockDataModel("test", 42)
-        result = CLITransactResultWithModel[MockDataModel](
+        result = CLITransactResultModel[MockDataModel](
             return_code=0,
             stdout="Hello World",
             stderr="Warning message",
@@ -118,17 +125,17 @@ class TestCLITransactResultWithModel:
 
 
 class TestCLITransact:
-    """Test cases for CLITransact class."""
+    """Test cases for CLITransact instance internals."""
 
     def test_initialization_default(self):
         """Test CLITransact initialization with defaults."""
         cli = CLITransact()
-        assert cli.success_string is None
+        assert cli.success_marker is None
 
-    def test_initialization_with_success_string(self):
-        """Test CLITransact initialization with success string."""
-        cli = CLITransact(success_string="SUCCESS")
-        assert cli.success_string == "SUCCESS"
+    def test_initialization_with_success_marker(self):
+        """Test CLITransact initialization with success marker."""
+        cli = CLITransact(success_marker="SUCCESS")
+        assert cli.success_marker == "SUCCESS"
 
     def test_validate_command_empty_string(self):
         """Test command validation with empty string."""
@@ -162,17 +169,17 @@ class TestCLITransact:
         cli = CLITransact()
         assert cli._determine_success(1, "output") is False  # type: ignore[attr-defined] # pylint: disable=protected-access
 
-    def test_determine_success_with_success_string_present(self):
-        """Test success determination with success string present."""
-        cli = CLITransact(success_string="SUCCESS")
+    def test_determine_success_with_marker_present(self):
+        """Test success determination with success marker present."""
+        cli = CLITransact(success_marker="SUCCESS")
         assert (
             cli._determine_success(SUCCESS_RETURN_CODE, "Operation SUCCESS completed")  # type: ignore[attr-defined] # pylint: disable=protected-access
             is True
         )
 
-    def test_determine_success_with_success_string_missing(self):
-        """Test success determination with success string missing."""
-        cli = CLITransact(success_string="SUCCESS")
+    def test_determine_success_with_marker_missing(self):
+        """Test success determination with success marker missing."""
+        cli = CLITransact(success_marker="SUCCESS")
         assert (
             cli._determine_success(SUCCESS_RETURN_CODE, "Operation completed") is False  # type: ignore[attr-defined] # pylint: disable=protected-access
         )
@@ -203,8 +210,7 @@ class TestCLITransactSync:
 
     def test_run_sync_empty_command(self):
         """Test synchronous execution with empty command."""
-        cli = CLITransact()
-        result = cli.run_sync("")
+        result = CLITransact.run_sync("")
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Empty command provided" in result.stderr
         assert result.success is False
@@ -212,8 +218,7 @@ class TestCLITransactSync:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_run_sync_successful_command(self):
         """Test synchronous execution of successful command."""
-        cli = CLITransact()
-        result = cli.run_sync(["echo", "hello"])
+        result = CLITransact.run_sync(["echo", "hello"])
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "hello"
         assert result.stderr is None
@@ -222,32 +227,30 @@ class TestCLITransactSync:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_run_sync_failing_command(self):
         """Test synchronous execution of failing command."""
-        cli = CLITransact()
-        result = cli.run_sync(["false"])
+        result = CLITransact.run_sync(["false"])
         assert result.return_code != SUCCESS_RETURN_CODE
         assert result.success is False
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_run_sync_with_stderr(self):
         """Test synchronous execution with stderr output."""
-        cli = CLITransact()
-        result = cli.run_sync(["sh", "-c", "echo 'error' >&2; echo 'output'"])
+        result = CLITransact.run_sync(["sh", "-c", "echo 'error' >&2; echo 'output'"])
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "output"
         assert result.stderr == "error"
         assert result.success is True
 
-    def test_run_sync_with_success_string_present(self):
-        """Test synchronous execution with success string validation (present)."""
-        cli = CLITransact(success_string="SUCCESS")
-        result = cli.run_sync(["echo", "Operation SUCCESS completed"])
+    def test_run_sync_with_marker_present(self):
+        """Test synchronous execution with success marker validation (present)."""
+        result = CLITransact.run_sync(
+            ["echo", "Operation SUCCESS completed"], success_marker="SUCCESS"
+        )
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.success is True
 
-    def test_run_sync_with_success_string_missing(self):
-        """Test synchronous execution with success string validation (missing)."""
-        cli = CLITransact(success_string="SUCCESS")
-        result = cli.run_sync(["echo", "Operation completed"])
+    def test_run_sync_with_marker_missing(self):
+        """Test synchronous execution with success marker validation (missing)."""
+        result = CLITransact.run_sync(["echo", "Operation completed"], success_marker="SUCCESS")
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.success is False
 
@@ -258,8 +261,7 @@ class TestCLITransactSync:
         mock_timeout.stdout = b"partial output"
         mock_run.side_effect = mock_timeout
 
-        cli = CLITransact()
-        result = cli.run_sync(["sleep", "10"], timeout=1)
+        result = CLITransact.run_sync(["sleep", "10"], timeout=1)
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
         assert result.stdout == "partial output"
@@ -270,10 +272,19 @@ class TestCLITransactSync:
         """Test synchronous execution with generic exception."""
         mock_run.side_effect = Exception("Command not found")
 
-        cli = CLITransact()
-        result = cli.run_sync(["nonexistent-command"])
+        result = CLITransact.run_sync(["nonexistent-command"])
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Command execution failed" in result.stderr
+        assert result.success is False
+
+    @patch("subprocess.run")
+    def test_run_sync_contains_nonstdlib_exception(self, mock_run: Any):
+        """No exception escapes: even a non-stdlib type is contained as a result."""
+        mock_run.side_effect = RuntimeError("kernel-level surprise")
+
+        result = CLITransact.run_sync(["whatever"])
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "kernel-level surprise" in result.stderr
         assert result.success is False
 
 
@@ -283,8 +294,7 @@ class TestCLITransactAsync:
     @pytest.mark.asyncio
     async def test_run_async_empty_command(self):
         """Test asynchronous execution with empty command."""
-        cli = CLITransact()
-        result = await cli.run_async("")
+        result = await CLITransact.run_async("")
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Empty command provided" in result.stderr
         assert result.success is False
@@ -293,8 +303,7 @@ class TestCLITransactAsync:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_successful_command(self):
         """Test asynchronous execution of successful command."""
-        cli = CLITransact()
-        result = await cli.run_async(["echo", "hello"])
+        result = await CLITransact.run_async(["echo", "hello"])
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "hello"
         assert result.stderr is None
@@ -304,8 +313,7 @@ class TestCLITransactAsync:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_failing_command(self):
         """Test asynchronous execution of failing command."""
-        cli = CLITransact()
-        result = await cli.run_async(["false"])
+        result = await CLITransact.run_async(["false"])
         assert result.return_code != SUCCESS_RETURN_CODE
         assert result.success is False
 
@@ -313,26 +321,27 @@ class TestCLITransactAsync:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_with_stderr(self):
         """Test asynchronous execution with stderr output."""
-        cli = CLITransact()
-        result = await cli.run_async(["sh", "-c", "echo 'error' >&2; echo 'output'"])
+        result = await CLITransact.run_async(["sh", "-c", "echo 'error' >&2; echo 'output'"])
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "output"
         assert result.stderr == "error"
         assert result.success is True
 
     @pytest.mark.asyncio
-    async def test_run_async_with_success_string_present(self):
-        """Test asynchronous execution with success string validation (present)."""
-        cli = CLITransact(success_string="SUCCESS")
-        result = await cli.run_async(["echo", "Operation SUCCESS completed"])
+    async def test_run_async_with_marker_present(self):
+        """Test asynchronous execution with success marker validation (present)."""
+        result = await CLITransact.run_async(
+            ["echo", "Operation SUCCESS completed"], success_marker="SUCCESS"
+        )
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.success is True
 
     @pytest.mark.asyncio
-    async def test_run_async_with_success_string_missing(self):
-        """Test asynchronous execution with success string validation (missing)."""
-        cli = CLITransact(success_string="SUCCESS")
-        result = await cli.run_async(["echo", "Operation completed"])
+    async def test_run_async_with_marker_missing(self):
+        """Test asynchronous execution with success marker validation (missing)."""
+        result = await CLITransact.run_async(
+            ["echo", "Operation completed"], success_marker="SUCCESS"
+        )
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.success is False
 
@@ -340,8 +349,7 @@ class TestCLITransactAsync:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_timeout(self):
         """Test asynchronous execution with timeout."""
-        cli = CLITransact()
-        result = await cli.run_async(["sleep", "2"], timeout=1)
+        result = await CLITransact.run_async(["sleep", "2"], timeout=1)
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
         assert result.success is False
@@ -352,23 +360,59 @@ class TestCLITransactAsync:
         """Test asynchronous execution exception handling."""
         mock_create_subprocess.side_effect = Exception("Process creation failed")
 
-        cli = CLITransact()
-        result = await cli.run_async(["nonexistent-command"])
+        result = await CLITransact.run_async(["nonexistent-command"])
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Command execution failed" in result.stderr
         assert result.success is False
 
     @pytest.mark.asyncio
     @patch("asyncio.create_subprocess_exec")
-    async def test_run_async_timeout_with_cleanup(self, mock_create_subprocess: Any):
-        """Test asynchronous execution timeout with proper process cleanup."""
+    async def test_run_async_timeout_graceful_cleanup(self, mock_create_subprocess: Any):
+        """On timeout, the graceful signal (SIGTERM/terminate) is sent first.
+
+        When the process exits promptly after terminate(), the forceful kill()
+        escalation must NOT fire.
+        """
         mock_proc = MagicMock()
 
-        # Create async mock functions
         async def mock_communicate():
             raise asyncio.TimeoutError()
 
         async def mock_wait():
+            return None  # process exits promptly after terminate()
+
+        mock_proc.communicate = mock_communicate
+        mock_proc.wait = mock_wait
+        mock_proc.kill = MagicMock()
+        mock_proc.terminate = MagicMock()
+        mock_create_subprocess.return_value = mock_proc
+
+        result = await CLITransact.run_async(["sleep", "10"], timeout=1)
+
+        # Graceful first, no escalation needed.
+        mock_proc.terminate.assert_called()
+        mock_proc.kill.assert_not_called()
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
+        assert result.success is False
+
+    @pytest.mark.asyncio
+    @patch("asyncio.create_subprocess_exec")
+    async def test_run_async_timeout_escalates_to_kill(self, mock_create_subprocess: Any):
+        """A process that ignores SIGTERM must be escalated to SIGKILL (kill())."""
+        mock_proc = MagicMock()
+        wait_calls = 0
+
+        async def mock_communicate():
+            raise asyncio.TimeoutError()
+
+        # First wait() (after terminate) outlasts the grace window so wait_for times
+        # out and forces escalation to kill(); the second wait() (after kill) returns.
+        async def mock_wait():
+            nonlocal wait_calls
+            wait_calls += 1
+            if wait_calls == 1:
+                await asyncio.sleep(5)
             return None
 
         mock_proc.communicate = mock_communicate
@@ -377,10 +421,9 @@ class TestCLITransactAsync:
         mock_proc.terminate = MagicMock()
         mock_create_subprocess.return_value = mock_proc
 
-        cli = CLITransact()
-        result = await cli.run_async(["sleep", "10"], timeout=1)
+        result = await CLITransact.run_async(["sleep", "10"], timeout=1)
 
-        # Verify cleanup was called
+        mock_proc.terminate.assert_called()
         mock_proc.kill.assert_called()
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
@@ -392,8 +435,7 @@ class TestCLITransactSyncWithModel:
 
     def test_run_sync_with_model_empty_command(self):
         """Test sync with model execution with empty command."""
-        cli = CLITransact()
-        result = cli.run_sync_with_model("", parse_echo_output)
+        result = CLITransact.run_sync_with_model("", parse_echo_output)
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Empty command provided" in result.stderr
         assert result.success is False
@@ -402,8 +444,7 @@ class TestCLITransactSyncWithModel:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_run_sync_with_model_successful_command(self):
         """Test sync with model execution of successful command."""
-        cli = CLITransact()
-        result = cli.run_sync_with_model(["echo", "hello world"], parse_echo_output)
+        result = CLITransact.run_sync_with_model(["echo", "hello world"], parse_echo_output)
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "hello world"
@@ -416,8 +457,7 @@ class TestCLITransactSyncWithModel:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_run_sync_with_model_failing_command(self):
         """Test sync with model execution of failing command."""
-        cli = CLITransact()
-        result = cli.run_sync_with_model(["false"], parse_echo_output)
+        result = CLITransact.run_sync_with_model(["false"], parse_echo_output)
 
         assert result.return_code != SUCCESS_RETURN_CODE
         assert result.success is False
@@ -426,8 +466,7 @@ class TestCLITransactSyncWithModel:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_run_sync_with_model_serialization_failure(self):
         """Test sync with model when serialization fails."""
-        cli = CLITransact()
-        result = cli.run_sync_with_model(["echo", "hello"], parse_failing_serializer)
+        result = CLITransact.run_sync_with_model(["echo", "hello"], parse_failing_serializer)
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "hello"
@@ -437,10 +476,22 @@ class TestCLITransactSyncWithModel:
         assert "Serialization failed" in result.stderr
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_run_sync_with_model_nonstdlib_serializer_failure(self):
+        """A parser raising a non-stdlib type is contained, success unchanged."""
+        result = CLITransact.run_sync_with_model(
+            ["echo", "hello"], parse_nonstdlib_failing_serializer
+        )
+
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True  # parsing is advisory, never changes success
+        assert result.model is None
+        assert result.stderr is not None and "Model parsing failed" in result.stderr
+        assert "Unexpected serializer failure" in result.stderr
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_run_sync_with_model_multiline_output(self):
         """Test sync with model with multiline output."""
-        cli = CLITransact()
-        result = cli.run_sync_with_model(
+        result = CLITransact.run_sync_with_model(
             ["sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"], parse_echo_output
         )
 
@@ -452,18 +503,18 @@ class TestCLITransactSyncWithModel:
 
     def test_run_sync_with_model_no_output(self):
         """Test sync with model when command produces no output."""
-        cli = CLITransact()
-        result = cli.run_sync_with_model(["true"], parse_echo_output)
+        result = CLITransact.run_sync_with_model(["true"], parse_echo_output)
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.success is True
         assert result.model is None  # No output to parse
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
-    def test_run_sync_with_model_success_string_validation(self):
-        """Test sync with model with success string validation."""
-        cli = CLITransact(success_string="SUCCESS")
-        result = cli.run_sync_with_model(["echo", "Operation SUCCESS completed"], parse_echo_output)
+    def test_run_sync_with_model_marker_validation(self):
+        """Test sync with model with success marker validation."""
+        result = CLITransact.run_sync_with_model(
+            ["echo", "Operation SUCCESS completed"], parse_echo_output, success_marker="SUCCESS"
+        )
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.success is True
@@ -471,13 +522,14 @@ class TestCLITransactSyncWithModel:
         assert result.model.value == "Operation SUCCESS completed"
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
-    def test_run_sync_with_model_success_string_missing(self):
-        """Test sync with model when success string is missing."""
-        cli = CLITransact(success_string="SUCCESS")
-        result = cli.run_sync_with_model(["echo", "Operation completed"], parse_echo_output)
+    def test_run_sync_with_model_marker_missing(self):
+        """Test sync with model when success marker is missing."""
+        result = CLITransact.run_sync_with_model(
+            ["echo", "Operation completed"], parse_echo_output, success_marker="SUCCESS"
+        )
 
         assert result.return_code == SUCCESS_RETURN_CODE
-        assert result.success is False  # Success string not found
+        assert result.success is False  # Success marker not found
         assert result.model is None  # Model not parsed due to success=False
 
     @patch("subprocess.run")
@@ -487,8 +539,7 @@ class TestCLITransactSyncWithModel:
         mock_timeout.stdout = b"partial output"
         mock_run.side_effect = mock_timeout
 
-        cli = CLITransact()
-        result = cli.run_sync_with_model(["sleep", "10"], parse_echo_output, timeout=1)
+        result = CLITransact.run_sync_with_model(["sleep", "10"], parse_echo_output, timeout=1)
 
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
@@ -503,8 +554,7 @@ class TestCLITransactAsyncWithModel:
     @pytest.mark.asyncio
     async def test_run_async_with_model_empty_command(self):
         """Test async with model execution with empty command."""
-        cli = CLITransact()
-        result = await cli.run_async_with_model("", parse_echo_output)
+        result = await CLITransact.run_async_with_model("", parse_echo_output)
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Empty command provided" in result.stderr
         assert result.success is False
@@ -514,8 +564,7 @@ class TestCLITransactAsyncWithModel:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_with_model_successful_command(self):
         """Test async with model execution of successful command."""
-        cli = CLITransact()
-        result = await cli.run_async_with_model(["echo", "hello world"], parse_echo_output)
+        result = await CLITransact.run_async_with_model(["echo", "hello world"], parse_echo_output)
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "hello world"
@@ -529,8 +578,7 @@ class TestCLITransactAsyncWithModel:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_with_model_failing_command(self):
         """Test async with model execution of failing command."""
-        cli = CLITransact()
-        result = await cli.run_async_with_model(["false"], parse_echo_output)
+        result = await CLITransact.run_async_with_model(["false"], parse_echo_output)
 
         assert result.return_code != SUCCESS_RETURN_CODE
         assert result.success is False
@@ -540,8 +588,7 @@ class TestCLITransactAsyncWithModel:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_with_model_serialization_failure(self):
         """Test async with model when serialization fails."""
-        cli = CLITransact()
-        result = await cli.run_async_with_model(["echo", "hello"], parse_failing_serializer)
+        result = await CLITransact.run_async_with_model(["echo", "hello"], parse_failing_serializer)
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == "hello"
@@ -554,8 +601,7 @@ class TestCLITransactAsyncWithModel:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_with_model_multiline_output(self):
         """Test async with model with multiline output."""
-        cli = CLITransact()
-        result = await cli.run_async_with_model(
+        result = await CLITransact.run_async_with_model(
             ["sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'"], parse_echo_output
         )
 
@@ -568,8 +614,7 @@ class TestCLITransactAsyncWithModel:
     @pytest.mark.asyncio
     async def test_run_async_with_model_no_output(self):
         """Test async with model when command produces no output."""
-        cli = CLITransact()
-        result = await cli.run_async_with_model(["true"], parse_echo_output)
+        result = await CLITransact.run_async_with_model(["true"], parse_echo_output)
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.success is True
@@ -577,11 +622,10 @@ class TestCLITransactAsyncWithModel:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
-    async def test_run_async_with_model_success_string_validation(self):
-        """Test async with model with success string validation."""
-        cli = CLITransact(success_string="SUCCESS")
-        result = await cli.run_async_with_model(
-            ["echo", "Operation SUCCESS completed"], parse_echo_output
+    async def test_run_async_with_model_marker_validation(self):
+        """Test async with model with success marker validation."""
+        result = await CLITransact.run_async_with_model(
+            ["echo", "Operation SUCCESS completed"], parse_echo_output, success_marker="SUCCESS"
         )
 
         assert result.return_code == SUCCESS_RETURN_CODE
@@ -591,21 +635,23 @@ class TestCLITransactAsyncWithModel:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
-    async def test_run_async_with_model_success_string_missing(self):
-        """Test async with model when success string is missing."""
-        cli = CLITransact(success_string="SUCCESS")
-        result = await cli.run_async_with_model(["echo", "Operation completed"], parse_echo_output)
+    async def test_run_async_with_model_marker_missing(self):
+        """Test async with model when success marker is missing."""
+        result = await CLITransact.run_async_with_model(
+            ["echo", "Operation completed"], parse_echo_output, success_marker="SUCCESS"
+        )
 
         assert result.return_code == SUCCESS_RETURN_CODE
-        assert result.success is False  # Success string not found
+        assert result.success is False  # Success marker not found
         assert result.model is None  # Model not parsed due to success=False
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_with_model_timeout(self):
         """Test async with model timeout handling."""
-        cli = CLITransact()
-        result = await cli.run_async_with_model(["sleep", "2"], parse_echo_output, timeout=1)
+        result = await CLITransact.run_async_with_model(
+            ["sleep", "2"], parse_echo_output, timeout=1
+        )
 
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
@@ -618,8 +664,7 @@ class TestCLITransactAsyncWithModel:
         """Test async with model exception handling."""
         mock_create_subprocess.side_effect = Exception("Process creation failed")
 
-        cli = CLITransact()
-        result = await cli.run_async_with_model(["nonexistent-command"], parse_echo_output)
+        result = await CLITransact.run_async_with_model(["nonexistent-command"], parse_echo_output)
 
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Command execution failed" in result.stderr
@@ -633,13 +678,10 @@ class TestCLITransactModelIntegration:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_sync_vs_async_with_model_consistency(self):
         """Test that sync and async model methods produce consistent results."""
-        cli = CLITransact()
-
-        # Test successful command with model
-        sync_result = cli.run_sync_with_model(["echo", "test"], parse_echo_output)
+        sync_result = CLITransact.run_sync_with_model(["echo", "test"], parse_echo_output)
 
         async def async_test():
-            return await cli.run_async_with_model(["echo", "test"], parse_echo_output)
+            return await CLITransact.run_async_with_model(["echo", "test"], parse_echo_output)
 
         async_result = asyncio.run(async_test())
 
@@ -657,8 +699,7 @@ class TestCLITransactModelIntegration:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_model_serialization_roundtrip(self):
         """Test that models can be serialized and deserialized correctly."""
-        cli = CLITransact()
-        result = cli.run_sync_with_model(["echo", "test data"], parse_echo_output)
+        result = CLITransact.run_sync_with_model(["echo", "test data"], parse_echo_output)
 
         assert result.success is True
         assert result.model is not None
@@ -691,13 +732,10 @@ class TestCLITransactIntegration:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_sync_vs_async_consistency(self):
         """Test that sync and async methods produce consistent results."""
-        cli = CLITransact()
-
-        # Test successful command
-        sync_result = cli.run_sync(["echo", "test"])
+        sync_result = CLITransact.run_sync(["echo", "test"])
 
         async def async_test():
-            return await cli.run_async(["echo", "test"])
+            return await CLITransact.run_async(["echo", "test"])
 
         async_result = asyncio.run(async_test())
 
@@ -708,13 +746,11 @@ class TestCLITransactIntegration:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_shell_vs_list_command_execution(self):
         """Test shell vs list command execution differences."""
-        cli = CLITransact()
-
         # Test with shell string
-        shell_result = cli.run_sync("echo 'hello world'")
+        shell_result = CLITransact.run_sync("echo 'hello world'")
 
         # Test with command list
-        list_result = cli.run_sync(["echo", "hello world"])
+        list_result = CLITransact.run_sync(["echo", "hello world"])
 
         assert shell_result.return_code == SUCCESS_RETURN_CODE
         assert list_result.return_code == SUCCESS_RETURN_CODE
@@ -724,11 +760,9 @@ class TestCLITransactIntegration:
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     def test_large_output_handling(self):
         """Test handling of large command output."""
-        cli = CLITransact()
-
         # Generate large output
         large_text = "x" * 10000
-        result = cli.run_sync(["echo", large_text])
+        result = CLITransact.run_sync(["echo", large_text])
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == large_text
@@ -736,11 +770,9 @@ class TestCLITransactIntegration:
 
     def test_unicode_output_handling(self):
         """Test handling of unicode characters in output."""
-        cli = CLITransact()
-
         # Test unicode output
         unicode_text = "Hello 世界 🌍"
-        result = cli.run_sync(["echo", unicode_text])
+        result = CLITransact.run_sync(["echo", unicode_text])
 
         assert result.return_code == SUCCESS_RETURN_CODE
         assert result.stdout == unicode_text
