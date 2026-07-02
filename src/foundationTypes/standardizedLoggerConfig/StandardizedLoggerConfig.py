@@ -49,9 +49,10 @@ class StandardizedLoggerConfig(DataModelHelper):
     console_pretty: bool | None = None
     """Enables human-readable log output to standard error for interactive and development use."""
 
-    file_path: str | None = None
-    """Base filesystem path for writing persistent log files. Enables file logging when set."""
-
+    log_dir: str | None = None
+    """Base filesystem directory for writing persistent, date-rolling log files. Enables file
+    logging when set.
+    """
     log_level: LogLevel | None = None
     """Minimum severity level that will be emitted. Log events below this threshold are ignored."""
 
@@ -66,11 +67,11 @@ class StandardizedLoggerConfig(DataModelHelper):
         name = from_str(obj.get("name"))
         console_level_icons = from_union([from_bool, from_none], obj.get("console_level_icons"))
         console_pretty = from_union([from_bool, from_none], obj.get("console_pretty"))
-        file_path = from_union([from_str, from_none], obj.get("file_path"))
+        log_dir = from_union([from_str, from_none], obj.get("log_dir"))
         log_level = from_union([LogLevel, from_none], obj.get("log_level"))
         rotation_days = from_union([from_int, from_none], obj.get("rotation_days"))
         return StandardizedLoggerConfig(
-            name, console_level_icons, console_pretty, file_path, log_level, rotation_days
+            name, console_level_icons, console_pretty, log_dir, log_level, rotation_days
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -82,8 +83,8 @@ class StandardizedLoggerConfig(DataModelHelper):
             )
         if self.console_pretty is not None:
             result["console_pretty"] = from_union([from_bool, from_none], self.console_pretty)
-        if self.file_path is not None:
-            result["file_path"] = from_union([from_str, from_none], self.file_path)
+        if self.log_dir is not None:
+            result["log_dir"] = from_union([from_str, from_none], self.log_dir)
         if self.log_level is not None:
             result["log_level"] = from_union(
                 [lambda x: to_enum(LogLevel, x), from_none], self.log_level

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from errno import EACCES, ENOSPC, EPIPE
 from json import dumps
 from logging import (
@@ -22,7 +22,21 @@ from logging import (
     setLoggerClass,
 )
 from pathlib import Path
+from types import TracebackType
 from typing import IO, Any
+
+from foundationTypes.standardizedLoggerConfig.StandardizedLoggerConfig import (
+    LogLevel,
+    StandardizedLoggerConfig,
+)
+
+_LOG_LEVEL_MAP: dict[LogLevel, int] = {
+    LogLevel.DEBUG: DEBUG,
+    LogLevel.INFO: INFO,
+    LogLevel.WARNING: WARNING,
+    LogLevel.ERROR: ERROR,
+    LogLevel.CRITICAL: CRITICAL,
+}
 
 _COLORS: dict[int, str] = {
     DEBUG: "🔵",
@@ -36,8 +50,7 @@ _COLORS: dict[int, str] = {
 def _timestamp_format(log: LogRecord) -> str:
     """Render a log record's creation time as millisecond-precision UTC ISO-8601."""
     dt = datetime.fromtimestamp(log.created, tz=timezone.utc)
-    ms = dt.microsecond // 1000
-    return dt.strftime("%Y-%m-%dT%H:%M:%S") + f".{ms:03d}Z"
+    return dt.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 class _HumanReadableFormatter(Formatter):
@@ -72,7 +85,7 @@ class _HumanReadableFormatter(Formatter):
     def _append_exception(
         self,
         line: str,
-        exc: tuple[type[BaseException], BaseException, Any],
+        exc: tuple[type[BaseException], BaseException, TracebackType | None],
     ) -> str:
         """Append a formatted traceback to an already-formatted line."""
         return f"{line}\n{self.formatException(exc)}"
@@ -120,7 +133,7 @@ class _StructuredFormatter(Formatter):
 
 
 class _DateRollingFileHandler(Handler):
-    """A file handler that rolls over to a new file at UTC day boundaries.
+    """A file handler that rolls over to a new file every `rotation_days` UTC days.
 
     Also detects the underlying file being replaced or removed out from under it
     (e.g. by log rotation tooling) via inode comparison, and reopens as needed.
@@ -132,6 +145,7 @@ class _DateRollingFileHandler(Handler):
         logger_name: str,
         level: int = NOTSET,
         flush_every: int = 1,
+        rotation_days: int = 1,
     ) -> None:
         """Open the initial log file for today's date under log_dir."""
         super().__init__(level)
@@ -141,6 +155,7 @@ class _DateRollingFileHandler(Handler):
 
         self._flush_every = max(flush_every, 1)
         self._write_count = 0
+        self._rotation_days = max(rotation_days, 1)
 
         self._stream: IO[str] | None = None
         self._current_date: str | None = None
@@ -191,8 +206,11 @@ class _DateRollingFileHandler(Handler):
         self._open_stream(date_str)
 
     def _needs_date_rollover(self, today: str) -> bool:
-        """Return True if the open file's date no longer matches today."""
-        return self._current_date != today
+        """Return True if rotation_days have elapsed since the open file's anchor date."""
+        if self._current_date is None:
+            return True
+        elapsed = (date.fromisoformat(today) - date.fromisoformat(self._current_date)).days
+        return elapsed >= self._rotation_days
 
     def _needs_inode_rollover(self) -> bool:
         """Return True if the stream is missing or points at an unexpected inode."""
@@ -240,10 +258,12 @@ class _DateRollingFileHandler(Handler):
 
 
 class StandardizedLogger(Logger):
-    """A `Logger` that self-configures structured JSON and/or stderr handlers.
+    """A `Logger` that self-configures a stderr console handler plus an optional file handler.
 
-    File logging (JSON, date-rolling) is used when `log_dir` is provided;
-    otherwise falls back to a stderr stream handler.
+    The stderr handler always runs (JSON by default, or human-readable with
+    `console_pretty`). A date-rolling JSON file handler is additionally attached
+    when `log_dir` is provided. Build from a `StandardizedLoggerConfig` via
+    `from_config`, or construct directly.
     """
 
     def __init__(
@@ -251,15 +271,31 @@ class StandardizedLogger(Logger):
         name: str,
         level: int = INFO,
         log_dir: Path | None = None,
-        colored_logs: bool = False,
+        rotation_days: int = 1,
+        console_pretty: bool = False,
+        console_level_icons: bool = False,
     ) -> None:
         """Configure this logger's handlers based on the given options."""
         super().__init__(name, level)
 
         self._log_dir = log_dir
-        self._colored_logs = colored_logs
+        self._rotation_days = rotation_days
+        self._console_pretty = console_pretty
+        self._console_level_icons = console_level_icons
 
         self._configure_handlers()
+
+    @classmethod
+    def from_config(cls, config: StandardizedLoggerConfig) -> StandardizedLogger:
+        """Build a StandardizedLogger from a StandardizedLoggerConfig."""
+        return cls(
+            name=config.name,
+            level=_LOG_LEVEL_MAP[config.log_level] if config.log_level else INFO,
+            log_dir=Path(config.log_dir) if config.log_dir else None,
+            rotation_days=config.rotation_days or 1,
+            console_pretty=config.console_pretty or False,
+            console_level_icons=config.console_level_icons or False,
+        )
 
     @classmethod
     def setLoggerClass(cls) -> None:
@@ -270,12 +306,11 @@ class StandardizedLogger(Logger):
     # Handler setup
     # -------------------------
     def _configure_handlers(self) -> None:
-        """Attach a file handler (if log_dir is set) and/or a stderr fallback handler."""
+        """Attach a stderr console handler and, if log_dir is set, a file handler."""
         self.handlers.clear()
 
-        formatter = _StructuredFormatter()
+        self.addHandler(self._build_console_handler())
 
-        # File logging
         if self._log_dir is not None:
             self._log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -283,16 +318,18 @@ class StandardizedLogger(Logger):
                 log_dir=self._log_dir,
                 logger_name=self.name,
                 level=self.level,
+                rotation_days=self._rotation_days,
             )
-            file_handler.setFormatter(formatter)
+            file_handler.setFormatter(_StructuredFormatter())
             self.addHandler(file_handler)
 
-        # Optional: fallback to stderr if no handlers exist
-        if not self.handlers:
-            self.addHandler(self._build_default_stream_handler(formatter))
-
-    def _build_default_stream_handler(self, formatter: Formatter) -> StreamHandler[IO[str]]:
-        """Build a stderr StreamHandler using the given formatter."""
+    def _build_console_handler(self) -> StreamHandler[IO[str]]:
+        """Build the stderr handler, human-readable or JSON per console_pretty."""
+        formatter: Formatter = (
+            _HumanReadableFormatter(colored_dots=self._console_level_icons)
+            if self._console_pretty
+            else _StructuredFormatter()
+        )
         handler = StreamHandler(sys.stderr)
         handler.setFormatter(formatter)
         return handler
@@ -337,7 +374,7 @@ class StandardizedLogger(Logger):
         extra = kwargs.pop("extra", None)
 
         # everything else becomes structured fields
-        structured_fields = {k: v for k, v in kwargs.items() if not k.startswith("_")}
+        structured_fields = dict(kwargs)
 
         if isinstance(extra, dict):
             structured_fields.update(extra)
@@ -356,15 +393,19 @@ class StandardizedLogger(Logger):
         msg: str,
         args: tuple[Any, ...] = (),
         extra: dict[str, Any] | None = None,
-        exc_info: bool = False,
+        exc_info: bool
+        | tuple[type[BaseException], BaseException, TracebackType | None]
+        | BaseException
+        | None = None,
         **kwargs: Any,
     ) -> None:
         """Merge extra/kwargs fields and emit the record via the stdlib logging machinery."""
         if args:
             msg = msg % args
+        # kwargs (passed explicitly to _structured_log) take precedence over same-named
+        # keys already folded into extra by _log_structured.
         merged: dict[str, Any] = {**(extra or {}), **kwargs}
-        Logger._log(
-            self,
+        self._log(
             level,
             msg,
             (),

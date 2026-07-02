@@ -17,9 +17,9 @@
       "description": "Minimum severity level that will be emitted. Log events below this threshold are ignored."
     },
 
-    "file_path": {
+    "log_dir": {
       "type": "string",
-      "description": "Base filesystem path for writing persistent log files. Enables file logging when set."
+      "description": "Base filesystem directory for writing persistent, date-rolling log files. Enables file logging when set."
     },
 
     "rotation_days": {
