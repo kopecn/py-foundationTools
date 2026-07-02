@@ -50,7 +50,7 @@ MYPY_PKGS := $(patsubst src/%/,-p %,$(sort $(dir $(wildcard src/*/__init__.py)))
 # Tool runner for uv- quality/test recipes. `--extra dev` ensures ruff/mypy/pytest are
 # resolved (and installed if missing) from the "[dev]" extra even on a FRESH checkout —
 # no reliance on a pre-existing .venv, rather than the ambient PATH.
-UV := uv run --extra dev
+UV := uv run --extra dev --no-project 
 PIP := $(PYTHON) -m pip
 BUMPVERSION := bumpversion --allow-dirty
 REPO := $(notdir $(CURDIR))
@@ -279,11 +279,13 @@ uv-lint: check-uv  ## Run ruff linter (read-only; non-zero exit for CI)
 	$(UV) ruff check $(PY_ALL)
 
 uv-format: check-uv  ## Format code with ruff
-	$(UV) ruff format $(PY_ALL)
+	uv run --no-project ruff format $(PY_ALL)
+# 	$(UV) ruff format $(PY_ALL)
 # KEEP --unsafe-fixes: intentional, added after findings on 2026-06-25.
 # Do NOT strip in cleanup/refactor passes — the unsafe autofixes here are relied
 # upon deliberately. Removing it has regressed this target before.
-	$(UV) ruff check --fix --unsafe-fixes $(PY_ALL)
+	uv run --no-project  ruff check --fix --unsafe-fixes $(PY_ALL)
+# 	$(UV) ruff check --fix --unsafe-fixes $(PY_ALL)
 
 uv-typecheck: check-uv  ## Strict type check with mypy
 ifeq ($(strip $(MYPY_PKGS)),)
