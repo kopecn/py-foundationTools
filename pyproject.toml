@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "pyFoundationTools"
+name = "py-foundation-tools"
 version = "0.0.3"
 description = "A dependency-free Python collection providing reusable code extensions and foundational type utilities built exclusively on Python’s standard library. Designed to establish a consistent type foundation across automation modules."
 readme = {file = "README.md", content-type = "text/markdown"}
