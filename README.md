@@ -38,7 +38,7 @@ pip install pyFoundationTools
 
 ### CLI Operations
 ```python
-from foundationCLIHelpers.cliTransact import CLITransact
+from foundationTools.cli_transaction.cliTransact import CLITransact
 
 # Basic command execution (stateless classmethods)
 result = CLITransact.run_sync("ls -la")

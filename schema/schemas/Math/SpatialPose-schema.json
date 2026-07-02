@@ -1,0 +1,18 @@
+{
+  "id": "http://json-schema.org/spatial-pose",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "SpatialPoseType",
+  "description": "A full 6-degree-of-freedom rigid body state: a Cartesian position composed with a quaternion orientation.",
+  "type": "object",
+  "required": ["position", "orientation"],
+  "properties": {
+    "position": {
+      "description": "The Cartesian position component of the pose.",
+      "$ref": "PositionVector-schema.json"
+    },
+    "orientation": {
+      "description": "The quaternion orientation component of the pose.",
+      "$ref": "Quaternion-schema.json"
+    }
+  }
+}

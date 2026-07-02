@@ -18,8 +18,7 @@ import pytest
 
 # Add src to path for import
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
-from foundationCLIHelpers.cliTransact import (  # pylint: disable=wrong-import-position
+from foundationTools.cli_transaction.cliTransact import (  # pylint: disable=wrong-import-position
     ERROR_RETURN_CODE,
     SUCCESS_RETURN_CODE,
     CLITransact,

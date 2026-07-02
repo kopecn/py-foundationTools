@@ -1,0 +1,25 @@
+{
+  "id": "http://json-schema.org/unit-spherical-arc-waveform",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "UnitSphericalArcWaveformType",
+  "description": "A uniformly-sampled time series of UnitSphericalArc samples, anchored at a start timestamp and sampled at a fixed interval.",
+  "type": "object",
+  "required": ["arcs", "t0", "dt"],
+  "properties": {
+    "arcs": {
+      "description": "The uniformly-sampled arc values, in chronological order.",
+      "type": "array",
+      "items": {
+        "$ref": "UnitSphericalArc-schema.json"
+      }
+    },
+    "t0": {
+      "description": "The timestamp of the first sample.",
+      "$ref": "PrecisionTimestamp-schema.json"
+    },
+    "dt": {
+      "description": "The fixed interval between consecutive samples.",
+      "$ref": "PrecisionTimeInterval-schema.json"
+    }
+  }
+}

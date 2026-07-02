@@ -1,0 +1,22 @@
+{
+  "id": "http://json-schema.org/position-vector",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PositionVectorType",
+  "description": "A 3D Cartesian position vector using right-handed (x, y, z) coordinates, in a caller-defined consistent length unit.",
+  "type": "object",
+  "required": ["x", "y", "z"],
+  "properties": {
+    "x": {
+      "description": "The x-axis (first Cartesian) component of the position.",
+      "type": "number"
+    },
+    "y": {
+      "description": "The y-axis (second Cartesian) component of the position.",
+      "type": "number"
+    },
+    "z": {
+      "description": "The z-axis (third Cartesian) component of the position.",
+      "type": "number"
+    }
+  }
+}

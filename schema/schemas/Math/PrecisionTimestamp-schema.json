@@ -1,7 +1,7 @@
 {
   "id": "http://json-schema.org/precision-timestamp",
   "$schema": "http://json-schema.org/draft-06/schema#",
-  "title": "_PrecisionTimestampType",
+  "title": "PrecisionTimestampType",
   "description": "An absolute timestamp with attosecond precision. Stores seconds and attoseconds as unsigned integers with an explicit sign. Optionally carries a timescale, reference frame, and measurement uncertainty (in attoseconds).",
   "type": "object",
   "required": ["seconds", "attoseconds", "sign"],

@@ -1,8 +1,8 @@
 import math
 import unittest
 
-from foundationTypes.mathTypes.UnitSphericalArc import (
-    UnitSphericalArc,
+from foundationTypes.mathTypes.MathTypes import (
+    UnitSphericalArcType as UnitSphericalArc,
 )
 
 

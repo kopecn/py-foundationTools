@@ -1,6 +1,7 @@
 {
-  "id": "http://json-schema.org/geo",
+  "id": "http://json-schema.org/unit-spherical-arc",
   "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "UnitSphericalArcType",
   "description": "Represents an arc on a unit sphere in spherical coordinates using physics convention.  This arc is formed by a spherical reference point and then projected from that start point along the unit circle for the length of the arc in radians.",
   "type": "object",
   "required": ["polar", "azimuth","arcLength","orient"],

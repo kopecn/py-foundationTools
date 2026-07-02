@@ -1,8 +1,8 @@
 import math
 import unittest
 
-from foundationTypes.mathTypes.UnitSphericalSmallCircle import (
-    UnitSphericalSmallCircle,
+from foundationTypes.mathTypes.MathTypes import (
+    UnitSphericalSmallCircleType as UnitSphericalSmallCircle,
 )
 
 
