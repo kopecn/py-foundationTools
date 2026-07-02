@@ -19,16 +19,17 @@ All workflows go through the Makefile (`make help` lists them). Key ones:
 - `make typecheck` — runs **both** `mypy src/` and `ty check src/`; both must pass
 - `make devInstall` or `make e` — editable install for development
 
-Linting/formatting is **ruff** (line-length 100, double quotes; rule set E/W/F/I/UP/B). The README references `pylint`/`black`/`make docs` (Sphinx) but the Makefile has migrated to ruff and has no working docs target — trust the Makefile, not the README, for tooling.
+Linting/formatting is **ruff** (line-length 100, double quotes; rule set E/F/I/UP/B). The README references `pylint`/`black`/`make docs` (Sphinx) but the Makefile has migrated to ruff and has no working docs target — trust the Makefile, not the README, for tooling.
 
 ## Package Architecture
 
-Source uses a `src/` layout with **four independently-importable top-level packages** (not nested under one namespace). `package-dir = {"" = "src"}` maps them:
+Source uses a `src/` layout with **five independently-importable top-level packages** (not nested under one namespace, auto-discovered by setuptools under `package-dir = {"" = "src"}`). `pyFoundationTools` is the distribution name in `pyproject.toml`, not a package directory.
 
 - `foundationTypes` — data models + the serialization base class (the heart of the library)
 - `foundationCLIHelpers` — subprocess transaction wrapper
 - `foundationMath` — pure-Python math utilities (e.g. `clamp`)
-- `pyFoundationTools` — the distribution/umbrella package
+- `foundationABCs` — abstract base interfaces shared across device/transport implementations
+- `foundationTools` — standalone runtime utilities (currently the structured logger)
 
 Import paths are the package name directly, e.g. `from foundationTypes.dataModelHelper import DataModelHelper`, **not** `from pyFoundationTools.foundationTypes...`.
 
@@ -36,18 +37,16 @@ Import paths are the package name directly, e.g. `from foundationTypes.dataModel
 
 `foundationTypes/dataModelHelper.py` defines the central contract. Every data model is a `@dataclass` subclassing `DataModelHelper` and implementing two methods:
 
-- `from_dict(obj) -> Self` (staticmethod) — type-validated construction from a plain dict
+- `from_dict(obj) -> Self` (classmethod, raises `NotImplementedError` on the base — quicktype-generated subclasses implement it as a `@staticmethod`) — type-validated construction from a plain dict
 - `to_dict(self) -> dict` — plain-dict serialization
 
-The base class provides `saveToFile(Path)` / `loadFromFile(Path)` (JSON I/O) for free on top of those two. The module also exports a family of `from_*`/`to_*` assert-based converters (`from_float`, `from_union`, `from_list`, etc.) — these mirror **quicktype's** generated helpers, because models are intended to be generated, not hand-written (see below).
+On top of those two, the base class fully implements: JSON file I/O (`save_to_file`/`load_from_file`, snake_case), `to_bytes`/`from_bytes` (JSON-encoded bytes), `to_wire`/`from_wire` (pluggable protocol encode/decode via the `wire_encode`/`wire_decode` ClassVars), `from_env`/`_resolve_from_env` (construction with environment-variable-backed defaults via the `_env_mapping` ClassVar), and structured logging (start/success/failure with `exc_info=True`) on every public method. The module also exports a family of `from_*`/`to_*` assert-based converters (`from_float`, `from_union`, `from_list`, etc.) — these mirror **quicktype's** generated helpers, because models are intended to be generated, not hand-written (see below).
 
-The full intended contract for this class — including target features not yet implemented (`from_env`, `to_bytes`/`from_bytes`, `to_wire`/`from_wire`, env-var resolution, logging, and the snake_case `save_to_file`/`load_from_file` names) — is specified in [`.claude/specs/dataModelHelper.md`](specs/dataModelHelper.md). Consult it before extending the class.
-
-> Gotcha: `dataModelHelper.py` calls `json.dump`/`json.load` in `saveToFile`/`loadFromFile` but does **not** import `json`. Anything exercising file I/O on a model will `NameError` until `import json` is added. This file is currently modified in the working tree — verify the import before relying on save/load.
+The full contract for this class is specified in [`.claude/specs/dataModelHelper.md`](specs/dataModelHelper.md). Consult it before extending the class.
 
 ### Schema-driven model generation (do not hand-edit generated models)
 
-Models under `foundationTypes/commonTypes/` and `foundationTypes/mathTypes/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
+Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, and `foundationTypes/standardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
 
 1. JSON Schema in `schema/schemas/`
 2. A per-model shell script in `schema/scripts/` (e.g. `generateGeoCoordinate.sh`) runs `quicktype` (`--lang py --src-lang schema --no-pydantic-base-model`), then `sed`-injects the `DataModelHelper` base class and import, then formats.
@@ -62,6 +61,14 @@ The full codegen contract — the golden script template (`generateUnitSpherical
 `foundationCLIHelpers/cliTransact.py` wraps `subprocess`/`asyncio` subprocess execution. The public API is four **stateless classmethods** — `CLITransact.run_sync` / `run_async` / `run_sync_with_model` / `run_async_with_model` — each taking a keyword-only `timeout` and optional `success_marker`. It never raises — all failures (timeouts, exceptions, non-zero exit) are captured into a `CLITransactResult` dataclass (`return_code`, `stdout`, `stderr`, `success`). `success` is `return_code == 0` AND (if a `success_marker` was passed) that string appearing in stdout. The `*_with_model` variants take an `output_parser` callable and return a `CLITransactResultModel[T]` where `T` is bound to `DataModelHelper` — this is the bridge between CLI output and the data-model layer (e.g. `df -h` → `DiskUsage`). String commands run via `shell=True` (injection risk); list commands are preferred.
 
 The full behavioral contract — the stateless classmethod surface, execution-mode selection, semantic success evaluation, total exception containment, the corrected async timeout escalation (`terminate → kill`), the model-extension layer, the formalized "learned behaviors", and the planned sibling layers (`SSHTransact`, `RsyncTransact`, retry/backoff, Windows/MSYS2) — is specified in [`.claude/specs/cliTransact.md`](specs/cliTransact.md). The CLITransact kernel is implemented; the sibling layers are planned. Consult the spec before extending the module.
+
+### PeripheralByteTransport ABC
+
+`foundationABCs/peripheralByteTransport.py` defines `PeripheralByteTransport`, an `ABC` for fully-asynchronous, byte-only device transports (`connect`/`disconnect`/`send`/`receive`/`is_connected`, plus an async context-manager `__aenter__`/`__aexit__`). It intentionally knows nothing about protocol framing (STX/ETX, checksums, BCC) — that belongs to device handlers layered on top. A serial (RS485/USB) implementation exists elsewhere on top of this interface; an EtherCAT adapter (translating PDO process-image offsets to this byte-stream contract) is planned. No dedicated spec exists yet for this module.
+
+### StandardizedLogger
+
+`foundationTools/standardized_logger.py` defines `StandardizedLogger`, a `logging.Logger` subclass that self-configures a stderr handler (JSON by default, human-readable via `console_pretty`) plus an optional date-rolling JSON file handler when `log_dir` is set. Build one from a `StandardizedLoggerConfig` (`foundationTypes/standardizedLoggerConfig/`, itself a schema-generated `DataModelHelper` model) via `StandardizedLogger.from_config(...)`, or construct directly. `debug`/`info`/`warning`/`error`/`critical` accept arbitrary keyword args, which become structured JSON fields on file output. No dedicated spec exists yet for this module.
 
 ## Tests
 

@@ -2,7 +2,7 @@
 spec: SchemaCodegen
 scope: project
 status: implemented
-applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/
+applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/standardizedLoggerConfig/
 ---
 
 # Schema Codegen Specification
