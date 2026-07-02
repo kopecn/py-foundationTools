@@ -50,7 +50,7 @@ MYPY_PKGS := $(patsubst src/%/,-p %,$(sort $(dir $(wildcard src/*/__init__.py)))
 # Tool runner for uv- quality/test recipes. `--extra dev` ensures ruff/mypy/pytest are
 # resolved (and installed if missing) from the "[dev]" extra even on a FRESH checkout —
 # no reliance on a pre-existing .venv, rather than the ambient PATH.
-UV := uv run --extra dev --no-project 
+UV := uv run --no-project 
 PIP := $(PYTHON) -m pip
 BUMPVERSION := bumpversion --allow-dirty
 REPO := $(notdir $(CURDIR))

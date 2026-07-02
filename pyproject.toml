@@ -85,7 +85,7 @@ ignore = ["D301"]  # example
 "tests/testfoundationDataModelHelper.py" = ["E501"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.13"
 strict = true
 files = ["src", "tests"]
 # src/ layout: treat src as the package root so foundationMath.math resolves once,
