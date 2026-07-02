@@ -41,9 +41,7 @@ class PrecisionTimeInterval(_PrecisionTimeIntervalType, ABC):
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_components(
-        cls: type[T], seconds: int, attoseconds: int, sign: NumericSign
-    ) -> T:
+    def from_components(cls: type[T], seconds: int, attoseconds: int, sign: NumericSign) -> T:
         """Build an interval from its components.
 
         Args:

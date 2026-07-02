@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(ruff check *)",
+      "Bash(ty check *)",
+      "Bash(mypy src/foundationTools/standardized_logger.py)",
+      "Bash(ruff format *)",
+      "Bash(pylint src/foundationTools/standardized_logger.py)"
     ],
     "deny": [],
     "ask": []
