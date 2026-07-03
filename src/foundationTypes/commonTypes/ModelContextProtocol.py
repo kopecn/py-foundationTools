@@ -36,7 +36,7 @@ class RoleElement(Enum):
 
 
 @dataclass
-class AudiocontentAnnotations:
+class AudiocontentAnnotations(DataModelHelper):
     """Optional annotations for the client. The client can use annotations to inform how objects
     are used or displayed
 
@@ -276,7 +276,7 @@ class PurpleMeta(DataModelHelper):
 
 
 @dataclass
-class Task:
+class Task(DataModelHelper):
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -392,7 +392,7 @@ class Theme(Enum):
 
 
 @dataclass
-class IconElement:
+class IconElement(DataModelHelper):
     """An optionally-sized icon that can be displayed in a user interface."""
 
     src: str
@@ -5056,7 +5056,7 @@ class ListpromptsrequestMethod(Enum):
 
 
 @dataclass
-class AmbitiousMeta:
+class AmbitiousMeta(DataModelHelper):
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -5145,7 +5145,7 @@ class ListpromptsrequestClass:
 
 
 @dataclass
-class PromptargumentElement:
+class PromptargumentElement(DataModelHelper):
     """Describes an argument that a prompt can accept."""
 
     name: str

@@ -48,12 +48,13 @@ ENUMS = ["NumericSign", "ReferenceFrame", "Timescale"]
 
 # Type (public name) -> (module basename, Like class). Module basename is the
 # lowercase-first of the Like class name (the type name minus "Type", plus "Like"),
-# except Quaternion/PositionVector/SpatialPose (share spatialABCs) and
-# PrecisionTimeInterval/PrecisionTimestamp (share precisionTimeABC).
+# except Quaternion/PositionVector/SpatialTransform (share spatialABCs),
+# PrecisionTimeInterval/PrecisionTimestamp (share precisionTimeABC), and every
+# waveform type (share waveformABCs).
 TYPE_TO_LIKE = {
     "QuaternionType": ("spatialABCs", "QuaternionABC"),
     "PositionVectorType": ("spatialABCs", "PositionABC"),
-    "SpatialPoseType": ("spatialABCs", "SpatialTransformABC"),
+    "SpatialTransformType": ("spatialABCs", "SpatialTransformABC"),
     "PrecisionTimeIntervalType": ("precisionTimeABC", "PrecisionTimeIntervalABC"),
     "PrecisionTimestampType": ("precisionTimeABC", "PrecisionTimestampABC"),
     "UnitSphericalArcType": ("unitSphericalArcABC", "UnitSphericalArcABC"),
@@ -61,16 +62,13 @@ TYPE_TO_LIKE = {
         "unitSphericalSmallCircleABC",
         "UnitSphericalSmallCircleABC",
     ),
-    "PositionWaveformType": ("positionWaveformABC", "PositionWaveformABC"),
-    "QuaternionWaveformType": ("quaternionWaveformABC", "QuaternionWaveformABC"),
-    "SpatialPoseWaveformType": ("waveformSpatialABC", "WaveformSpatialABC"),
-    "ScalarWaveformType": ("waveform1dABC", "Waveform1dABC"),
-    "UnitSphericalArcWaveformType": (
-        "waveformUnitSphericalArcABC",
-        "WaveformUnitSphericalArcABC",
-    ),
+    "PositionWaveformType": ("waveformABCs", "PositionWaveformABC"),
+    "QuaternionWaveformType": ("waveformABCs", "QuaternionWaveformABC"),
+    "SpatialTransformWaveformType": ("waveformABCs", "WaveformSpatialABC"),
+    "ScalarWaveformType": ("waveformABCs", "Waveform1dABC"),
+    "UnitSphericalArcWaveformType": ("waveformABCs", "WaveformUnitSphericalArcABC"),
     "UnitSphericalSmallCircleWaveformType": (
-        "waveformUnitSphericalSmallCircleABC",
+        "waveformABCs",
         "WaveformUnitSphericalSmallCircleABC",
     ),
 }

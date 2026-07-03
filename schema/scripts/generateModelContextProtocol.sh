@@ -14,7 +14,6 @@ INPUT_SCHEMA_FILES=(
 
 # === Classes that should inherit from DataModelHelper ===
 CLASSES_FOR_BASE_PARENT=(
-    
     "Annotations"
     "Argument"
     "AudioContent"
@@ -157,6 +156,11 @@ CLASSES_FOR_BASE_PARENT=(
     "Tools"
     "UnsubscribeRequest"
     "UnsubscriberequestParams"
+    "Task"
+    "AudiocontentAnnotations"
+    "IconElement"
+    "PromptargumentElement"
+    "AmbitiousMeta"
 )
 
 # === Output (relative to src/foundationTypes) ===

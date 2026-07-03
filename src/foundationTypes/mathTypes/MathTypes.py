@@ -21,19 +21,19 @@ from foundationTypes.data_model_helper import (
     to_float,
 )
 from foundationTypes.mathTypes.mathEnums import NumericSign, ReferenceFrame, Timescale
-from foundationTypes.mathTypes.positionWaveformABC import PositionWaveformABC
 from foundationTypes.mathTypes.precisionTimeABC import (
     PrecisionTimeIntervalABC,
     PrecisionTimestampABC,
 )
-from foundationTypes.mathTypes.quaternionWaveformABC import QuaternionWaveformABC
 from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC, SpatialTransformABC
 from foundationTypes.mathTypes.unitSphericalArcABC import UnitSphericalArcABC
 from foundationTypes.mathTypes.unitSphericalSmallCircleABC import UnitSphericalSmallCircleABC
-from foundationTypes.mathTypes.waveform1dABC import Waveform1dABC
-from foundationTypes.mathTypes.waveformSpatialABC import WaveformSpatialABC
-from foundationTypes.mathTypes.waveformUnitSphericalArcABC import WaveformUnitSphericalArcABC
-from foundationTypes.mathTypes.waveformUnitSphericalSmallCircleABC import (
+from foundationTypes.mathTypes.waveformABCs import (
+    PositionWaveformABC,
+    QuaternionWaveformABC,
+    Waveform1dABC,
+    WaveformSpatialABC,
+    WaveformUnitSphericalArcABC,
     WaveformUnitSphericalSmallCircleABC,
 )
 
@@ -114,7 +114,7 @@ class PositionVectorType(PositionABC):
 
 
 @dataclass
-class SpatialPoseType(SpatialTransformABC):
+class SpatialTransformType(SpatialTransformABC):
     """A full 6-degree-of-freedom rigid body state: a Cartesian position composed with a
     quaternion orientation.
     """
@@ -126,11 +126,11 @@ class SpatialPoseType(SpatialTransformABC):
     """The Cartesian position component of the pose."""
 
     @classmethod
-    def from_dict(cls, obj: Any) -> "SpatialPoseType":
+    def from_dict(cls, obj: Any) -> "SpatialTransformType":
         assert isinstance(obj, dict)
         orientation = QuaternionType.from_dict(obj.get("orientation"))
         position = PositionVectorType.from_dict(obj.get("position"))
-        return SpatialPoseType(orientation, position)
+        return SpatialTransformType(orientation, position)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -297,9 +297,9 @@ class QuaternionWaveformType(QuaternionWaveformABC):
 
 
 @dataclass
-class SpatialPoseWaveformType(WaveformSpatialABC):
+class SpatialTransformWaveformType(WaveformSpatialABC):
     """A uniformly-sampled time series of 6-DOF poses, represented as parallel position and
-    quaternion arrays (not an array of SpatialPose), anchored at a start timestamp and
+    quaternion arrays (not an array of SpatialTransform), anchored at a start timestamp and
     sampled at a fixed interval.
     """
 
@@ -316,13 +316,13 @@ class SpatialPoseWaveformType(WaveformSpatialABC):
     """The timestamp of the first sample."""
 
     @classmethod
-    def from_dict(cls, obj: Any) -> "SpatialPoseWaveformType":
+    def from_dict(cls, obj: Any) -> "SpatialTransformWaveformType":
         assert isinstance(obj, dict)
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         positions = from_list(PositionVectorType.from_dict, obj.get("positions"))
         quaternions = from_list(QuaternionType.from_dict, obj.get("quaternions"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
-        return SpatialPoseWaveformType(dt, positions, quaternions, t0)
+        return SpatialTransformWaveformType(dt, positions, quaternions, t0)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -580,12 +580,12 @@ def unit_spherical_small_circle_type_to_dict(x: UnitSphericalSmallCircleType) ->
     return to_class(UnitSphericalSmallCircleType, x)
 
 
-def spatial_pose_type_from_dict(s: Any) -> SpatialPoseType:
-    return SpatialPoseType.from_dict(s)
+def spatial_transform_type_from_dict(s: Any) -> SpatialTransformType:
+    return SpatialTransformType.from_dict(s)
 
 
-def spatial_pose_type_to_dict(x: SpatialPoseType) -> Any:
-    return to_class(SpatialPoseType, x)
+def spatial_transform_type_to_dict(x: SpatialTransformType) -> Any:
+    return to_class(SpatialTransformType, x)
 
 
 def position_waveform_type_from_dict(s: Any) -> PositionWaveformType:
@@ -604,12 +604,12 @@ def quaternion_waveform_type_to_dict(x: QuaternionWaveformType) -> Any:
     return to_class(QuaternionWaveformType, x)
 
 
-def spatial_pose_waveform_type_from_dict(s: Any) -> SpatialPoseWaveformType:
-    return SpatialPoseWaveformType.from_dict(s)
+def spatial_transform_waveform_type_from_dict(s: Any) -> SpatialTransformWaveformType:
+    return SpatialTransformWaveformType.from_dict(s)
 
 
-def spatial_pose_waveform_type_to_dict(x: SpatialPoseWaveformType) -> Any:
-    return to_class(SpatialPoseWaveformType, x)
+def spatial_transform_waveform_type_to_dict(x: SpatialTransformWaveformType) -> Any:
+    return to_class(SpatialTransformWaveformType, x)
 
 
 def scalar_waveform_type_from_dict(s: Any) -> ScalarWaveformType:

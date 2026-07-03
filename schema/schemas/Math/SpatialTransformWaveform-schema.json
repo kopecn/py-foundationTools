@@ -1,8 +1,8 @@
 {
   "id": "http://json-schema.org/spatial-pose-waveform",
   "$schema": "http://json-schema.org/draft-06/schema#",
-  "title": "SpatialPoseWaveformType",
-  "description": "A uniformly-sampled time series of 6-DOF poses, represented as parallel position and quaternion arrays (not an array of SpatialPose), anchored at a start timestamp and sampled at a fixed interval.",
+  "title": "SpatialTransformWaveformType",
+  "description": "A uniformly-sampled time series of 6-DOF poses, represented as parallel position and quaternion arrays (not an array of SpatialTransform), anchored at a start timestamp and sampled at a fixed interval.",
   "type": "object",
   "required": ["positions", "quaternions", "t0", "dt"],
   "properties": {

@@ -16,7 +16,7 @@ applies_to: schema/schemas/Math/, schema/scripts/generateMathTypes.sh, schema/sc
 
 ## Goal — SE(3) rigid body transformations
 
-The `Position` / `Quaternion` / `SpatialPose` family (`spatialABCs.py`) exists to
+The `Position` / `Quaternion` / `SpatialTransform` family (`spatialABCs.py`) exists to
 give **SE(3), the Lie group of 3D rigid body transformations (rotation +
 translation)**, a storage-independent, serializable data contract:
 
