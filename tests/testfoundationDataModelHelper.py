@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
-from foundationTypes.dataModelHelper import DataModelHelper
+from foundationTypes.data_model_helper import DataModelHelper
 
 
 class TestDataModelHelper(unittest.TestCase):

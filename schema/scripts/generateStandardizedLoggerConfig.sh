@@ -8,7 +8,7 @@ set -euo pipefail
 
 # === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/StandardizedLoggerConfig/StandardizedLoggerConfig-schema.json"
+  "schema/schemas/standardizedLoggerConfigStandardizedLoggerConfig-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===
@@ -17,7 +17,7 @@ CLASSES_FOR_BASE_PARENT=(
 )
 
 # === Output (relative to src/foundationTypes) ===
-OUTPUT_PYTHON_REL="standardizedLoggerConfig/StandardizedLoggerConfig.py"
+OUTPUT_PYTHON_REL="StandardizedLoggerConfig/StandardizedLoggerConfig.py"
 
 # === quicktype target. quicktype only emits up to 3.7; modern typing is
 #     restored afterwards by run_ruff (UP rules) + fix_to_dict_return_type. ===

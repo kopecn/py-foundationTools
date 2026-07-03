@@ -1,11 +1,11 @@
 """
-Unit tests for foundationMath module.
+Unit tests for foundation_math module.
 """
 
 from math import pi
 
 import pytest
-from src.foundationMath.math import clamp, wrap
+from src.foundation_math.math import clamp, wrap
 
 
 class TestClamp:

@@ -1,4 +1,4 @@
-# Contributing to py-foundationTools
+# Contributing to py-foundation_tools
 
 Thank you for considering contributing to this project — every bit helps, and all contributors are appreciated!
 

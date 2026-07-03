@@ -4,9 +4,12 @@
       "Bash(cat:*)",
       "Bash(ruff check *)",
       "Bash(ty check *)",
-      "Bash(mypy src/foundationTools/standardized_logger.py)",
+      "Bash(mypy src/foundation_tools/standardized_logger.py)",
       "Bash(ruff format *)",
-      "Bash(pylint src/foundationTools/standardized_logger.py)"
+      "Bash(pylint src/foundation_tools/standardized_logger.py)",
+      "Bash(bash schema/scripts/generateModelContextProtocol.sh)",
+      "Bash(grep -n '\"\\\\$defs\"\\\\|\"definitions\"' /Users/nbergantz/__Workspaces__/pythonWorkspaces/py-foundationTools/schema/schemas/MCP/ModelContextProtocol-2025-06-18-schema.json)",
+      "Bash(grep -n '\"\\\\$schema\"' /Users/nbergantz/__Workspaces__/pythonWorkspaces/py-foundationTools/schema/schemas/MCP/ModelContextProtocol-2025-06-18-schema.json)"
     ],
     "deny": [],
     "ask": []

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypeVar
 
-from foundationTypes.dataModelHelper import (
+from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_bool,
     from_int,

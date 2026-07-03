@@ -4,7 +4,7 @@ This example shows simple usage for CLITransact
 
 import asyncio
 
-from foundationTools.cli_transaction.cliTransact import CLITransact
+from foundation_tools.cli_transaction.cliTransact import CLITransact
 
 
 def runSync():

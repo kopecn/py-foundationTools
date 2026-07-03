@@ -10,7 +10,7 @@ the shared reuse libraries stay generic for the other generators.
 
 Transforms applied, in order:
   1. Strip quicktype's inline helper defs; import the equivalents from
-     foundationTypes.dataModelHelper.
+     foundationTypes.data_model_helper.
   2. Strip the generated enum classes (NumericSign / Timescale / ReferenceFrame);
      import them from foundationTypes.mathTypes.mathEnums (single source of truth,
      also avoids a circular import with the Tier-2 modules).
@@ -47,13 +47,15 @@ HELPERS = [
 ENUMS = ["NumericSign", "ReferenceFrame", "Timescale"]
 
 # Type (public name) -> (module basename, Like class). Module basename is the
-# lowercase-first of the Like class name (the type name minus "Type", plus "Like").
+# lowercase-first of the Like class name (the type name minus "Type", plus "Like"),
+# except Quaternion/PositionVector/SpatialPose (share spatialABCs) and
+# PrecisionTimeInterval/PrecisionTimestamp (share precisionTimeABC).
 TYPE_TO_LIKE = {
-    "QuaternionType": ("quaternionABC", "QuaternionABC"),
-    "PositionVectorType": ("positionABC", "PositionABC"),
-    "SpatialPoseType": ("spatialPoseABC", "SpatialPoseABC"),
-    "PrecisionTimeIntervalType": ("precisionTimeIntervalABC", "PrecisionTimeIntervalABC"),
-    "PrecisionTimestampType": ("precisionTimestampABC", "PrecisionTimestampABC"),
+    "QuaternionType": ("spatialABCs", "QuaternionABC"),
+    "PositionVectorType": ("spatialABCs", "PositionABC"),
+    "SpatialPoseType": ("spatialABCs", "SpatialPoseABC"),
+    "PrecisionTimeIntervalType": ("precisionTimeABC", "PrecisionTimeIntervalABC"),
+    "PrecisionTimestampType": ("precisionTimeABC", "PrecisionTimestampABC"),
     "UnitSphericalArcType": ("unitSphericalArcABC", "UnitSphericalArcABC"),
     "UnitSphericalSmallCircleType": (
         "unitSphericalSmallCircleABC",
@@ -149,7 +151,7 @@ def main(path: str) -> None:
     helper_block = ""
     if present_helpers:
         items = ",\n    ".join(present_helpers)
-        helper_block = f"from foundationTypes.dataModelHelper import (\n    {items},\n)\n"
+        helper_block = f"from foundationTypes.data_model_helper import (\n    {items},\n)\n"
     enum_block = "from foundationTypes.mathTypes.mathEnums import " + ", ".join(ENUMS) + "\n"
     seq_block = "from collections.abc import Sequence\n"
     injected = seq_block + helper_block + enum_block + "\n".join(sorted(like_imports)) + "\n"

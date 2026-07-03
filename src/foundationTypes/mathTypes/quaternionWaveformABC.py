@@ -2,17 +2,20 @@
 
 See ``.claude/specs/mathTypeTiers.md``. A quaternion waveform is a
 uniformly-sampled time series of unit quaternions anchored at ``t0`` with sample
-interval ``dt``.
+interval ``dt`` — the rotation-only projection of an SE(3) trajectory (see
+:mod:`foundationTypes.mathTypes.spatialABCs`).
 """
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
-from foundationTypes.dataModelHelper import DataModelHelper
-from foundationTypes.mathTypes.precisionTimeIntervalABC import PrecisionTimeIntervalABC
-from foundationTypes.mathTypes.precisionTimestampABC import PrecisionTimestampABC
-from foundationTypes.mathTypes.quaternionABC import QuaternionABC
+from foundationTypes.data_model_helper import DataModelHelper
+from foundationTypes.mathTypes.precisionTimeABC import (
+    PrecisionTimeIntervalABC,
+    PrecisionTimestampABC,
+)
+from foundationTypes.mathTypes.spatialABCs import QuaternionABC
 
 
 class QuaternionWaveformABC(ABC, DataModelHelper):

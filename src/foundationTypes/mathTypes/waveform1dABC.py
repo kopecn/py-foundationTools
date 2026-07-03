@@ -8,9 +8,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
-from foundationTypes.dataModelHelper import DataModelHelper
-from foundationTypes.mathTypes.precisionTimeIntervalABC import PrecisionTimeIntervalABC
-from foundationTypes.mathTypes.precisionTimestampABC import PrecisionTimestampABC
+from foundationTypes.data_model_helper import DataModelHelper
+from foundationTypes.mathTypes.precisionTimeABC import (
+    PrecisionTimeIntervalABC,
+    PrecisionTimestampABC,
+)
 
 
 class Waveform1dABC(ABC, DataModelHelper):

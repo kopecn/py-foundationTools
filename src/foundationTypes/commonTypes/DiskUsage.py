@@ -8,7 +8,7 @@ disk usage data, compatible with both Linux and macOS df command formats.
 from dataclasses import dataclass
 from typing import Any, TypeVar, cast
 
-from foundationTypes.dataModelHelper import DataModelHelper
+from foundationTypes.data_model_helper import DataModelHelper
 
 T = TypeVar("T")
 

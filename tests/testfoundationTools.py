@@ -1,4 +1,4 @@
-# from pyFoundationTools import foundationTools
+# from pyFoundationTools import foundation_tools
 
 
 def test_content() -> None:

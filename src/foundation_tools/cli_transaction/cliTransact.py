@@ -39,7 +39,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from foundationTypes.dataModelHelper import DataModelHelper
+from foundationTypes.data_model_helper import DataModelHelper
 
 # Constants
 ERROR_RETURN_CODE = -1

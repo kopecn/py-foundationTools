@@ -18,14 +18,14 @@ import pytest
 
 # Add src to path for import
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from foundationTools.cli_transaction.cliTransact import (  # pylint: disable=wrong-import-position
+from foundation_tools.cli_transaction.cliTransact import (  # pylint: disable=wrong-import-position
     ERROR_RETURN_CODE,
     SUCCESS_RETURN_CODE,
     CLITransact,
     CLITransactResult,
     CLITransactResultModel,
 )
-from foundationTypes.dataModelHelper import (
+from foundationTypes.data_model_helper import (
     DataModelHelper,  # pylint: disable=wrong-import-position
 )
 

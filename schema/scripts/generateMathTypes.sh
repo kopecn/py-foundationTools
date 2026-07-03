@@ -15,7 +15,7 @@ set -euo pipefail
 # each generated Tier-1 `XxxxType` dataclass inherits its hand-written Tier-2
 # `XxxxLike` abstraction. quicktype knows nothing about that, so the Math-specific
 # post-processor (reuse/postprocess_mathtypes.py) reparents the classes, extracts
-# the enums to mathEnums, imports the dataModelHelper helpers, and injects the
+# the enums to mathEnums, imports the data_model_helper helpers, and injects the
 # literal field defaults required for a dataclass to satisfy inherited abstract
 # `@property` accessors. from_dict/to_dict normalization is the shared run_ruff pass.
 # =============================================================================

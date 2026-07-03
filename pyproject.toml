@@ -88,8 +88,8 @@ ignore = ["D301"]  # example
 python_version = "3.13"
 strict = true
 files = ["src", "tests"]
-# src/ layout: treat src as the package root so foundationMath.math resolves once,
-# not also as src.foundationMath.math (duplicate-module error otherwise).
+# src/ layout: treat src as the package root so foundation_math.math resolves once,
+# not also as src.foundation_math.math (duplicate-module error otherwise).
 mypy_path = "src"
 explicit_package_bases = true
 

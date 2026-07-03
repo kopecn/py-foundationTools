@@ -1,17 +1,21 @@
 """Tier-2 shared abstraction for uniformly-sampled 3D position waveforms.
 
 See ``.claude/specs/mathTypeTiers.md``. A position waveform is a uniformly-sampled
-time series of 3D positions anchored at ``t0`` with sample interval ``dt``.
+time series of 3D positions anchored at ``t0`` with sample interval ``dt`` — the
+translation-only projection of an SE(3) trajectory (see
+:mod:`foundationTypes.mathTypes.spatialABCs`).
 """
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
-from foundationTypes.dataModelHelper import DataModelHelper
-from foundationTypes.mathTypes.positionABC import PositionABC
-from foundationTypes.mathTypes.precisionTimeIntervalABC import PrecisionTimeIntervalABC
-from foundationTypes.mathTypes.precisionTimestampABC import PrecisionTimestampABC
+from foundationTypes.data_model_helper import DataModelHelper
+from foundationTypes.mathTypes.precisionTimeABC import (
+    PrecisionTimeIntervalABC,
+    PrecisionTimestampABC,
+)
+from foundationTypes.mathTypes.spatialABCs import PositionABC
 
 
 class PositionWaveformABC(ABC, DataModelHelper):

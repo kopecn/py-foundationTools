@@ -90,7 +90,7 @@ class CLITransactResult:
 ### `CLITransactResultModel[T]`
 
 Extends `CLITransactResult` with `model: T | None = None`, where `T` is bound to
-`DataModelHelper` (see [dataModelHelper.md](dataModelHelper.md)). The model is populated
+`DataModelHelper` (see [data_model_helper.md](data_model_helper.md)). The model is populated
 **only** when `success is True`, `stdout is not None`, and the parser does not raise.
 
 ## Command Input Contract

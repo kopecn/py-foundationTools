@@ -11,8 +11,29 @@ applies_to: schema/schemas/Math/, schema/scripts/generateMathTypes.sh, schema/sc
 > outside this repository. This spec governs how every non-enum type under the
 > `Math` schema domain is layered. It complements
 > [`schemaCodegen.md`](schemaCodegen.md) (Tier 1's codegen authority) and
-> [`dataModelHelper.md`](dataModelHelper.md) (the serialization base class every
+> [`data_model_helper.md`](data_model_helper.md) (the serialization base class every
 > tier transitively inherits).
+
+## Goal — SE(3) rigid body transformations
+
+The `Position` / `Quaternion` / `SpatialPose` family (`spatialABCs.py`) exists to
+give **SE(3), the Lie group of 3D rigid body transformations (rotation +
+translation)**, a storage-independent, serializable data contract:
+
+- `PositionABC` — the translation part, a point in `R^3`.
+- `QuaternionABC` — the rotation part, a unit quaternion (the standard double
+  cover of `SO(3)`, the rotation subgroup of SE(3)).
+- `SpatialPoseABC` — one SE(3) group element: a translation composed with a
+  rotation, i.e. a pose.
+- `WaveformSpatialABC` (and its single-component siblings `PositionWaveformABC`
+  / `QuaternionWaveformABC`) — a uniformly-sampled trajectory through SE(3)
+  over time.
+
+This spec's tier split (below) is *how* that contract is layered so the data
+shape stays independent of the math implementation; the group-theoretic
+context above is *why* the family exists. Group operations (composition,
+inverse, interpolation) belong on the `XxxxMathLike` tier, never on the
+`XxxxLike` accessor contracts — see Invariant 1.
 
 ## Why
 
@@ -92,7 +113,7 @@ graph is one connected component into a single quicktype invocation → one
 [`schemaCodegen.md`](schemaCodegen.md)). Each object schema's `title` is its
 public `XxxxType` name. `schema/scripts/reuse/postprocess_mathtypes.py` then
 reparents each class to its `XxxxLike`, extracts the enums, imports the
-`dataModelHelper` helpers, and injects the field defaults from invariant 2;
+`data_model_helper` helpers, and injects the field defaults from invariant 2;
 `from_dict`/`to_dict` normalization is the shared `run_ruff` pass. This
 post-processor is intentionally Math-specific — the shared reuse libraries stay
 generic for the other generators.

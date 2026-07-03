@@ -1,20 +1,22 @@
 """Tier-2 shared abstraction for uniformly-sampled 6-DOF pose waveforms.
 
 See ``.claude/specs/mathTypeTiers.md``. A spatial-pose waveform is a
-uniformly-sampled time series of 6-DOF poses represented as *parallel* position
-and quaternion arrays (not an array of poses), anchored at ``t0`` with sample
-interval ``dt``.
+uniformly-sampled time series of SE(3) poses — samples of a 3D rigid body
+transformation (rotation + translation) over time — represented as *parallel*
+position and quaternion arrays (not an array of poses), anchored at ``t0``
+with sample interval ``dt``.
 """
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
-from foundationTypes.dataModelHelper import DataModelHelper
-from foundationTypes.mathTypes.positionABC import PositionABC
-from foundationTypes.mathTypes.precisionTimeIntervalABC import PrecisionTimeIntervalABC
-from foundationTypes.mathTypes.precisionTimestampABC import PrecisionTimestampABC
-from foundationTypes.mathTypes.quaternionABC import QuaternionABC
+from foundationTypes.data_model_helper import DataModelHelper
+from foundationTypes.mathTypes.precisionTimeABC import (
+    PrecisionTimeIntervalABC,
+    PrecisionTimestampABC,
+)
+from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC
 
 
 class WaveformSpatialABC(ABC, DataModelHelper):

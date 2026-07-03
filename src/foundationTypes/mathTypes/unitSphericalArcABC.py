@@ -9,7 +9,7 @@ shared accessor + serialization contract (inherited by the codegen
 from abc import ABC, abstractmethod
 from typing import Any
 
-from foundationTypes.dataModelHelper import DataModelHelper
+from foundationTypes.data_model_helper import DataModelHelper
 
 
 class UnitSphericalArcABC(ABC, DataModelHelper):

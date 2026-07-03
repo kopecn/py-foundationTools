@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypeVar
 
-from foundationTypes.dataModelHelper import (
+from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_bool,
     from_dict,
@@ -4701,10 +4701,6 @@ class ServerNotificationMethod(Enum):
 
 @dataclass
 class ServerNotificationParams(DataModelHelper):
-    data: Any
-    """The data to be logged, such as a string message or an object. Any JSON serializable type
-    is allowed here.
-    """
     reason: str | None = None
     """An optional string describing the reason for the cancellation. This MAY be logged or
     presented to the user.
@@ -4735,6 +4731,10 @@ class ServerNotificationParams(DataModelHelper):
     uri: str | None = None
     """The URI of the resource that has been updated. This might be a sub-resource of the one
     that the client actually subscribed to.
+    """
+    data: Any
+    """The data to be logged, such as a string message or an object. Any JSON serializable type
+    is allowed here.
     """
     level: LoggingLevel | None = None
     """The severity of this log message."""

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypeVar
 
-from foundationTypes.dataModelHelper import (
+from foundationTypes.data_model_helper import (
     from_float,
     from_int,
     from_list,
@@ -21,13 +21,13 @@ from foundationTypes.dataModelHelper import (
     to_float,
 )
 from foundationTypes.mathTypes.mathEnums import NumericSign, ReferenceFrame, Timescale
-from foundationTypes.mathTypes.positionABC import PositionABC
 from foundationTypes.mathTypes.positionWaveformABC import PositionWaveformABC
-from foundationTypes.mathTypes.precisionTimeIntervalABC import PrecisionTimeIntervalABC
-from foundationTypes.mathTypes.precisionTimestampABC import PrecisionTimestampABC
-from foundationTypes.mathTypes.quaternionABC import QuaternionABC
+from foundationTypes.mathTypes.precisionTimeABC import (
+    PrecisionTimeIntervalABC,
+    PrecisionTimestampABC,
+)
 from foundationTypes.mathTypes.quaternionWaveformABC import QuaternionWaveformABC
-from foundationTypes.mathTypes.spatialPoseABC import SpatialPoseABC
+from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC, SpatialPoseABC
 from foundationTypes.mathTypes.unitSphericalArcABC import UnitSphericalArcABC
 from foundationTypes.mathTypes.unitSphericalSmallCircleABC import UnitSphericalSmallCircleABC
 from foundationTypes.mathTypes.waveform1dABC import Waveform1dABC

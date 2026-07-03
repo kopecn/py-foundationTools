@@ -8,7 +8,7 @@
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
-from foundationTypes.dataModelHelper import (
+from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_float,
     to_class,

@@ -24,7 +24,7 @@ A comprehensive collection of Python foundation utilities designed to extend the
   - `UnitSphericalArc` - Arcs on unit spheres with orientation and arc length
   - `QuaternionType` - Abstract base class for quaternion representations (3D rotations)
 
-### 🧮 Mathematical Utilities (`foundationMath`)
+### 🧮 Mathematical Utilities (`foundation_math`)
 - **Clamping functions** - Constrain values within specified bounds with validation
 - **Pure Python implementation** - No external mathematical dependencies
 
@@ -38,7 +38,7 @@ pip install pyFoundationTools
 
 ### CLI Operations
 ```python
-from foundationTools.cli_transaction.cliTransact import CLITransact
+from foundation_tools.cli_transaction.cliTransact import CLITransact
 
 # Basic command execution (stateless classmethods)
 result = CLITransact.run_sync("ls -la")
@@ -64,7 +64,7 @@ if result.success and result.model:
 
 ### Data Model Management
 ```python
-from foundationTypes.dataModelHelper import DataModelHelper
+from foundationTypes.data_model_helper import DataModelHelper
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 from pathlib import Path
 import json
@@ -80,7 +80,7 @@ print(f"Location: {loaded_coord.latitude}, {loaded_coord.longitude}")
 
 ### Mathematical Utilities
 ```python
-from foundationMath.math import clamp
+from foundation_math.math import clamp
 
 # Constrain values within bounds
 value = clamp(150, 0, 100)  # Returns 100

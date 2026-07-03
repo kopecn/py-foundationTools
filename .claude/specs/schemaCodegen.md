@@ -2,7 +2,7 @@
 spec: SchemaCodegen
 scope: project
 status: implemented
-applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/standardizedLoggerConfig/
+applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/StandardizedLoggerConfig/
 ---
 
 # Schema Codegen Specification
@@ -19,7 +19,7 @@ single source of truth for a model's shape; the `.py` is a generated artifact. T
 change a model's shape you edit its schema and regenerate — never the generated file.
 This spec governs schemas under `schema/schemas/`, the codegen scripts under
 `schema/scripts/`, and their generated output. It complements
-[`dataModelHelper.md`](dataModelHelper.md), which governs the base class every
+[`data_model_helper.md`](data_model_helper.md), which governs the base class every
 generated model inherits.
 
 ## Golden Workflow
@@ -49,7 +49,7 @@ A conforming script:
 - `schema/scripts/reuse/add_datamodelhelper.sh` — `add_base_class` (inject
   `DataModelHelper` parent + import) and `add_helper_imports` (strip quicktype's inline
   `from_*`/`to_*` helpers and import the equivalents from
-  `foundationTypes.dataModelHelper` instead).
+  `foundationTypes.data_model_helper` instead).
 - `schema/scripts/reuse/normalize_generated.sh` — **single source of truth** for
   post-quicktype rewrites that must reach *every* generated model regardless of which
   script produced it. Currently rewrites quicktype's `from_dict` `@staticmethod`

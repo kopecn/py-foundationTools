@@ -11,8 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 All workflows go through the Makefile (`make help` lists them). Key ones:
 
 - `make test` — run pytest in the current environment
-- `pytest tests/testfoundationMath.py` — run a single test file
-- `pytest tests/testfoundationMath.py::test_clamp` — run a single test
+- `pytest tests/testfoundation_math.py` — run a single test file
+- `pytest tests/testfoundation_math.py::test_clamp` — run a single test
 - `make testInEnv` — run tests in an isolated throwaway venv (installs from pyproject, validates packaging path)
 - `make fullCheck` — CI gate: `lintCheck` + `formatCheck` + `typecheck` + `test`. Run this before considering work done.
 - `make lint` / `make format` — ruff with autofix; `make lintCheck` / `make formatCheck` are the non-mutating CI variants
@@ -27,26 +27,26 @@ Source uses a `src/` layout with **five independently-importable top-level packa
 
 - `foundationTypes` — data models + the serialization base class (the heart of the library)
 - `foundationCLIHelpers` — subprocess transaction wrapper
-- `foundationMath` — pure-Python math utilities (e.g. `clamp`)
-- `foundationABCs` — abstract base interfaces shared across device/transport implementations
-- `foundationTools` — standalone runtime utilities (currently the structured logger)
+- `foundation_math` — pure-Python math utilities (e.g. `clamp`)
+- `foundation_abc` — abstract base interfaces shared across device/transport implementations
+- `foundation_tools` — standalone runtime utilities (currently the structured logger)
 
-Import paths are the package name directly, e.g. `from foundationTypes.dataModelHelper import DataModelHelper`, **not** `from pyFoundationTools.foundationTypes...`.
+Import paths are the package name directly, e.g. `from foundationTypes.data_model_helper import DataModelHelper`, **not** `from pyFoundationTools.foundationTypes...`.
 
 ### The DataModelHelper serialization pattern
 
-`foundationTypes/dataModelHelper.py` defines the central contract. Every data model is a `@dataclass` subclassing `DataModelHelper` and implementing two methods:
+`foundationTypes/data_model_helper.py` defines the central contract. Every data model is a `@dataclass` subclassing `DataModelHelper` and implementing two methods:
 
 - `from_dict(obj) -> Self` (classmethod, raises `NotImplementedError` on the base — quicktype-generated subclasses implement it as a `@staticmethod`) — type-validated construction from a plain dict
 - `to_dict(self) -> dict` — plain-dict serialization
 
 On top of those two, the base class fully implements: JSON file I/O (`save_to_file`/`load_from_file`, snake_case), `to_bytes`/`from_bytes` (JSON-encoded bytes), `to_wire`/`from_wire` (pluggable protocol encode/decode via the `wire_encode`/`wire_decode` ClassVars), `from_env`/`_resolve_from_env` (construction with environment-variable-backed defaults via the `_env_mapping` ClassVar), and structured logging (start/success/failure with `exc_info=True`) on every public method. The module also exports a family of `from_*`/`to_*` assert-based converters (`from_float`, `from_union`, `from_list`, etc.) — these mirror **quicktype's** generated helpers, because models are intended to be generated, not hand-written (see below).
 
-The full contract for this class is specified in [`.claude/specs/dataModelHelper.md`](specs/dataModelHelper.md). Consult it before extending the class.
+The full contract for this class is specified in [`.claude/specs/data_model_helper.md`](specs/data_model_helper.md). Consult it before extending the class.
 
 ### Schema-driven model generation (do not hand-edit generated models)
 
-Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, and `foundationTypes/standardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
+Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, and `foundationTypes/StandardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
 
 1. JSON Schema in `schema/schemas/`
 2. A per-model shell script in `schema/scripts/` (e.g. `generateGeoCoordinate.sh`) runs `quicktype` (`--lang py --src-lang schema --no-pydantic-base-model`), then `sed`-injects the `DataModelHelper` base class and import, then formats.
@@ -64,11 +64,11 @@ The full behavioral contract — the stateless classmethod surface, execution-mo
 
 ### PeripheralByteTransport ABC
 
-`foundationABCs/peripheralByteTransport.py` defines `PeripheralByteTransport`, an `ABC` for fully-asynchronous, byte-only device transports (`connect`/`disconnect`/`send`/`receive`/`is_connected`, plus an async context-manager `__aenter__`/`__aexit__`). It intentionally knows nothing about protocol framing (STX/ETX, checksums, BCC) — that belongs to device handlers layered on top. A serial (RS485/USB) implementation exists elsewhere on top of this interface; an EtherCAT adapter (translating PDO process-image offsets to this byte-stream contract) is planned. No dedicated spec exists yet for this module.
+`foundation_abc/peripheralByteTransport.py` defines `PeripheralByteTransport`, an `ABC` for fully-asynchronous, byte-only device transports (`connect`/`disconnect`/`send`/`receive`/`is_connected`, plus an async context-manager `__aenter__`/`__aexit__`). It intentionally knows nothing about protocol framing (STX/ETX, checksums, BCC) — that belongs to device handlers layered on top. A serial (RS485/USB) implementation exists elsewhere on top of this interface; an EtherCAT adapter (translating PDO process-image offsets to this byte-stream contract) is planned. No dedicated spec exists yet for this module.
 
 ### StandardizedLogger
 
-`foundationTools/standardized_logger.py` defines `StandardizedLogger`, a `logging.Logger` subclass that self-configures a stderr handler (JSON by default, human-readable via `console_pretty`) plus an optional date-rolling JSON file handler when `log_dir` is set. Build one from a `StandardizedLoggerConfig` (`foundationTypes/standardizedLoggerConfig/`, itself a schema-generated `DataModelHelper` model) via `StandardizedLogger.from_config(...)`, or construct directly. `debug`/`info`/`warning`/`error`/`critical` accept arbitrary keyword args, which become structured JSON fields on file output. No dedicated spec exists yet for this module.
+`foundation_tools/standardized_logger.py` defines `StandardizedLogger`, a `logging.Logger` subclass that self-configures a stderr handler (JSON by default, human-readable via `console_pretty`) plus an optional date-rolling JSON file handler when `log_dir` is set. Build one from a `StandardizedLoggerConfig` (`foundationTypes/StandardizedLoggerConfig/`, itself a schema-generated `DataModelHelper` model) via `StandardizedLogger.from_config(...)`, or construct directly. `debug`/`info`/`warning`/`error`/`critical` accept arbitrary keyword args, which become structured JSON fields on file output. No dedicated spec exists yet for this module.
 
 ## Tests
 

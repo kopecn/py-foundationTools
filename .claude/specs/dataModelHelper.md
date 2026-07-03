@@ -2,7 +2,7 @@
 spec: DataModelHelper
 scope: project
 status: implemented
-applies_to: src/foundationTypes/dataModelHelper.py
+applies_to: src/foundationTypes/data_model_helper.py
 ---
 
 # DataModelHelper Specification
@@ -12,7 +12,7 @@ applies_to: src/foundationTypes/dataModelHelper.py
 > `from_dict`, `to_dict`, the snake_case `save_to_file` / `load_from_file`,
 > `from_env` (env-var resolution), `to_bytes` / `from_bytes`, `to_wire` / `from_wire`,
 > structured logging, and the `from_*` / `to_*` helper converters. Keep this spec in
-> sync with `src/foundationTypes/dataModelHelper.py` when the class changes.
+> sync with `src/foundationTypes/data_model_helper.py` when the class changes.
 
 ## Overview
 
