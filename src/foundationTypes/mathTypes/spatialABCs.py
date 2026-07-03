@@ -5,13 +5,13 @@ transformations (rotation + translation)**, a storage-independent data
 contract. :class:`PositionABC` is the translation part (:math:`\\mathbb{R}^3`),
 :class:`QuaternionABC` is the rotation part (a unit quaternion is the standard
 double cover of :math:`SO(3)`, the rotation subgroup), and
-:class:`SpatialPoseABC` composes the two into one SE(3) group element — a pose.
+:class:`SpatialTransformABC` composes the two into one SE(3) group element — a pose.
 (SE(3) itself is the group; its Lie algebra, conventionally written
 lowercase ``se(3)``, is the tangent space at the identity — e.g. a
 twist/velocity — and is out of scope for these accessor contracts.)
 
 See ``.claude/specs/mathTypeTiers.md``. :class:`PositionABC`, :class:`QuaternionABC`,
-and :class:`SpatialPoseABC` are the shared accessor + serialization contracts
+and :class:`SpatialTransformABC` are the shared accessor + serialization contracts
 (inherited by the codegen ``PositionVectorType`` / ``QuaternionType`` /
 ``SpatialPoseType``). The math contracts (group composition, inverse, etc.)
 are in :mod:`foundationTypes.mathTypes.positionVectorMathLike`,
@@ -100,7 +100,7 @@ class QuaternionABC(ABC, DataModelHelper):
         """Construct from a ``{"w", "x", "y", "z"}`` dict."""
 
 
-class SpatialPoseABC(ABC, DataModelHelper):
+class SpatialTransformABC(ABC, DataModelHelper):
     """Shared abstraction for a 6-DOF pose (position + orientation).
 
     A pose is one element of SE(3), the Lie group of 3D rigid body
@@ -126,5 +126,5 @@ class SpatialPoseABC(ABC, DataModelHelper):
 
     @classmethod
     @abstractmethod
-    def from_dict(cls, obj: Any) -> "SpatialPoseABC":
+    def from_dict(cls, obj: Any) -> "SpatialTransformABC":
         """Construct from a ``{"position", "orientation"}`` dict."""

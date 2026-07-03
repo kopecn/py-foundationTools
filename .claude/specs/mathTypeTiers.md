@@ -23,7 +23,7 @@ translation)**, a storage-independent, serializable data contract:
 - `PositionABC` — the translation part, a point in `R^3`.
 - `QuaternionABC` — the rotation part, a unit quaternion (the standard double
   cover of `SO(3)`, the rotation subgroup of SE(3)).
-- `SpatialPoseABC` — one SE(3) group element: a translation composed with a
+- `SpatialTransformABC` — one SE(3) group element: a translation composed with a
   rotation, i.e. a pose.
 - `WaveformSpatialABC` (and its single-component siblings `PositionWaveformABC`
   / `QuaternionWaveformABC`) — a uniformly-sampled trajectory through SE(3)

@@ -53,7 +53,7 @@ ENUMS = ["NumericSign", "ReferenceFrame", "Timescale"]
 TYPE_TO_LIKE = {
     "QuaternionType": ("spatialABCs", "QuaternionABC"),
     "PositionVectorType": ("spatialABCs", "PositionABC"),
-    "SpatialPoseType": ("spatialABCs", "SpatialPoseABC"),
+    "SpatialPoseType": ("spatialABCs", "SpatialTransformABC"),
     "PrecisionTimeIntervalType": ("precisionTimeABC", "PrecisionTimeIntervalABC"),
     "PrecisionTimestampType": ("precisionTimeABC", "PrecisionTimestampABC"),
     "UnitSphericalArcType": ("unitSphericalArcABC", "UnitSphericalArcABC"),

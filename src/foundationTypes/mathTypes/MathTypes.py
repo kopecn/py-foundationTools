@@ -27,7 +27,7 @@ from foundationTypes.mathTypes.precisionTimeABC import (
     PrecisionTimestampABC,
 )
 from foundationTypes.mathTypes.quaternionWaveformABC import QuaternionWaveformABC
-from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC, SpatialPoseABC
+from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC, SpatialTransformABC
 from foundationTypes.mathTypes.unitSphericalArcABC import UnitSphericalArcABC
 from foundationTypes.mathTypes.unitSphericalSmallCircleABC import UnitSphericalSmallCircleABC
 from foundationTypes.mathTypes.waveform1dABC import Waveform1dABC
@@ -114,7 +114,7 @@ class PositionVectorType(PositionABC):
 
 
 @dataclass
-class SpatialPoseType(SpatialPoseABC):
+class SpatialPoseType(SpatialTransformABC):
     """A full 6-degree-of-freedom rigid body state: a Cartesian position composed with a
     quaternion orientation.
     """
