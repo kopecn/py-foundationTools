@@ -15,7 +15,8 @@
       "Bash(bash scripts/*)",
       "Bash(grep * schema/*)",
       "Bash(sed -i '' 's#/definitions/#/$defs/#g' schema/schemas/ModelContextProtocolTypes-schema.json)",
-      "Bash(grep -rn ': Any$' src/*)"
+      "Bash(grep -rn ': Any$' src/*)",
+      "Bash(make:*)"
     ],
     "deny": [],
     "ask": []

@@ -6726,7 +6726,7 @@ class ServernotificationParams(DataModelHelper):
     ttl: int | None = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
-    data: Any
+    data: Any = None
     """The data to be logged, such as a string message or an object. Any JSON serializable type
     is allowed here.
     """
