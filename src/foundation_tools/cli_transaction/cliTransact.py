@@ -101,8 +101,11 @@ class CLITransact:
             print("Deployment successful")
     """
 
+    def __init__(self, success_marker: str | None = None):
+        self.success_marker = success_marker
+
     # -----------------------------------------------------------------------
-    # Public — stateless classmethod API
+    # MARK: - Public — stateless classmethod API
     # -----------------------------------------------------------------------
 
     @classmethod
@@ -168,11 +171,8 @@ class CLITransact:
         return await cls(success_marker)._run_async_with_model(cli_command, output_parser, timeout)
 
     # -----------------------------------------------------------------------
-    # Private — constructor and implementation
+    # MARK: - Private — implementation
     # -----------------------------------------------------------------------
-
-    def __init__(self, success_marker: str | None = None):
-        self.success_marker = success_marker
 
     def _validate_command(self, cli_command: str | list[str]) -> CLITransactResult | None:
         """Validate command input and return an error result if invalid."""
