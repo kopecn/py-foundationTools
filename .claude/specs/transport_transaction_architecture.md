@@ -1,23 +1,109 @@
 ---
 spec: TransportTransactionArchitecture
 scope: project
-status: proposed
-applies_to: foundationCLIHelpers
+status: accepted
+applies_to: src/foundation_tools/
+last_updated: 2026-07-03
+semver: 0.2.0
+author: Nicholas Bergantz
 ---
 
 # Transport Transaction Architecture
 
 ## Overview
 
-`CLITransact` is the universal execution kernel for external command execution.
+This is the umbrella spec for the transaction/transport stack. It covers **two
+transport families** that share one design ethos (stateless surfaces, result objects,
+strict layer ownership) and one serialization bridge (`DataModelHelper`):
 
-Transport-specific modules (SSH, rsync, Docker, Git, SCP, etc.) are thin transactional layers that construct commands, optionally apply execution policies, and delegate execution to `CLITransact`.
+1. **Process transactions** — one-shot external command execution.
+   `CLITransact` is the execution kernel; SSH, rsync, Docker, Git, etc. are thin
+   transactional layers above it.
+2. **Stream transports** — long-lived byte-stream connections (TCP sockets, serial,
+   EtherCAT) built on the `foundation_abc.PeripheralByteTransport` ABC, with framing
+   codecs and a transaction router layered on top (see
+   [socketTransact.md](socketTransact.md)).
+
+Both families live under `src/foundation_tools/` and meet the data-model layer through
+`DataModelHelper` wire serialization (see [Wire Serialization Bridge](#wire-serialization-bridge)).
 
 This architecture separates execution mechanics from transport semantics.
 
 ---
 
-# Layered Architecture
+# System Map
+
+```
+                        Application
+                             │
+        ┌────────────────────┴────────────────────┐
+        ▼                                         ▼
+  Process transactions                     Stream transports
+  (one-shot commands)                      (long-lived connections)
+        │                                         │
+  SSHTransact / RsyncTransact / …           SocketTransact
+        │                                         │
+  Command Builders + Execution Policies     Tx Router + Framing Codecs
+        │                                         │
+     CLITransact                           SocketByteTransport
+        │                                  (PeripheralByteTransport ABC)
+        ▼                                         ▼
+    subprocess                              asyncio streams
+        └────────────────────┬────────────────────┘
+                             ▼
+              DataModelHelper (to_wire / from_wire)
+              shared serialization bridge
+```
+
+---
+
+# Package Layout
+
+All modules live under the `foundation_tools` package:
+
+```
+src/foundation_tools/
+    cli_transaction/
+        cliTransact.py          # execution kernel (implemented)
+        sshTransact.py          # planned
+        rsyncTransact.py        # planned
+    builders/
+        ssh_builder.py          # planned
+        rsync_builder.py        # planned
+    policies/
+        retry_policy.py         # planned
+        backoff_policy.py       # planned
+    socket_transaction/
+        socket_byte_transport.py    # planned
+        framing_codecs.py           # planned
+        transaction_router.py       # planned
+        socketTransact.py           # planned — client facade
+        socketTransactServer.py     # planned — server facade
+```
+
+`cliTransact.py` **is** the execution kernel — there is no separate
+`cli_executor.py`; earlier drafts that listed both were describing one module.
+
+---
+
+# Public Surface (usability north star)
+
+End users interact with exactly two kinds of objects:
+
+1. **Layer-4 transactions** — `CLITransact`, `SSHTransact`, `RsyncTransact`,
+   `SocketTransact`. Each is a one-call, stateless surface mirroring the existing
+   four-classmethod pattern (`run_sync` / `run_async` / `run_sync_with_model` /
+   `run_async_with_model`, or the socket equivalent).
+2. **Result objects** — `CLITransactResult`, `CLITransactResultModel[T]`,
+   `SocketTransactResult`. Transaction surfaces return results; they never raise.
+
+Builders, policies, and codecs are **internal-but-importable**: available for
+composition by advanced users, never required for the common path. Adding a
+transport must not add required end-user I/O beyond one method call.
+
+---
+
+# Layered Architecture (process-transaction family)
 
 ```
 Transport Transaction
@@ -41,7 +127,8 @@ Each layer owns one responsibility.
 
 # Layer 1 — CLITransact
 
-Status: Implemented
+Status: Implemented (`src/foundation_tools/cli_transaction/cliTransact.py`,
+contract in [cliTransact.md](cliTransact.md))
 
 Responsible for:
 
@@ -130,6 +217,14 @@ CLITransact.run_sync(...)
 A policy may invoke CLITransact multiple times.
 
 CLITransact itself never retries.
+
+## Policy ownership (canonical rule)
+
+Policies are a **separate layer**. A transport transaction MAY *accept or select* a
+policy — an optional parameter, or a documented recommended default — but MUST NOT
+*implement* retry, backoff, or recovery logic itself. This wording is canonical;
+[cliTransact.md](cliTransact.md), [sshTransact.md](sshTransact.md), and
+[rsyncTransact.md](rsyncTransact.md) defer to it.
 
 ---
 
@@ -228,7 +323,8 @@ RsyncTransact owns:
 - SSH transport injection
 - Windows compatibility options
 - default option presets
-- retry policy selection
+- retry policy **selection** (never implementation — see
+  [Policy ownership](#policy-ownership-canonical-rule))
 
 It delegates execution to CLITransact.
 
@@ -247,22 +343,79 @@ It delegates execution to CLITransact.
 
 ---
 
+# Stream-Transport Family (socket)
+
+Status: Proposed — full contract in [socketTransact.md](socketTransact.md).
+
+The socket family is the long-lived-connection counterpart to the process family.
+It is **asyncio-native** and layers as:
+
+```
+SocketTransact              # Layer 4 — public facade, result objects
+        │
+Transaction Router          # tx_id correlation via asyncio futures
+        │
+Framing Codecs              # delimiter / length-prefixed framing,
+        │                   # DataModelHelper to_wire / from_wire
+SocketByteTransport         # implements foundation_abc.PeripheralByteTransport
+        │
+asyncio streams
+```
+
+Parallels with the process family are deliberate:
+
+| process family | stream family |
+| --- | --- |
+| CLITransact (kernel) | SocketByteTransport (raw bytes) |
+| Command Builders | Framing Codecs |
+| Execution Policies | Transaction Router policies (timeout, correlation) |
+| SSHTransact / RsyncTransact | SocketTransact |
+| `CLITransactResult` | `SocketTransactResult` |
+
+The raw transport keeps the ABC's raising semantics (`ConnectionError`,
+`TimeoutError`); the **transaction surface** (`SocketTransact`) converts failures to
+result objects, matching the process family's containment ethos.
+
+The family covers both roles: `SocketTransact` (client) and `SocketTransactServer`
+(server — accepts connections, services plural inbound requests concurrently, and
+replies tagged with each request's tx_id). The layers beneath the facades (codecs,
+correlation pair) are shared between roles.
+
+---
+
+# Wire Serialization Bridge
+
+`DataModelHelper` is the single serialization contract joining both families to the
+data-model layer:
+
+- **Process family:** `DataModelHelper.from_wire` (or `from_bytes` / a
+  `from_dict`-based parser) is the canonical `output_parser` for the
+  `run_*_with_model` methods. Models parsed from CLI output should be
+  schema-generated `DataModelHelper` subclasses, not ad-hoc classes.
+- **Stream family:** framing codecs encode outbound payloads with
+  `DataModelHelper.to_wire` and decode inbound frames with
+  `DataModelHelper.from_wire` (via the `wire_encode` / `wire_decode` ClassVars).
+
+No transport module defines its own serialization format; they compose the bridge.
+
+---
+
 # Dependency Direction
 
 Dependencies are strictly one-way.
 
 ```
-CLITransact
+CLITransact / SocketByteTransport
 
 ↑
 
-RetryPolicy
+Policies / Codecs / Router
 
 ↑
 
 RsyncTransact
 SSHTransact
-DockerTransact
+SocketTransact
 
 ↑
 
@@ -277,7 +430,7 @@ Lower layers never depend on higher layers.
 
 Adding a new transport should require only:
 
-1. a command builder
+1. a command builder (process family) or codec (stream family)
 2. optional execution policies
 3. a thin transaction wrapper
 
@@ -308,12 +461,16 @@ No modification to CLITransact should be necessary.
 A compliant transport transaction MUST:
 
 1. never invoke subprocess directly
-2. delegate execution exclusively to CLITransact
+2. delegate execution exclusively to CLITransact (process family) or the
+   socket stack (stream family)
 3. remain stateless
 4. construct commands deterministically
 5. own only transport-specific behavior
-6. apply execution policies outside CLITransact
-7. preserve CLITransact result semantics without modification
+6. apply execution policies outside the execution kernel — selection allowed,
+   implementation forbidden
+7. preserve kernel result semantics without modification
+8. expose no required end-user surface beyond the one-call transaction API
+9. use `DataModelHelper` wire serialization for all model encode/decode
 
 ---
 
@@ -323,8 +480,9 @@ Execution is infrastructure.
 
 Policies are orchestration.
 
-Builders are composition.
+Builders and codecs are composition.
 
 Transactions are transport semantics.
 
-Each layer should remain independently testable, independently replaceable, and independently extensible.
+Each layer should remain independently testable, independently replaceable, and
+independently extensible.

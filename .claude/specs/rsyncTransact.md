@@ -2,7 +2,10 @@
 spec: RsyncTransact
 scope: project
 status: planned
-applies_to: src/foundationCLIHelpers/rsyncTransact.py
+applies_to: src/foundation_tools/cli_transaction/rsyncTransact.py
+last_updated: 2026-07-03
+semver: 0.1.0
+author: Nicholas Bergantz
 ---
 
 # Rsync Transaction Manager Specification
@@ -510,6 +513,12 @@ belong exclusively to `CLITransact`.
 # Future Retry Integration
 
 Retry behavior is intentionally **outside** this module.
+
+Per the policy-ownership rule in
+[transport_transaction_architecture.md](transport_transaction_architecture.md),
+`RsyncTransact` MAY **accept or select** a `RetryPolicy` (an optional parameter, or a
+documented recommended default) and route execution through it — but it MUST NOT
+implement retry, backoff, or recovery logic itself.
 
 Future retry engines MAY classify rsync return codes as transient.
 

@@ -23,13 +23,12 @@ Linting/formatting is **ruff** (line-length 100, double quotes; rule set E/F/I/U
 
 ## Package Architecture
 
-Source uses a `src/` layout with **five independently-importable top-level packages** (not nested under one namespace, auto-discovered by setuptools under `package-dir = {"" = "src"}`). `pyFoundationTools` is the distribution name in `pyproject.toml`, not a package directory.
+Source uses a `src/` layout with **four independently-importable top-level packages** (not nested under one namespace, auto-discovered by setuptools under `package-dir = {"" = "src"}`). `pyFoundationTools` is the distribution name in `pyproject.toml`, not a package directory.
 
 - `foundationTypes` — data models + the serialization base class (the heart of the library)
-- `foundationCLIHelpers` — subprocess transaction wrapper
 - `foundation_math` — pure-Python math utilities (e.g. `clamp`)
 - `foundation_abc` — abstract base interfaces shared across device/transport implementations
-- `foundation_tools` — standalone runtime utilities (currently the structured logger)
+- `foundation_tools` — runtime utilities: the structured logger plus the transaction/transport stack (`cli_transaction/` today; `builders/`, `policies/`, `socket_transaction/` planned per [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md))
 
 Import paths are the package name directly, e.g. `from foundationTypes.data_model_helper import DataModelHelper`, **not** `from pyFoundationTools.foundationTypes...`.
 
@@ -42,7 +41,7 @@ Import paths are the package name directly, e.g. `from foundationTypes.data_mode
 
 On top of those two, the base class fully implements: JSON file I/O (`save_to_file`/`load_from_file`, snake_case), `to_bytes`/`from_bytes` (JSON-encoded bytes), `to_wire`/`from_wire` (pluggable protocol encode/decode via the `wire_encode`/`wire_decode` ClassVars), `from_env`/`_resolve_from_env` (construction with environment-variable-backed defaults via the `_env_mapping` ClassVar), and structured logging (start/success/failure with `exc_info=True`) on every public method. The module also exports a family of `from_*`/`to_*` assert-based converters (`from_float`, `from_union`, `from_list`, etc.) — these mirror **quicktype's** generated helpers, because models are intended to be generated, not hand-written (see below).
 
-The full contract for this class is specified in [`.claude/specs/data_model_helper.md`](specs/data_model_helper.md). Consult it before extending the class.
+The full contract for this class is specified in [`.claude/specs/dataModelHelper.md`](specs/dataModelHelper.md). Consult it before extending the class.
 
 ### Schema-driven model generation (do not hand-edit generated models)
 
@@ -58,11 +57,11 @@ The full codegen contract — the golden script template (`generateUnitSpherical
 
 ### CLITransact pattern
 
-`foundationCLIHelpers/cliTransact.py` wraps `subprocess`/`asyncio` subprocess execution. The public API is four **stateless classmethods** — `CLITransact.run_sync` / `run_async` / `run_sync_with_model` / `run_async_with_model` — each taking a keyword-only `timeout` and optional `success_marker`. It never raises — all failures (timeouts, exceptions, non-zero exit) are captured into a `CLITransactResult` dataclass (`return_code`, `stdout`, `stderr`, `success`). `success` is `return_code == 0` AND (if a `success_marker` was passed) that string appearing in stdout. The `*_with_model` variants take an `output_parser` callable and return a `CLITransactResultModel[T]` where `T` is bound to `DataModelHelper` — this is the bridge between CLI output and the data-model layer (e.g. `df -h` → `DiskUsage`). String commands run via `shell=True` (injection risk); list commands are preferred.
+`foundation_tools/cli_transaction/cliTransact.py` wraps `subprocess`/`asyncio` subprocess execution. The public API is four **stateless classmethods** — `CLITransact.run_sync` / `run_async` / `run_sync_with_model` / `run_async_with_model` — each taking a keyword-only `timeout` and optional `success_marker`. It never raises — all failures (timeouts, exceptions, non-zero exit) are captured into a `CLITransactResult` dataclass (`return_code`, `stdout`, `stderr`, `success`). `success` is `return_code == 0` AND (if a `success_marker` was passed) that string appearing in stdout. The `*_with_model` variants take an `output_parser` callable and return a `CLITransactResultModel[T]` where `T` is bound to `DataModelHelper` — this is the bridge between CLI output and the data-model layer (e.g. `df -h` → `DiskUsage`). String commands run via `shell=True` (injection risk); list commands are preferred.
 
 The full behavioral contract — the stateless classmethod surface, execution-mode selection, semantic success evaluation, total exception containment, the corrected async timeout escalation (`terminate → kill`), the model-extension layer, the formalized "learned behaviors", and the planned sibling layers (`SSHTransact`, `RsyncTransact`, retry/backoff, Windows/MSYS2) — is specified in [`.claude/specs/cliTransact.md`](specs/cliTransact.md). The CLITransact kernel is implemented; the sibling layers are planned. Consult the spec before extending the module.
 
-The planned `RsyncTransact` sibling layer (rsync command construction, SSH transport injection, option precedence, Windows/MSYS2 preset) has its own contract in [`.claude/specs/rsyncTransact.md`](specs/rsyncTransact.md) — consult it before implementing `foundationCLIHelpers/rsyncTransact.py`.
+The kernel is Layer 1 of the umbrella [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md), which defines the full 4-layer stack (kernel → command builders → execution policies → transport transactions), the policy-ownership rule, the public-surface rule, and the `DataModelHelper` wire-serialization bridge. Planned sibling contracts: [`.claude/specs/sshTransact.md`](specs/sshTransact.md), [`.claude/specs/rsyncTransact.md`](specs/rsyncTransact.md) (rsync command construction, SSH transport injection, option precedence, Windows/MSYS2 preset), and the asyncio socket family [`.claude/specs/socketTransact.md`](specs/socketTransact.md). Consult the relevant spec before implementing any of them; the step-by-step build is decomposed in `.claude/action-plan/`.
 
 ### PeripheralByteTransport ABC
 

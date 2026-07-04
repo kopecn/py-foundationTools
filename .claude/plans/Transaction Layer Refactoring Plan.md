@@ -1,4 +1,24 @@
+---
+plan: TransactionLayerRefactoring
+scope: project
+status: aligned
+last_updated: 2026-07-03
+semver: 0.1.1
+author: Nicholas Bergantz
+---
+
 # Transaction Layer Refactoring Plan
+
+> **Alignment note (2026-07-03).** The binding contracts are
+> [transport_transaction_architecture.md](../specs/transport_transaction_architecture.md)
+> (umbrella), [cliTransact.md](../specs/cliTransact.md),
+> [sshTransact.md](../specs/sshTransact.md),
+> [rsyncTransact.md](../specs/rsyncTransact.md), and
+> [socketTransact.md](../specs/socketTransact.md). The execution breakdown lives in
+> `.claude/action-plan/`. `TransactionHandler` /
+> `automation_foundation_transactions`, referenced below, are concepts from a
+> **sibling codebase** — they do not exist in this repo and impose no requirement
+> here; they are kept only to explain the layering boundary.
 
 ## Goal
 
@@ -7,15 +27,15 @@ Unify the automation execution stack around a single layered transaction archite
 Today there are effectively two independent concepts:
 
 ```
-TransactionHandler
+TransactionHandler          (external sibling codebase)
     ↑
 device command lifecycle
 
-CLITransact
+CLITransact                 (this repo)
     ↑
 subprocess lifecycle
 
-RsyncTransact
+RsyncTransact               (this repo, planned)
     ↑
 rsync command construction
 ```
@@ -194,12 +214,12 @@ Separating them allows:
 # Proposed Package Layout
 
 ```
-foundationCLIHelpers/
+src/foundation_tools/
 
-    cliTransact.py
-
-    execution/
-        cli_executor.py
+    cli_transaction/
+        cliTransact.py          # the execution kernel itself — no separate cli_executor
+        sshTransact.py
+        rsyncTransact.py
 
     builders/
         rsync_builder.py
@@ -208,18 +228,28 @@ foundationCLIHelpers/
     policies/
         retry_policy.py
         backoff_policy.py
-        success_policy.py
 
-    transports/
-        rsyncTransact.py
-        sshTransact.py
+    socket_transaction/
+        socket_byte_transport.py
+        framing_codecs.py
+        transaction_router.py
+        socketTransact.py           # client facade
+        socketTransactServer.py     # server facade
 ```
 
-The public API remains simple while the internal responsibilities become sharply separated.
+The public API remains simple while the internal responsibilities become sharply
+separated. The `socket_transaction/` family is the long-lived-connection counterpart
+to the CLI stack — same ethos (stateless surface, result objects, strict layer
+ownership), different connection lifetime. See
+[Socket Transaction Transport Layer.md](Socket%20Transaction%20Transport%20Layer.md)
+and [socketTransact.md](../specs/socketTransact.md).
 
 ---
 
-# Relationship to automation_foundation_transactions
+# Relationship to automation_foundation_transactions (external)
+
+`automation_foundation_transactions` lives in a sibling codebase, not this repo.
+The relationship is recorded here only to keep the layering boundary honest.
 
 The two packages solve different layers.
 
@@ -234,7 +264,7 @@ answers
 whereas
 
 ```
-foundationCLIHelpers
+foundation_tools (cli_transaction / socket_transaction)
 ```
 
 answers

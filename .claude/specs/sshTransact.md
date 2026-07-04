@@ -2,7 +2,10 @@
 spec: SSHTransact
 scope: project
 status: proposed
-applies_to: src/foundationCLIHelpers/sshTransact.py
+applies_to: src/foundation_tools/cli_transaction/sshTransact.py
+last_updated: 2026-07-03
+semver: 0.1.0
+author: Nicholas Bergantz
 ---
 
 # SSH Transaction Manager Specification
@@ -293,6 +296,10 @@ SSHTransact simply forwards:
 
 No parser logic exists inside SSHTransact.
 
+The canonical parser is `DataModelHelper.from_wire` on a schema-generated model —
+see the **Wire Serialization Bridge** section of
+[transport_transaction_architecture.md](transport_transaction_architecture.md).
+
 ---
 
 # Error Handling
@@ -361,7 +368,10 @@ SSH itself has no retry semantics.
 
 No retry, backoff, or recovery logic belongs in SSHTransact.
 
-Higher layers may compose those behaviors externally.
+Higher layers may compose those behaviors externally. Per the policy-ownership rule
+in [transport_transaction_architecture.md](transport_transaction_architecture.md),
+SSHTransact MAY accept an optional policy parameter and pass execution through it,
+but MUST NOT implement retry logic itself.
 
 ---
 

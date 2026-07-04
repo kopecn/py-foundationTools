@@ -2,22 +2,28 @@
 spec: CLITransact
 scope: project
 status: partial
-applies_to: src/foundationCLIHelpers/cliTransact.py
+applies_to: src/foundation_tools/cli_transaction/cliTransact.py
+last_updated: 2026-07-03
+semver: 0.1.0
+author: Nicholas Bergantz
 ---
 
 # CLI Transaction Manager Specification
 
 > **Status — partial.** The `CLITransact` execution kernel described below is
-> **implemented** in `src/foundationCLIHelpers/cliTransact.py` and matches this spec.
-> The sibling layers — `SSHTransact`, `RsyncTransact`, the retry/backoff engine, and
-> the Windows/MSYS2 reliability layer — are **planned, not yet implemented**; their
-> sections are marked accordingly and describe target behavior only. Keep the kernel
-> sections in sync with the code when the class changes.
+> **implemented** in `src/foundation_tools/cli_transaction/cliTransact.py` and matches
+> this spec. The sibling layers — `SSHTransact`, `RsyncTransact`, the retry/backoff
+> engine, and the Windows/MSYS2 reliability layer — are **planned, not yet
+> implemented**; their sections are marked accordingly and describe target behavior
+> only. Keep the kernel sections in sync with the code when the class changes.
 >
-> **Naming note.** This spec was adapted from a draft that referenced a
-> `automation_foundation_utils/cli_transact/` package. The real package is
-> `foundationCLIHelpers` and the module is `cliTransact.py`; all paths and imports here
-> use the real names. No rename is implied.
+> **Naming note.** The canonical package home is `foundation_tools.cli_transaction`
+> (module `cliTransact.py`). Earlier drafts referenced `foundationCLIHelpers` and
+> `automation_foundation_utils/cli_transact/`; those names are obsolete.
+>
+> This module is Layer 1 of the umbrella
+> [transport_transaction_architecture.md](transport_transaction_architecture.md);
+> consult it for the layer model, policy-ownership rule, and package layout.
 
 ## Overview
 
@@ -213,6 +219,14 @@ behavior:
   a misleading structured artifact, and raw execution truth always wins over structured
   convenience.
 
+### Wire bridge
+
+The canonical `output_parser` is `DataModelHelper.from_wire` (or `from_bytes` / a
+`from_dict`-based parser) on a schema-generated model — see the
+**Wire Serialization Bridge** section of
+[transport_transaction_architecture.md](transport_transaction_architecture.md).
+Ad-hoc parser classes should be the exception, not the norm.
+
 ## Learned Behaviors / Design Rationale
 
 These were previously implicit in the implementation and are now formalized as
@@ -261,9 +275,9 @@ requirements. They encode real-world automation assumptions.
 delegate execution down to it:
 
 ```text
-RsyncTransact  → builds rsync command + retry policy   (planned)
-SSHTransact    → builds ssh command                     (planned)
-CLITransact    → executes command deterministically     (implemented)
+RsyncTransact  → builds rsync command, selects policies (planned)
+SSHTransact    → builds ssh command                      (planned)
+CLITransact    → executes command deterministically      (implemented)
 subprocess     → raw system interface
 ```
 
@@ -283,7 +297,10 @@ contract (`str` → single remote-shell argument; `list` → argv segments).
 
 ### `RsyncTransact` — planned
 
-Builds the rsync command and owns retry policy, delegating execution to `CLITransact`.
+Builds the rsync command and may **select** a retry policy (an optional parameter or
+documented default — never a retry implementation of its own; see the policy-ownership
+rule in [transport_transaction_architecture.md](transport_transaction_architecture.md)),
+delegating execution to `CLITransact`.
 
 - **Option precedence:** explicit `options` (if not `None`) overrides `default_options`;
   `options == []` disables all defaults; `options is None` falls back to defaults.
