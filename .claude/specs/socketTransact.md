@@ -4,7 +4,7 @@ scope: project
 status: proposed
 applies_to: src/foundation_tools/socket_transaction/
 last_updated: 2026-07-03
-semver: 0.2.0
+semver: 0.3.0
 author: Nicholas Bergantz
 ---
 
@@ -112,6 +112,9 @@ Responsibilities:
   length prefixes belong to codecs)
 - honor the ABC's raising semantics: `ConnectionError` on failed connect,
   `RuntimeError` when used while disconnected, `TimeoutError` on receive timeout
+- signal end-of-stream explicitly: when the peer has closed the connection and no
+  buffered data remains, `receive` returns `b""` immediately (never `TimeoutError`)
+  — the empty read is the closed-connection signal upper layers consume
 - clean teardown: `disconnect()` closes the writer and awaits `wait_closed()`;
   double-disconnect is a no-op
 
@@ -178,13 +181,23 @@ The router owns the single reader task and correlates request/response traffic.
 
 Responsibilities:
 
-- run one background reader task: `transport.receive(...)` → `codec.feed(...)` →
-  dispatch complete frames
+- run one background reader task:
+  `transport.receive(read_size, timeout=poll_timeout)` → `codec.feed(...)` →
+  dispatch complete frames. `read_size` (default 4096) and `poll_timeout` (default
+  1.0 s) are router construction parameters. A `TimeoutError` from `receive` is an
+  **idle tick**, not an error — the loop simply continues
+- detect connection loss in the reader loop: an empty read (`b""`, end-of-stream)
+  or a `ConnectionError` / `RuntimeError` / `OSError` from the transport triggers
+  teardown — all pending futures fail with a connection-closed error and the
+  unsolicited stream ends
 - extract tx_id from each inbound frame via a caller-supplied
   `tx_id_extractor: Callable[[bytes], str | None]`
 - resolve the pending `asyncio.Future` matching the tx_id, if any
 - route frames with no matching pending future (or `None` tx_id) to the unsolicited
-  stream (a bounded `asyncio.Queue` exposed as an async iterator)
+  stream — a bounded `asyncio.Queue` exposed as an async iterator. On overflow the
+  **oldest frame is dropped** (with a structured log) and the new frame enqueued;
+  the reader task never awaits queue capacity, so a slow unsolicited consumer can
+  never stall correlated replies
 - per-request timeout via `asyncio.wait_for`; a timed-out request's pending entry is
   removed so a late reply becomes an unsolicited frame, not a crash
 - teardown: cancel the reader task, cancel all pending futures with a
@@ -199,6 +212,16 @@ correlation contract is a **pair** configured together at router construction:
 tx_id_injector: Callable[[bytes, str], bytes]   # outbound: stamp tx_id into frame
 tx_id_extractor: Callable[[bytes], str | None]  # inbound: read tx_id back out
 ```
+
+The pair is **required at router (and facade) construction — no default exists**.
+tx_id placement is protocol-specific, and the stack is forbidden from defining a
+serialization format of its own (see the Wire Serialization Bridge of the umbrella
+spec), so it cannot invent one.
+
+The injector MUST **overwrite**: stamping a tx_id into a payload that already
+embeds one replaces the existing id (idempotent re-stamping) — it never duplicates.
+This is what lets the server inject a request's tx_id into a handler reply that
+echoes the request payload.
 
 The request path is strictly ordered so a fast endpoint can never reply before the
 future exists:
@@ -238,13 +261,21 @@ ethos: minimal surface, result objects, no exceptions on the transaction surface
 ## Construction
 
 ```python
-async with SocketTransact(host, port, codec=DelimiterCodec()) as st:
+async with SocketTransact(
+    host,
+    port,
+    codec=DelimiterCodec(),
+    tx_id_injector=my_injector,     # required — no default (see router contract)
+    tx_id_extractor=my_extractor,   # required — no default
+) as st:
     ...
 ```
 
-Construction wires the default stack (SocketByteTransport → codec → router). An
-alternative `PeripheralByteTransport` implementation MAY be injected for testing or
-non-TCP streams.
+Construction wires the default stack (SocketByteTransport → codec → router). The
+correlation pair is **required** — tx_id placement is protocol-specific and the
+stack defines no serialization format of its own, so there is no default the
+facade could supply. An alternative `PeripheralByteTransport` implementation MAY
+be injected for testing or non-TCP streams.
 
 ## Public API
 
@@ -324,7 +355,9 @@ handler: Callable[[bytes], Awaitable[bytes | None]]
 
 - input: the request payload (tx_id still embedded — the server does not strip it)
 - return `bytes` → reply frame; the server injects the **request's own tx_id** and
-  sends it back
+  sends it back. Because the injector overwrites (see the correlation contract), a
+  handler that echoes the request payload — tx_id and all — still yields a reply
+  carrying the request's tx_id exactly once
 - return `None` → no reply (one-way message)
 
 ## Concurrent dispatch
@@ -402,8 +435,9 @@ hazards.
 ## Unsolicited traffic is a stream, not a handler
 
 The draft's `data_handler`/`string_handler` callbacks become one async iterator of
-frames. Consumers pull at their own pace; a bounded queue applies backpressure
-instead of blocking the reader.
+frames. Consumers pull at their own pace; a bounded queue with drop-oldest overflow
+protects memory without ever blocking the reader — a slow unsolicited consumer
+loses old push frames but can never stall correlated request/reply traffic.
 
 ## Framing is a codec, not a transport feature
 
@@ -430,12 +464,15 @@ A compliant socket_transaction implementation MUST:
 2. implement Layer 1 against `foundation_abc.PeripheralByteTransport` exactly
 3. keep framing knowledge exclusively in codecs
 4. keep serialization exclusively in `DataModelHelper` wire hooks
-5. run exactly one reader task per connection
+5. run exactly one reader task per connection, treating receive timeouts as idle
+   ticks and an empty read (`b""`) or transport error as connection loss
 6. resolve correlated replies via futures keyed by tx_id
-7. configure tx_id injection and extraction as a pair; register the future before
-   writing the frame; support N concurrent in-flight requests with out-of-order
-   reply resolution
-8. expose unsolicited frames as an async iterator with a bounded queue
+7. configure tx_id injection and extraction as a **required** pair at construction
+   (no default), with overwrite (re-stamp) injector semantics; register the future
+   before writing the frame; support N concurrent in-flight requests with
+   out-of-order reply resolution
+8. expose unsolicited frames as an async iterator with a bounded, drop-oldest
+   queue — the reader task never blocks on queue capacity
 9. return `SocketTransactResult` / `SocketTransactResultModel` from every
    `request*` call — never raise from those methods
 10. never let model parsing change `success`

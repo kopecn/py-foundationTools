@@ -4,7 +4,7 @@ scope: project
 status: partial
 applies_to: src/foundation_tools/cli_transaction/cliTransact.py
 last_updated: 2026-07-03
-semver: 0.1.0
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -96,7 +96,7 @@ class CLITransactResult:
 ### `CLITransactResultModel[T]`
 
 Extends `CLITransactResult` with `model: T | None = None`, where `T` is bound to
-`DataModelHelper` (see [data_model_helper.md](data_model_helper.md)). The model is populated
+`DataModelHelper` (see [dataModelHelper.md](dataModelHelper.md)). The model is populated
 **only** when `success is True`, `stdout is not None`, and the parser does not raise.
 
 ## Command Input Contract
@@ -290,8 +290,9 @@ subprocess     → raw system interface
 ### `SSHTransact` — planned
 
 Stateless, functional, deterministic SSH command builder that delegates to
-`CLITransact`. No internal state. Command construction: always include `-p <port>` (even
-the default 22); include `-i <identity_file>` only when provided; format the host as
+`CLITransact`. No internal state. Command construction: include `-p <port>` only when a
+port is supplied (a synthesized default would override `~/.ssh/config` alias ports — see
+[sshTransact.md](sshTransact.md)); include `-i <identity_file>` only when provided; format the host as
 `user@host` when a user is given, else `host`. Remote command semantics mirror the input
 contract (`str` → single remote-shell argument; `list` → argv segments).
 
@@ -321,6 +322,13 @@ cross-run recovery or logical file repair.
   jitter `delay = random(0, delay)` to avoid synchronized retry storms.
 - **Termination:** stop on success, on a non-transient failure, or when retries are
   exhausted.
+- **Timeout composition:** the caller's `timeout` is **per-attempt**; the policy adds
+  no overall deadline. Worst-case wall time ≈ `attempts × timeout` plus the sum of
+  backoff delays.
+- **Model composition:** the policy wraps the full `run_*_with_model` callable. Retry
+  classification reads only `return_code`; parser failures never change `success` and
+  therefore never trigger a retry. Because success terminates retries, parsing runs at
+  most once — on the terminal attempt.
 
 ### Windows / MSYS2 reliability layer — planned
 

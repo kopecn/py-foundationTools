@@ -4,7 +4,7 @@ scope: project
 status: accepted
 applies_to: src/foundation_tools/
 last_updated: 2026-07-03
-semver: 0.2.0
+semver: 0.3.0
 author: Nicholas Bergantz
 ---
 
@@ -225,6 +225,18 @@ policy — an optional parameter, or a documented recommended default — but MU
 *implement* retry, backoff, or recovery logic itself. This wording is canonical;
 [cliTransact.md](cliTransact.md), [sshTransact.md](sshTransact.md), and
 [rsyncTransact.md](rsyncTransact.md) defer to it.
+
+## Policy composition (canonical rules)
+
+- **Timeout is per-attempt.** The `timeout` a caller passes governs each individual
+  execution attempt; a retry policy introduces no overall deadline. Worst-case wall
+  time ≈ `attempts × timeout` plus the sum of backoff delays. Callers needing a hard
+  total deadline enforce it outside the policy.
+- **Policies wrap the whole call.** For the `run_*_with_model` variants the policy
+  wraps the full callable (execution + parse), not the bare execution. Retry
+  classification reads only `return_code`; a parser failure never changes `success`
+  and therefore never triggers a retry. Since success terminates retries, parsing
+  runs at most once — on the terminal attempt.
 
 ---
 

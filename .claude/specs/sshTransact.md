@@ -4,7 +4,7 @@ scope: project
 status: proposed
 applies_to: src/foundation_tools/cli_transaction/sshTransact.py
 last_updated: 2026-07-03
-semver: 0.1.0
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -106,7 +106,7 @@ The transport is always constructed as:
 
 ```
 ssh
-    -p <port>
+    [-p <port>]
     [-i <identity_file>]
     <target>
     <remote command>
@@ -217,21 +217,15 @@ SSHTransact performs no resolution itself.
 
 ## Port
 
-Always included.
+Optional (`port: int | None = None`).
 
-Even when
+`-p <port>` is emitted **only when a port is supplied**. No synthesized default is
+ever emitted: a command-line `-p` overrides any `Port` declared for the host in
+`~/.ssh/config`, so forcing `-p 22` would silently break SSH aliases whose config
+sets a non-default port. When omitted, ssh resolves the port through its normal
+config/default chain — exactly like the user rule.
 
-```
-22
-```
-
-the generated command contains
-
-```
--p 22
-```
-
-This keeps command construction deterministic and simplifies testing.
+Determinism is preserved: identical inputs always generate identical argv.
 
 ---
 
@@ -334,11 +328,10 @@ No environment inspection occurs.
 
 The generated SSH command is fully explicit.
 
-Ports are always emitted.
+Ports and identity files are emitted only when supplied.
 
-Identity files are emitted only when supplied.
-
-No hidden defaults are injected.
+No hidden defaults are injected — a synthesized `-p 22` would itself be a hidden
+default, overriding `~/.ssh/config` port settings for aliases.
 
 ---
 
@@ -381,7 +374,7 @@ A compliant SSHTransact MUST:
 
 1. expose exactly four stateless class methods
 2. construct deterministic SSH commands
-3. always include `-p <port>`
+3. include `-p <port>` only when a port is supplied (never a synthesized default)
 4. include `-i <identity_file>` only when supplied
 5. construct the target as `user@host` when a user is provided
 6. preserve the command type contract (`str` vs `list[str]`)

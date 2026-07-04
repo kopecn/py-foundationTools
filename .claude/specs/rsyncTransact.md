@@ -4,7 +4,7 @@ scope: project
 status: planned
 applies_to: src/foundation_tools/cli_transaction/rsyncTransact.py
 last_updated: 2026-07-03
-semver: 0.1.0
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -177,7 +177,7 @@ The source SHALL become
 
 ## Push
 
-Future implementations SHALL support
+When `ssh_host` is provided as the destination side:
 
 ```text
 local
@@ -187,7 +187,8 @@ local
 [user@]host:path
 ```
 
-without changing the public API.
+Push is a first-class mode alongside local and pull — all three ship together
+(see action-plan chunks 04 and 07).
 
 ---
 
@@ -207,10 +208,10 @@ Example:
 -e "ssh -p 2222 -i ~/.ssh/key"
 ```
 
-SSH transport SHALL be injected whenever any of the following are present:
+SSH transport SHALL be injected whenever any of the following are supplied:
 
 - `ssh_host`
-- non-default `ssh_port`
+- `ssh_port`
 - `ssh_identity_file`
 
 The SSH command is constructed independently of rsync options.
@@ -231,7 +232,9 @@ always
 -p PORT
 ```
 
-always present (including port 22)
+only when a port is supplied — never a synthesized default (a command-line `-p`
+overrides `~/.ssh/config` `Port` settings, breaking SSH aliases; see
+[sshTransact.md](sshTransact.md))
 
 ```text
 -i identity_file
@@ -383,7 +386,7 @@ Example:
     "-avz",
     "--partial",
     "-e",
-    "ssh -p 22",
+    "ssh -p 2222",
     "user@host:/remote",
     "/local"
 ]
