@@ -267,6 +267,57 @@ class TestCLITransactSync:
         assert result.success is False
 
     @patch("subprocess.run")
+    def test_run_sync_timeout_preserves_partial_stderr(self, mock_run: Any) -> None:
+        """Test that partial stderr (bytes) is preserved on sync timeout."""
+        mock_timeout = subprocess.TimeoutExpired(cmd=["sleep", "10"], timeout=1)
+        mock_timeout.stdout = b"partial output"
+        mock_timeout.stderr = b"partial error"
+        mock_run.side_effect = mock_timeout
+
+        result = CLITransact.run_sync(["sleep", "10"], timeout=1)
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stdout == "partial output"
+        assert result.stderr is not None
+        assert "Timeout after 1 seconds" in result.stderr
+        assert "partial error" in result.stderr
+        assert result.success is False
+
+    @patch("subprocess.run")
+    def test_run_sync_timeout_stderr_str_type(self, mock_run: Any) -> None:
+        """Test that partial stderr (str) is preserved on sync timeout."""
+        mock_timeout = subprocess.TimeoutExpired(
+            cmd=["sleep", "10"], timeout=1, output="partial output", stderr="partial error"
+        )
+        mock_run.side_effect = mock_timeout
+
+        result = CLITransact.run_sync(["sleep", "10"], timeout=1)
+        assert result.stdout == "partial output"
+        assert result.stderr is not None
+        assert "Timeout after 1 seconds" in result.stderr
+        assert "partial error" in result.stderr
+
+    @patch("subprocess.run")
+    def test_run_sync_forwards_errors_replace_kwarg(self, mock_run: Any) -> None:
+        """Test that subprocess.run is called with errors='replace' for decode robustness."""
+        mock_run.return_value = subprocess.CompletedProcess(
+            args=["echo", "x"], returncode=0, stdout="x", stderr=""
+        )
+
+        CLITransact.run_sync(["echo", "x"])
+
+        _, call_kwargs = mock_run.call_args
+        assert call_kwargs["errors"] == "replace"
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_run_sync_invalid_utf8_stdout_does_not_raise(self) -> None:
+        """Invalid byte sequences in stdout must not turn a successful run into a failure."""
+        result = CLITransact.run_sync(
+            [sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'\\xff\\xfe')"]
+        )
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+
+    @patch("subprocess.run")
     def test_run_sync_generic_exception(self, mock_run: Any) -> None:
         """Test synchronous execution with generic exception."""
         mock_run.side_effect = Exception("Command not found")
@@ -351,6 +402,55 @@ class TestCLITransactAsync:
         result = await CLITransact.run_async(["sleep", "2"], timeout=1)
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
+        assert result.success is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_invalid_utf8_stdout_does_not_raise(self) -> None:
+        """Invalid byte sequences in stdout must not turn a successful run into a failure."""
+        result = await CLITransact.run_async(
+            [sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'\\xff\\xfe')"]
+        )
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+
+    @pytest.mark.asyncio
+    @patch("asyncio.create_subprocess_exec")
+    async def test_run_async_timeout_grace_period_scales_down(
+        self, mock_create_subprocess: Any
+    ) -> None:
+        """A short timeout must not incur the full fixed grace-period overhead."""
+        mock_proc = MagicMock()
+        wait_timeouts: list[float | None] = []
+        orig_wait_for = asyncio.wait_for
+
+        async def mock_communicate() -> None:
+            raise asyncio.TimeoutError()
+
+        async def mock_wait() -> None:
+            return None
+
+        mock_proc.communicate = mock_communicate
+        mock_proc.wait = mock_wait
+        mock_proc.kill = MagicMock()
+        mock_proc.terminate = MagicMock()
+        mock_create_subprocess.return_value = mock_proc
+
+        async def spy_wait_for(aw: Any, timeout: float | None) -> Any:
+            wait_timeouts.append(timeout)
+            return await orig_wait_for(aw, timeout)
+
+        with patch("asyncio.wait_for", side_effect=spy_wait_for):
+            # A sub-1-second timeout is required to observe the grace-period cap
+            # kick in; the public `timeout: int | None` annotation doesn't forbid
+            # this at runtime (asyncio.wait_for accepts any real number).
+            result = await CLITransact.run_async(["sleep", "10"], timeout=0.2)  # type: ignore[arg-type]
+
+        # First recorded call is the outer communicate() wait (timeout=0.2); the
+        # second is the post-terminate grace wait, which must be capped at the
+        # caller's own timeout rather than the fixed 1.0s default.
+        assert wait_timeouts[1] == 0.2
+        assert result.return_code == ERROR_RETURN_CODE
         assert result.success is False
 
     @pytest.mark.asyncio

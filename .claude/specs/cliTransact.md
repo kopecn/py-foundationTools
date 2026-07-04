@@ -150,6 +150,15 @@ All stdout/stderr pass through `_normalize_output(value)`:
 Absence of data is represented uniformly as `None`, which keeps downstream
 serialization and logging clean.
 
+## Encoding
+
+Decoding stdout/stderr uses `errors="replace"` rather than strict decoding, on both the
+sync path (`subprocess.run(..., text=True, errors="replace")`) and the async path
+(`bytes.decode(errors="replace")`), including the timeout partial-capture decode
+fallback. Invalid byte sequences degrade to Unicode replacement characters instead of
+raising — an undecodable byte in otherwise-successful output must never be
+misclassified as a generic `"Command execution failed"` framework error.
+
 ## Execution Failure Handling
 
 Every failure mode returns a `CLITransactResult`:
@@ -157,7 +166,7 @@ Every failure mode returns a `CLITransactResult`:
 | failure | return_code | stderr | success |
 | --- | --- | --- | --- |
 | empty/invalid command | `ERROR_RETURN_CODE` | `"Empty command provided"` | `False` |
-| sync timeout | `ERROR_RETURN_CODE` | `"Timeout after X seconds"` (+ partial stdout if available) | `False` |
+| sync timeout | `ERROR_RETURN_CODE` | `"Timeout after X seconds"` (+ partial stdout if available; partial stderr, if available, appended on a new line) | `False` |
 | async timeout | `ERROR_RETURN_CODE` | `"Timeout after X seconds"` | `False` |
 | any other exception | `ERROR_RETURN_CODE` | `"Command execution failed: <error>"` | `False` |
 
@@ -184,6 +193,12 @@ wait up to a short grace period
 > process. The implementation uses the corrected `terminate → kill` escalation, which
 > is the only ordering that realizes the stated intent (forceful cleanup cascade).
 > Cleanup is best-effort — it is always attempted but never guaranteed to succeed.
+
+The grace window is `min(GRACE_PERIOD_CAP_SECONDS, timeout)` — capped at the caller's
+own `timeout` — rather than an unconditional fixed `1.0` seconds. This keeps worst-case
+total time bounded by roughly `2 × timeout` instead of `timeout + GRACE_PERIOD_CAP_SECONDS`
+regardless of how small `timeout` is; a short timeout no longer pays a disproportionate
+fixed overhead before escalating to SIGKILL.
 
 ## Model Extension Layer
 

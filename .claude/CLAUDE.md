@@ -62,6 +62,8 @@ The full codegen contract — the golden script template (`generateUnitSpherical
 
 The full behavioral contract — the stateless classmethod surface, execution-mode selection, semantic success evaluation, total exception containment, the corrected async timeout escalation (`terminate → kill`), the model-extension layer, the formalized "learned behaviors", and the planned sibling layers (`SSHTransact`, `RsyncTransact`, retry/backoff, Windows/MSYS2) — is specified in [`.claude/specs/cliTransact.md`](specs/cliTransact.md). The CLITransact kernel is implemented; the sibling layers are planned. Consult the spec before extending the module.
 
+The planned `RsyncTransact` sibling layer (rsync command construction, SSH transport injection, option precedence, Windows/MSYS2 preset) has its own contract in [`.claude/specs/rsyncTransact.md`](specs/rsyncTransact.md) — consult it before implementing `foundationCLIHelpers/rsyncTransact.py`.
+
 ### PeripheralByteTransport ABC
 
 `foundation_abc/peripheralByteTransport.py` defines `PeripheralByteTransport`, an `ABC` for fully-asynchronous, byte-only device transports (`connect`/`disconnect`/`send`/`receive`/`is_connected`, plus an async context-manager `__aenter__`/`__aexit__`). It intentionally knows nothing about protocol framing (STX/ETX, checksums, BCC) — that belongs to device handlers layered on top. A serial (RS485/USB) implementation exists elsewhere on top of this interface; an EtherCAT adapter (translating PDO process-image offsets to this byte-stream contract) is planned. No dedicated spec exists yet for this module.

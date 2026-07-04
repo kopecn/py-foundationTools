@@ -44,6 +44,7 @@ from foundationTypes.data_model_helper import DataModelHelper
 # Constants
 ERROR_RETURN_CODE = -1
 SUCCESS_RETURN_CODE = 0
+GRACE_PERIOD_CAP_SECONDS = 1.0
 
 # Type variable for generic serialization
 T = TypeVar("T", bound=DataModelHelper)
@@ -177,11 +178,7 @@ class CLITransact:
     def _validate_command(self, cli_command: str | list[str]) -> CLITransactResult | None:
         """Validate command input and return an error result if invalid."""
         if not cli_command:
-            return CLITransactResult(
-                return_code=ERROR_RETURN_CODE,
-                stderr="Empty command provided",
-                success=False,
-            )
+            return self._framework_error("Empty command provided")
         return None
 
     def _determine_success(self, return_code: int, stdout: str) -> bool:
@@ -199,64 +196,42 @@ class CLITransact:
         stripped = output.strip()
         return stripped if stripped else None
 
-    def _run_sync(
-        self, cli_command: str | list[str], timeout: int | None = None
+    def _finalize_result(
+        self, return_code: int, raw_stdout: str, raw_stderr: str
     ) -> CLITransactResult:
-        validation_error = self._validate_command(cli_command)
-        if validation_error:
-            return validation_error
+        """Build the result for a completed (non-framework-error) execution."""
+        return CLITransactResult(
+            return_code=return_code,
+            stdout=self._normalize_output(raw_stdout),
+            stderr=self._normalize_output(raw_stderr),
+            success=self._determine_success(return_code, raw_stdout),
+        )
 
-        try:
-            process_result = subprocess.run(
-                cli_command,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                shell=isinstance(cli_command, str),
-                check=False,
-            )
+    def _framework_error(self, stderr: str, stdout: str | None = None) -> CLITransactResult:
+        """Build a framework-level failure result (invalid input, timeout, contained exception)."""
+        return CLITransactResult(
+            return_code=ERROR_RETURN_CODE,
+            stdout=self._normalize_output(stdout),
+            stderr=self._normalize_output(stderr),
+            success=False,
+        )
 
-            stdout_text = process_result.stdout or ""
-            success = self._determine_success(process_result.returncode, stdout_text)
+    def _decode_timeout_capture(self, value: str | bytes | None) -> str | None:
+        """Decode a subprocess.TimeoutExpired stdout/stderr capture (str or bytes) to str."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value
+        return bytes(value).decode(errors="replace")
 
-            return CLITransactResult(
-                return_code=process_result.returncode,
-                stdout=self._normalize_output(stdout_text),
-                stderr=self._normalize_output(process_result.stderr),
-                success=success,
-            )
-        except subprocess.TimeoutExpired as timeout_error:
-            # Surface partial stdout captured before the timeout, normalizing text/bytes.
-            partial_stdout_on_timeout: str | None = None
-            if timeout_error.stdout is not None:
-                if isinstance(timeout_error.stdout, str):
-                    partial_stdout_on_timeout = timeout_error.stdout
-                else:
-                    partial_stdout_on_timeout = bytes(timeout_error.stdout).decode()
-
-            return CLITransactResult(
-                return_code=ERROR_RETURN_CODE,
-                stdout=self._normalize_output(partial_stdout_on_timeout),
-                stderr=f"Timeout after {timeout} seconds",
-                success=False,
-            )
-        except Exception as exec_error:  # pylint: disable=broad-exception-caught
-            # Total containment: no exception escapes the public API. BaseException
-            # (KeyboardInterrupt / SystemExit) is intentionally allowed to propagate.
-            return CLITransactResult(
-                return_code=ERROR_RETURN_CODE,
-                stderr=f"Command execution failed: {str(exec_error)}",
-                success=False,
-            )
-
-    def _run_sync_with_model(
-        self,
-        cli_command: str | list[str],
-        output_parser: Callable[[str], T],
-        timeout: int | None = None,
+    def _attach_model(
+        self, base_result: CLITransactResult, output_parser: Callable[[str], T]
     ) -> CLITransactResultModel[T]:
-        base_result = self._run_sync(cli_command, timeout)
+        """Wrap a base result in CLITransactResultModel and attempt model parsing.
 
+        Parsing runs only when the base result succeeded and stdout is non-empty; a
+        parser failure is swallowed and appended to stderr — it never changes success.
+        """
         extended_result = CLITransactResultModel[T](
             return_code=base_result.return_code,
             stdout=base_result.stdout,
@@ -272,10 +247,57 @@ class CLITransact:
                 # Parsing is advisory: any parser failure is contained and never changes
                 # the execution success flag — raw execution truth wins.
                 extended_result.stderr = (
-                    f"{base_result.stderr or ''}\nModel parsing failed: {str(parse_error)}"
+                    f"{base_result.stderr or ''}\nModel parsing failed: {parse_error}"
                 ).strip()
 
         return extended_result
+
+    def _run_sync(
+        self, cli_command: str | list[str], timeout: int | None = None
+    ) -> CLITransactResult:
+        validation_error = self._validate_command(cli_command)
+        if validation_error:
+            return validation_error
+
+        try:
+            process_result = subprocess.run(
+                cli_command,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=timeout,
+                shell=isinstance(cli_command, str),
+                check=False,
+            )
+
+            return self._finalize_result(
+                process_result.returncode,
+                process_result.stdout or "",
+                process_result.stderr or "",
+            )
+        except subprocess.TimeoutExpired as timeout_error:
+            # Surface partial stdout/stderr captured before the timeout.
+            partial_stdout = self._decode_timeout_capture(timeout_error.stdout)
+            partial_stderr = (self._decode_timeout_capture(timeout_error.stderr) or "").strip()
+
+            timeout_message = f"Timeout after {timeout} seconds"
+            combined_stderr = (
+                f"{timeout_message}\n{partial_stderr}" if partial_stderr else timeout_message
+            )
+
+            return self._framework_error(combined_stderr, stdout=partial_stdout)
+        except Exception as exec_error:  # pylint: disable=broad-exception-caught
+            # Total containment: no exception escapes the public API. BaseException
+            # (KeyboardInterrupt / SystemExit) is intentionally allowed to propagate.
+            return self._framework_error(f"Command execution failed: {exec_error}")
+
+    def _run_sync_with_model(
+        self,
+        cli_command: str | list[str],
+        output_parser: Callable[[str], T],
+        timeout: int | None = None,
+    ) -> CLITransactResultModel[T]:
+        return self._attach_model(self._run_sync(cli_command, timeout), output_parser)
 
     async def _run_async(
         self, cli_command: str | list[str], timeout: int | None = None
@@ -301,33 +323,30 @@ class CLITransact:
                 # an already-dead process.
                 if process:
                     process.terminate()
+                    # Cap the grace window at the caller's own timeout so a short
+                    # timeout doesn't pay a disproportionate fixed overhead before
+                    # escalating to SIGKILL.
+                    grace_period = (
+                        min(GRACE_PERIOD_CAP_SECONDS, timeout)
+                        if timeout is not None
+                        else GRACE_PERIOD_CAP_SECONDS
+                    )
                     try:
-                        await asyncio.wait_for(process.wait(), timeout=1.0)
+                        await asyncio.wait_for(process.wait(), timeout=grace_period)
                     except asyncio.TimeoutError:
                         process.kill()
                         await process.wait()
 
-                return CLITransactResult(
-                    return_code=ERROR_RETURN_CODE,
-                    stdout=None,
-                    stderr=f"Timeout after {timeout} seconds",
-                    success=False,
-                )
+                return self._framework_error(f"Timeout after {timeout} seconds")
 
-            stdout_text = stdout.decode() if stdout else ""
-            stderr_text = stderr.decode() if stderr else ""
+            stdout_text = stdout.decode(errors="replace") if stdout else ""
+            stderr_text = stderr.decode(errors="replace") if stderr else ""
 
             return_code = (
                 process.returncode if process.returncode is not None else ERROR_RETURN_CODE
             )
-            success = self._determine_success(return_code, stdout_text)
 
-            return CLITransactResult(
-                return_code=return_code,
-                stdout=self._normalize_output(stdout_text),
-                stderr=self._normalize_output(stderr_text),
-                success=success,
-            )
+            return self._finalize_result(return_code, stdout_text, stderr_text)
         except Exception as exec_error:  # pylint: disable=broad-exception-caught
             # Total containment: no exception escapes the public API. BaseException
             # (KeyboardInterrupt / SystemExit) is intentionally allowed to propagate.
@@ -339,11 +358,7 @@ class CLITransact:
                     # Best-effort cleanup; the process may already be gone.
                     pass
 
-            return CLITransactResult(
-                return_code=ERROR_RETURN_CODE,
-                stderr=f"Command execution failed: {str(exec_error)}",
-                success=False,
-            )
+            return self._framework_error(f"Command execution failed: {exec_error}")
 
     async def _run_async_with_model(
         self,
@@ -351,24 +366,4 @@ class CLITransact:
         output_parser: Callable[[str], T],
         timeout: int | None = None,
     ) -> CLITransactResultModel[T]:
-        base_result = await self._run_async(cli_command, timeout)
-
-        extended_result = CLITransactResultModel[T](
-            return_code=base_result.return_code,
-            stdout=base_result.stdout,
-            stderr=base_result.stderr,
-            success=base_result.success,
-            model=None,
-        )
-
-        if base_result.success and base_result.stdout:
-            try:
-                extended_result.model = output_parser(base_result.stdout)
-            except Exception as parse_error:  # pylint: disable=broad-exception-caught
-                # Parsing is advisory: any parser failure is contained and never changes
-                # the execution success flag — raw execution truth wins.
-                extended_result.stderr = (
-                    f"{base_result.stderr or ''}\nModel parsing failed: {str(parse_error)}"
-                ).strip()
-
-        return extended_result
+        return self._attach_model(await self._run_async(cli_command, timeout), output_parser)
