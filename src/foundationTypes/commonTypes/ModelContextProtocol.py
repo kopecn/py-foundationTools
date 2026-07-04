@@ -92,7 +92,7 @@ class AudiocontentType(Enum):
 
 
 @dataclass
-class Audiocontent:
+class Audiocontent(DataModelHelper):
     """Audio provided to or from an LLM."""
 
     data: str
@@ -138,7 +138,7 @@ class Audiocontent:
 
 
 @dataclass
-class Basemetadata:
+class Basemetadata(DataModelHelper):
     """Base interface for metadata with name (identifier) and title (display name) properties."""
 
     name: str
@@ -171,7 +171,7 @@ class Basemetadata:
 
 
 @dataclass
-class Blobresourcecontents:
+class Blobresourcecontents(DataModelHelper):
     blob: str
     """A base64-encoded string representing the binary data of the item."""
 
@@ -212,7 +212,7 @@ class BooleanschemaType(Enum):
 
 
 @dataclass
-class BooleanschemaClass:
+class BooleanschemaClass(DataModelHelper):
     type: BooleanschemaType
     default: bool | None = None
     description: str | None = None
@@ -353,7 +353,7 @@ class CalltoolrequestParams(DataModelHelper):
 
 
 @dataclass
-class Calltoolrequest:
+class Calltoolrequest(DataModelHelper):
     """Used by the client to invoke a tool provided by the server."""
 
     id: int | str
@@ -499,7 +499,7 @@ class ContentblockType(Enum):
 
 
 @dataclass
-class ContentblockElement:
+class ContentblockElement(DataModelHelper):
     """Text provided to or from an LLM.
 
     An image provided to or from an LLM.
@@ -657,7 +657,7 @@ class ContentblockElement:
 
 
 @dataclass
-class Calltoolresult:
+class Calltoolresult(DataModelHelper):
     """The server's response to a tool call."""
 
     content: list[ContentblockElement]
@@ -757,7 +757,7 @@ class CancellednotificationParams(DataModelHelper):
 
 
 @dataclass
-class Cancellednotification:
+class Cancellednotification(DataModelHelper):
     """This notification can be sent by either side to indicate that it is cancelling a
     previously-issued request.
 
@@ -793,7 +793,7 @@ class Cancellednotification:
 
 
 @dataclass
-class ClientcapabilitiesElicitation:
+class ClientcapabilitiesElicitation(DataModelHelper):
     """Present if the client supports elicitation from the server."""
 
     form: dict[str, Any] | None = None
@@ -836,7 +836,7 @@ class Roots(DataModelHelper):
 
 
 @dataclass
-class ClientcapabilitiesSampling:
+class ClientcapabilitiesSampling(DataModelHelper):
     """Present if the client supports sampling from an LLM."""
 
     context: dict[str, Any] | None = None
@@ -867,7 +867,7 @@ class ClientcapabilitiesSampling:
 
 
 @dataclass
-class RequestsElicitation:
+class RequestsElicitation(DataModelHelper):
     """Task support for elicitation-related requests."""
 
     create: dict[str, Any] | None = None
@@ -889,7 +889,7 @@ class RequestsElicitation:
 
 
 @dataclass
-class RequestsSampling:
+class RequestsSampling(DataModelHelper):
     """Task support for sampling-related requests."""
 
     create_message: dict[str, Any] | None = None
@@ -913,7 +913,7 @@ class RequestsSampling:
 
 
 @dataclass
-class PurpleRequests:
+class PurpleRequests(DataModelHelper):
     """Specifies which request types can be augmented with tasks."""
 
     elicitation: RequestsElicitation | None = None
@@ -943,7 +943,7 @@ class PurpleRequests:
 
 
 @dataclass
-class ClientcapabilitiesTasks:
+class ClientcapabilitiesTasks(DataModelHelper):
     """Present if the client supports task-augmented requests."""
 
     cancel: dict[str, Any] | None = None
@@ -979,7 +979,7 @@ class ClientcapabilitiesTasks:
 
 
 @dataclass
-class Clientcapabilities:
+class Clientcapabilities(DataModelHelper):
     """Capabilities a client may support. Known capabilities are defined here, in this schema,
     but this is not a closed set: any client can define its own, additional capabilities.
     """
@@ -1062,7 +1062,7 @@ class Status(Enum):
 
 
 @dataclass
-class ClientnotificationParams:
+class ClientnotificationParams(DataModelHelper):
     """Parameters for a `notifications/cancelled` notification.
 
     Parameters for a `notifications/progress` notification.
@@ -1198,7 +1198,7 @@ class ClientnotificationParams:
 
 
 @dataclass
-class Clientnotification:
+class Clientnotification(DataModelHelper):
     """This notification can be sent by either side to indicate that it is cancelling a
     previously-issued request.
 
@@ -1295,7 +1295,7 @@ class Argument(DataModelHelper):
 
 
 @dataclass
-class ClientInfo:
+class ClientInfo(DataModelHelper):
     """Describes the MCP implementation."""
 
     name: str
@@ -1442,7 +1442,7 @@ class RefType(Enum):
 
 
 @dataclass
-class Ref:
+class Ref(DataModelHelper):
     """Identifies a prompt.
 
     A reference to a resource or resource template definition.
@@ -1487,7 +1487,7 @@ class Ref:
 
 
 @dataclass
-class ClientrequestParams:
+class ClientrequestParams(DataModelHelper):
     """Parameters for an `initialize` request.
 
     Common params for any request.
@@ -1647,7 +1647,7 @@ class ClientrequestParams:
 
 
 @dataclass
-class Clientrequest:
+class Clientrequest(DataModelHelper):
     """This request is sent from the client to the server when it first connects, asking it to
     begin initialization.
 
@@ -1734,7 +1734,7 @@ class PurpleType(Enum):
 
 
 @dataclass
-class ContentElement:
+class ContentElement(DataModelHelper):
     """Text provided to or from an LLM.
 
     An image provided to or from an LLM.
@@ -1893,7 +1893,7 @@ class ContentElement:
 
 
 @dataclass
-class PurpleModelContextProtocol20250618_Schema:
+class PurpleModelContextProtocol20250618_Schema(DataModelHelper):
     """Text provided to or from an LLM.
 
     An image provided to or from an LLM.
@@ -2193,7 +2193,7 @@ class PurpleModelContextProtocol20250618_Schema:
 
 
 @dataclass
-class RootElement:
+class RootElement(DataModelHelper):
     """Represents a root directory or file that the server can operate on."""
 
     uri: str
@@ -2232,7 +2232,7 @@ class RootElement:
 
 
 @dataclass
-class TaskElement:
+class TaskElement(DataModelHelper):
     """Data associated with a task."""
 
     created_at: str
@@ -2289,7 +2289,7 @@ class TaskElement:
 
 
 @dataclass
-class Clientresult:
+class Clientresult(DataModelHelper):
     """The response to a tasks/get request.
 
     The response to a tasks/cancel request.
@@ -2547,7 +2547,7 @@ class CompleterequestParams(DataModelHelper):
 
 
 @dataclass
-class CompleterequestClass:
+class CompleterequestClass(DataModelHelper):
     """A request from the client to the server, to ask for completion options."""
 
     id: int | str
@@ -2606,7 +2606,7 @@ class Completion(DataModelHelper):
 
 
 @dataclass
-class Completeresult:
+class Completeresult(DataModelHelper):
     """The server's response to a completion/complete request"""
 
     completion: Completion
@@ -2653,7 +2653,7 @@ class IncludeContext(Enum):
 
 
 @dataclass
-class FluffyModelContextProtocol20250618_Schema:
+class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
     """Text provided to or from an LLM.
 
     An image provided to or from an LLM.
@@ -2812,7 +2812,7 @@ class FluffyModelContextProtocol20250618_Schema:
 
 
 @dataclass
-class SamplingmessageElement:
+class SamplingmessageElement(DataModelHelper):
     """Describes a message issued to or received from an LLM API."""
 
     content: FluffyModelContextProtocol20250618_Schema | list[ContentElement]
@@ -2882,7 +2882,7 @@ class StickyMeta(DataModelHelper):
 
 
 @dataclass
-class ModelhintElement:
+class ModelhintElement(DataModelHelper):
     """Hints to use for model selection.
 
     Keys not declared here are currently left unspecified by the spec and are up
@@ -2916,7 +2916,7 @@ class ModelhintElement:
 
 
 @dataclass
-class ModelpreferencesClass:
+class ModelpreferencesClass(DataModelHelper):
     """The server's preferences for which model to select. The client MAY ignore these
     preferences.
 
@@ -3000,7 +3000,7 @@ class ToolChoiceMode(Enum):
 
 
 @dataclass
-class ToolChoice:
+class ToolChoice(DataModelHelper):
     """Controls how the model uses tools.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
@@ -3032,7 +3032,7 @@ class ToolChoice:
 
 
 @dataclass
-class ToolannotationsClass:
+class ToolannotationsClass(DataModelHelper):
     """Optional additional tool information.
 
     Display name precedence order is: title, annotations.title, then name.
@@ -3124,7 +3124,7 @@ class TaskSupport(Enum):
 
 
 @dataclass
-class Execution:
+class Execution(DataModelHelper):
     """Execution-related properties for this tool.
 
     Execution-related properties for a tool.
@@ -3243,7 +3243,7 @@ class OutputSchema(DataModelHelper):
 
 
 @dataclass
-class ToolElement:
+class ToolElement(DataModelHelper):
     """Definition for a tool the client can call."""
 
     input_schema: InputSchema
@@ -3492,7 +3492,7 @@ class CreatemessagerequestParams(DataModelHelper):
 
 
 @dataclass
-class Createmessagerequest:
+class Createmessagerequest(DataModelHelper):
     """A request from the server to sample an LLM via the client. The client has full discretion
     over which model to select. The client should also inform the user before beginning
     sampling, to allow them to inspect the request (human in the loop) and decide whether to
@@ -3523,7 +3523,7 @@ class Createmessagerequest:
 
 
 @dataclass
-class CreatemessageresultClass:
+class CreatemessageresultClass(DataModelHelper):
     """The client's response to a sampling/createMessage request from the server.
     The client should inform the user before returning the sampled message, to allow them
     to inspect the response (human in the loop) and decide whether to allow the server to see
@@ -3632,7 +3632,7 @@ class Format(Enum):
 
 
 @dataclass
-class AnyOf:
+class AnyOf(DataModelHelper):
     const: str
     """The constant enum value."""
 
@@ -3658,7 +3658,7 @@ class ItemsType(Enum):
 
 
 @dataclass
-class Items:
+class Items(DataModelHelper):
     """Schema for the array items.
 
     Schema for array items with enum options and display labels.
@@ -3693,7 +3693,7 @@ class Items:
 
 
 @dataclass
-class OneOf:
+class OneOf(DataModelHelper):
     const: str
     """The enum value."""
 
@@ -3723,7 +3723,7 @@ class PrimitiveschemadefinitionType(Enum):
 
 
 @dataclass
-class PrimitiveschemadefinitionValue:
+class PrimitiveschemadefinitionValue(DataModelHelper):
     """Restricted schema definitions that only allow primitive types
     without nested objects or arrays.
 
@@ -3970,7 +3970,7 @@ class ElicitrequestParams(DataModelHelper):
 
 
 @dataclass
-class Elicitrequest:
+class Elicitrequest(DataModelHelper):
     """A request from the server to elicit additional information from the user via the client."""
 
     id: int | str
@@ -3997,7 +3997,7 @@ class Elicitrequest:
 
 
 @dataclass
-class ElicitresultClass:
+class ElicitresultClass(DataModelHelper):
     """The client's response to an elicitation request."""
 
     action: Action
@@ -4063,7 +4063,7 @@ class EmbeddedresourceType(Enum):
 
 
 @dataclass
-class EmbeddedresourceClass:
+class EmbeddedresourceClass(DataModelHelper):
     """The contents of a resource, embedded into a prompt or tool call result.
 
     It is up to the client how best to render embedded resources for the benefit
@@ -4106,7 +4106,7 @@ class EmbeddedresourceClass:
 
 
 @dataclass
-class EmptyresultClass:
+class EmptyresultClass(DataModelHelper):
     meta: dict[str, Any] | None = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
@@ -4133,7 +4133,7 @@ class EnumschemaType(Enum):
 
 
 @dataclass
-class EnumschemaClass:
+class EnumschemaClass(DataModelHelper):
     """Schema for single-selection enumeration without display titles for options.
 
     Schema for single-selection enumeration with display titles for each option.
@@ -4296,7 +4296,7 @@ class GetpromptrequestParams(DataModelHelper):
 
 
 @dataclass
-class GetpromptrequestClass:
+class GetpromptrequestClass(DataModelHelper):
     """Used by the client to get a prompt provided by the server."""
 
     id: int | str
@@ -4323,7 +4323,7 @@ class GetpromptrequestClass:
 
 
 @dataclass
-class PromptmessageElement:
+class PromptmessageElement(DataModelHelper):
     """Describes a message returned as part of a prompt.
 
     This is similar to `SamplingMessage`, but also supports the embedding of
@@ -4348,7 +4348,7 @@ class PromptmessageElement:
 
 
 @dataclass
-class Getpromptresult:
+class Getpromptresult(DataModelHelper):
     """The server's response to a prompts/get request from the client."""
 
     messages: list[PromptmessageElement]
@@ -4384,7 +4384,7 @@ class ImagecontentType(Enum):
 
 
 @dataclass
-class ImagecontentClass:
+class ImagecontentClass(DataModelHelper):
     """An image provided to or from an LLM."""
 
     data: str
@@ -4456,7 +4456,7 @@ class InitializednotificationParams(DataModelHelper):
 
 
 @dataclass
-class InitializednotificationClass:
+class InitializednotificationClass(DataModelHelper):
     """This notification is sent from the client to the server after initialization has finished."""
 
     jsonrpc: Jsonrpc
@@ -4487,7 +4487,7 @@ class InitializerequestMethod(Enum):
 
 
 @dataclass
-class HilariousMeta:
+class HilariousMeta(DataModelHelper):
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -4551,7 +4551,7 @@ class InitializerequestParams(DataModelHelper):
 
 
 @dataclass
-class InitializerequestClass:
+class InitializerequestClass(DataModelHelper):
     """This request is sent from the client to the server when it first connects, asking it to
     begin initialization.
     """
@@ -4626,7 +4626,7 @@ class Resources(DataModelHelper):
 
 
 @dataclass
-class RequestsTools:
+class RequestsTools(DataModelHelper):
     """Task support for tool-related requests."""
 
     call: dict[str, Any] | None = None
@@ -4646,7 +4646,7 @@ class RequestsTools:
 
 
 @dataclass
-class FluffyRequests:
+class FluffyRequests(DataModelHelper):
     """Specifies which request types can be augmented with tasks."""
 
     tools: RequestsTools | None = None
@@ -4668,7 +4668,7 @@ class FluffyRequests:
 
 
 @dataclass
-class ServercapabilitiesTasks:
+class ServercapabilitiesTasks(DataModelHelper):
     """Present if the server supports task-augmented requests."""
 
     cancel: dict[str, Any] | None = None
@@ -4704,7 +4704,7 @@ class ServercapabilitiesTasks:
 
 
 @dataclass
-class ServercapabilitiesTools:
+class ServercapabilitiesTools(DataModelHelper):
     """Present if the server offers any tools to call."""
 
     list_changed: bool | None = None
@@ -4724,7 +4724,7 @@ class ServercapabilitiesTools:
 
 
 @dataclass
-class Capabilities:
+class Capabilities(DataModelHelper):
     """Capabilities that a server may support. Known capabilities are defined here, in this
     schema, but this is not a closed set: any server can define its own, additional
     capabilities.
@@ -4803,7 +4803,7 @@ class Capabilities:
 
 
 @dataclass
-class Initializeresult:
+class Initializeresult(DataModelHelper):
     """After receiving an initialize request from the client, the server sends this response."""
 
     capabilities: Capabilities
@@ -4881,7 +4881,7 @@ class Error(DataModelHelper):
 
 
 @dataclass
-class Jsonrpcerror:
+class Jsonrpcerror(DataModelHelper):
     """A response to a request that indicates an error occurred."""
 
     error: Error
@@ -4906,7 +4906,7 @@ class Jsonrpcerror:
 
 
 @dataclass
-class Jsonrpcmessage:
+class Jsonrpcmessage(DataModelHelper):
     """Refers to any valid JSON-RPC object that can be decoded off the wire, or encoded to be
     sent.
 
@@ -4958,7 +4958,7 @@ class Jsonrpcmessage:
 
 
 @dataclass
-class JsonrpcnotificationClass:
+class JsonrpcnotificationClass(DataModelHelper):
     """A notification which does not expect a response."""
 
     jsonrpc: Jsonrpc
@@ -4985,7 +4985,7 @@ class JsonrpcnotificationClass:
 
 
 @dataclass
-class JsonrpcrequestClass:
+class JsonrpcrequestClass(DataModelHelper):
     """A request that expects a response."""
 
     id: int | str
@@ -5015,7 +5015,7 @@ class JsonrpcrequestClass:
 
 
 @dataclass
-class Jsonrpcresponse:
+class Jsonrpcresponse(DataModelHelper):
     """A response to a request, containing either the result or error.
 
     A successful (non-error) response to a request.
@@ -5115,7 +5115,7 @@ class ListpromptsrequestParams(DataModelHelper):
 
 
 @dataclass
-class ListpromptsrequestClass:
+class ListpromptsrequestClass(DataModelHelper):
     """Sent from the client to request a list of prompts and prompt templates the server has."""
 
     id: int | str
@@ -5190,7 +5190,7 @@ class PromptargumentElement(DataModelHelper):
 
 
 @dataclass
-class PromptElement:
+class PromptElement(DataModelHelper):
     """A prompt or prompt template that the server offers."""
 
     name: str
@@ -5268,7 +5268,7 @@ class PromptElement:
 
 
 @dataclass
-class Listpromptsresult:
+class Listpromptsresult(DataModelHelper):
     """The server's response to a prompts/list request from the client."""
 
     prompts: list[PromptElement]
@@ -5306,7 +5306,7 @@ class ListresourcesrequestMethod(Enum):
 
 
 @dataclass
-class ListresourcesrequestClass:
+class ListresourcesrequestClass(DataModelHelper):
     """Sent from the client to request a list of resources the server has."""
 
     id: int | str
@@ -5336,7 +5336,7 @@ class ListresourcesrequestClass:
 
 
 @dataclass
-class ResourceElement:
+class ResourceElement(DataModelHelper):
     """A known resource that the server is capable of reading."""
 
     name: str
@@ -5437,7 +5437,7 @@ class ResourceElement:
 
 
 @dataclass
-class Listresourcesresult:
+class Listresourcesresult(DataModelHelper):
     """The server's response to a resources/list request from the client."""
 
     resources: list[ResourceElement]
@@ -5475,7 +5475,7 @@ class ListresourcetemplatesrequestMethod(Enum):
 
 
 @dataclass
-class ListresourcetemplatesrequestClass:
+class ListresourcetemplatesrequestClass(DataModelHelper):
     """Sent from the client to request a list of resource templates the server has."""
 
     id: int | str
@@ -5505,7 +5505,7 @@ class ListresourcetemplatesrequestClass:
 
 
 @dataclass
-class ResourcetemplateElement:
+class ResourcetemplateElement(DataModelHelper):
     """A template description for resources available on the server."""
 
     name: str
@@ -5598,7 +5598,7 @@ class ResourcetemplateElement:
 
 
 @dataclass
-class Listresourcetemplatesresult:
+class Listresourcetemplatesresult(DataModelHelper):
     """The server's response to a resources/templates/list request from the client."""
 
     resource_templates: list[ResourcetemplateElement]
@@ -5640,7 +5640,7 @@ class ListrootsrequestMethod(Enum):
 
 
 @dataclass
-class CunningMeta:
+class CunningMeta(DataModelHelper):
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -5690,7 +5690,7 @@ class ListrootsrequestParams(DataModelHelper):
 
 
 @dataclass
-class Listrootsrequest:
+class Listrootsrequest(DataModelHelper):
     """Sent from the server to request a list of root URIs from the client. Roots allow
     servers to ask for specific directories or files to operate on. A common example
     for roots is providing a set of repositories or directories a server should operate
@@ -5727,7 +5727,7 @@ class Listrootsrequest:
 
 
 @dataclass
-class ListrootsresultClass:
+class ListrootsresultClass(DataModelHelper):
     """The client's response to a roots/list request from the server.
     This result contains an array of Root objects, each representing a root directory
     or file that the server can operate on.
@@ -5761,7 +5761,7 @@ class ListtoolsrequestMethod(Enum):
 
 
 @dataclass
-class ListtoolsrequestClass:
+class ListtoolsrequestClass(DataModelHelper):
     """Sent from the client to request a list of tools the server has."""
 
     id: int | str
@@ -5791,7 +5791,7 @@ class ListtoolsrequestClass:
 
 
 @dataclass
-class Listtoolsresult:
+class Listtoolsresult(DataModelHelper):
     """The server's response to a tools/list request from the client."""
 
     tools: list[ToolElement]
@@ -5869,7 +5869,7 @@ class LoggingmessagenotificationParams(DataModelHelper):
 
 
 @dataclass
-class Loggingmessagenotification:
+class Loggingmessagenotification(DataModelHelper):
     """JSONRPCNotification of a log message passed from server to client. If no logging/setLevel
     request has been sent from the client, the server MAY decide which messages to send
     automatically.
@@ -5923,7 +5923,7 @@ class NumberschemaType(Enum):
 
 
 @dataclass
-class NumberschemaClass:
+class NumberschemaClass(DataModelHelper):
     type: NumberschemaType
     default: int | None = None
     description: str | None = None
@@ -5959,7 +5959,7 @@ class NumberschemaClass:
 
 
 @dataclass
-class Paginatedrequest:
+class Paginatedrequest(DataModelHelper):
     id: int | str
     jsonrpc: Jsonrpc
     method: str
@@ -5987,7 +5987,7 @@ class Paginatedrequest:
 
 
 @dataclass
-class Paginatedresult:
+class Paginatedresult(DataModelHelper):
     meta: dict[str, Any] | None = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
@@ -6020,7 +6020,7 @@ class PingrequestMethod(Enum):
 
 
 @dataclass
-class PingrequestClass:
+class PingrequestClass(DataModelHelper):
     """A ping, issued by either the server or the client, to check that the other party is still
     alive. The receiver must promptly respond, or else may be disconnected.
     """
@@ -6103,7 +6103,7 @@ class ProgressnotificationParams(DataModelHelper):
 
 
 @dataclass
-class ProgressnotificationClass:
+class ProgressnotificationClass(DataModelHelper):
     """An out-of-band notification used to inform the receiver of a progress update for a
     long-running request.
     """
@@ -6133,7 +6133,7 @@ class PromptlistchangednotificationMethod(Enum):
 
 
 @dataclass
-class Promptlistchangednotification:
+class Promptlistchangednotification(DataModelHelper):
     """An optional notification from the server to the client, informing it that the list of
     prompts it offers has changed. This may be issued by servers without any previous
     subscription from the client.
@@ -6167,7 +6167,7 @@ class PromptreferenceType(Enum):
 
 
 @dataclass
-class PromptreferenceClass:
+class PromptreferenceClass(DataModelHelper):
     """Identifies a prompt."""
 
     name: str
@@ -6207,7 +6207,7 @@ class ReadresourcerequestMethod(Enum):
 
 
 @dataclass
-class MagentaMeta:
+class MagentaMeta(DataModelHelper):
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -6263,7 +6263,7 @@ class ReadresourcerequestParams(DataModelHelper):
 
 
 @dataclass
-class ReadresourcerequestClass:
+class ReadresourcerequestClass(DataModelHelper):
     """Sent from the client to the server, to read a specific resource URI."""
 
     id: int | str
@@ -6290,7 +6290,7 @@ class ReadresourcerequestClass:
 
 
 @dataclass
-class Readresourceresult:
+class Readresourceresult(DataModelHelper):
     """The server's response to a resources/read request from the client."""
 
     contents: list[Resource]
@@ -6339,7 +6339,7 @@ class Request(DataModelHelper):
 
 
 @dataclass
-class Resourcecontents:
+class Resourcecontents(DataModelHelper):
     """The contents of a specific resource or sub-resource."""
 
     uri: str
@@ -6377,7 +6377,7 @@ class ResourcelinkType(Enum):
 
 
 @dataclass
-class ResourcelinkClass:
+class ResourcelinkClass(DataModelHelper):
     """A resource that the server is capable of reading, included in a prompt or tool call
     result.
 
@@ -6490,7 +6490,7 @@ class ResourcelistchangednotificationMethod(Enum):
 
 
 @dataclass
-class Resourcelistchangednotification:
+class Resourcelistchangednotification(DataModelHelper):
     """An optional notification from the server to the client, informing it that the list of
     resources it can read from has changed. This may be issued by servers without any
     previous subscription from the client.
@@ -6524,7 +6524,7 @@ class ResourcetemplatereferenceType(Enum):
 
 
 @dataclass
-class ResourcetemplatereferenceClass:
+class ResourcetemplatereferenceClass(DataModelHelper):
     """A reference to a resource or resource template definition."""
 
     type: ResourcetemplatereferenceType
@@ -6580,7 +6580,7 @@ class ResourceupdatednotificationParams(DataModelHelper):
 
 
 @dataclass
-class Resourceupdatednotification:
+class Resourceupdatednotification(DataModelHelper):
     """A notification from the server to the client, informing it that a resource has changed
     and may need to be read again. This should only be sent if the client previously sent a
     resources/subscribe request.
@@ -6611,7 +6611,7 @@ class RootslistchangednotificationMethod(Enum):
 
 
 @dataclass
-class RootslistchangednotificationClass:
+class RootslistchangednotificationClass(DataModelHelper):
     """A notification from the client to the server, informing it that the list of roots has
     changed.
     This notification should be sent whenever the client adds, removes, or modifies any root.
@@ -6654,7 +6654,7 @@ class ServernotificationMethod(Enum):
 
 
 @dataclass
-class ServernotificationParams:
+class ServernotificationParams(DataModelHelper):
     """Parameters for a `notifications/cancelled` notification.
 
     Parameters for a `notifications/progress` notification.
@@ -6831,7 +6831,7 @@ class ServernotificationParams:
 
 
 @dataclass
-class Servernotification:
+class Servernotification(DataModelHelper):
     """This notification can be sent by either side to indicate that it is cancelling a
     previously-issued request.
 
@@ -6910,7 +6910,7 @@ class ServerrequestMethod(Enum):
 
 
 @dataclass
-class FriskyMeta:
+class FriskyMeta(DataModelHelper):
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -6938,7 +6938,7 @@ class FriskyMeta:
 
 
 @dataclass
-class ServerrequestParams:
+class ServerrequestParams(DataModelHelper):
     """Common params for any request.
 
     Common parameters for paginated requests.
@@ -7155,7 +7155,7 @@ class ServerrequestParams:
 
 
 @dataclass
-class Serverrequest:
+class Serverrequest(DataModelHelper):
     """A ping, issued by either the server or the client, to check that the other party is still
     alive. The receiver must promptly respond, or else may be disconnected.
 
@@ -7210,7 +7210,7 @@ class Serverrequest:
 
 
 @dataclass
-class Serverresult:
+class Serverresult(DataModelHelper):
     """After receiving an initialize request from the client, the server sends this response.
 
     The server's response to a resources/list request from the client.
@@ -7487,7 +7487,7 @@ class SetlevelrequestMethod(Enum):
 
 
 @dataclass
-class MischievousMeta:
+class MischievousMeta(DataModelHelper):
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -7546,7 +7546,7 @@ class SetlevelrequestParams(DataModelHelper):
 
 
 @dataclass
-class SetlevelrequestClass:
+class SetlevelrequestClass(DataModelHelper):
     """A request from the client to the server, to enable or adjust logging."""
 
     id: int | str
@@ -7573,7 +7573,7 @@ class SetlevelrequestClass:
 
 
 @dataclass
-class StringschemaClass:
+class StringschemaClass(DataModelHelper):
     type: ItemsType
     default: str | None = None
     description: str | None = None
@@ -7617,7 +7617,7 @@ class SubscriberequestMethod(Enum):
 
 
 @dataclass
-class BraggadociousMeta:
+class BraggadociousMeta(DataModelHelper):
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -7675,7 +7675,7 @@ class SubscriberequestParams(DataModelHelper):
 
 
 @dataclass
-class SubscriberequestClass:
+class SubscriberequestClass(DataModelHelper):
     """Sent from the client to request resources/updated notifications from the server whenever
     a particular resource changes.
     """
@@ -7708,7 +7708,7 @@ class TextcontentType(Enum):
 
 
 @dataclass
-class TextcontentClass:
+class TextcontentClass(DataModelHelper):
     """Text provided to or from an LLM."""
 
     text: str
@@ -7749,7 +7749,7 @@ class TextcontentClass:
 
 
 @dataclass
-class TextresourcecontentsClass:
+class TextresourcecontentsClass(DataModelHelper):
     text: str
     """The text of the item. This must only be set if the item can actually be represented as
     text (not binary data).
@@ -7791,7 +7791,7 @@ class ToollistchangednotificationMethod(Enum):
 
 
 @dataclass
-class ToollistchangednotificationClass:
+class ToollistchangednotificationClass(DataModelHelper):
     """An optional notification from the server to the client, informing it that the list of
     tools it offers has changed. This may be issued by servers without any previous
     subscription from the client.
@@ -7825,7 +7825,7 @@ class UnsubscriberequestMethod(Enum):
 
 
 @dataclass
-class Meta1:
+class Meta1(DataModelHelper):
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -7881,7 +7881,7 @@ class UnsubscriberequestParams(DataModelHelper):
 
 
 @dataclass
-class UnsubscriberequestClass:
+class UnsubscriberequestClass(DataModelHelper):
     """Sent from the client to request cancellation of resources/updated notifications from the
     server. This should follow a previous resources/subscribe request.
     """
