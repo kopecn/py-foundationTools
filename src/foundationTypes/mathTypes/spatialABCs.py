@@ -12,7 +12,7 @@ twist/velocity — and is out of scope for these accessor contracts.)
 
 See ``.claude/specs/mathTypeTiers.md``. :class:`PositionABC`, :class:`QuaternionABC`,
 and :class:`SpatialTransformABC` are the shared accessor + serialization contracts
-(inherited by the codegen ``PositionVectorType`` / ``QuaternionType`` /
+(inherited by the codegen ``PositionType`` / ``QuaternionType`` /
 ``SpatialTransformType``). The math contracts (group composition, inverse, etc.)
 are in :mod:`foundationTypes.mathTypes.positionVectorMathLike`,
 :mod:`foundationTypes.mathTypes.quaternionMathLike`, and

@@ -8,7 +8,7 @@
   "properties": {
     "position": {
       "description": "The Cartesian position component of the pose.",
-      "$ref": "PositionVector-schema.json"
+      "$ref": "Position-schema.json"
     },
     "orientation": {
       "description": "The quaternion orientation component of the pose.",

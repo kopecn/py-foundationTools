@@ -20,8 +20,10 @@ from foundationTypes.mathTypes.precisionTimeABC import (
     PrecisionTimestampABC,
 )
 from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC
-from foundationTypes.mathTypes.unitSphericalArcABC import UnitSphericalArcABC
-from foundationTypes.mathTypes.unitSphericalSmallCircleABC import UnitSphericalSmallCircleABC
+from foundationTypes.mathTypes.sphericalABCs import (
+    UnitSphericalArcABC,
+    UnitSphericalSmallCircleABC,
+)
 
 
 class Waveform1dABC(ABC, DataModelHelper):

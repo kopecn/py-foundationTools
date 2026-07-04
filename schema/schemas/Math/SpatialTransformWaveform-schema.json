@@ -10,7 +10,7 @@
       "description": "The uniformly-sampled position values, in chronological order, parallel to quaternions.",
       "type": "array",
       "items": {
-        "$ref": "PositionVector-schema.json"
+        "$ref": "Position-schema.json"
       }
     },
     "quaternions": {

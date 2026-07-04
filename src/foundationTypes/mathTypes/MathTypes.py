@@ -26,8 +26,7 @@ from foundationTypes.mathTypes.precisionTimeABC import (
     PrecisionTimestampABC,
 )
 from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC, SpatialTransformABC
-from foundationTypes.mathTypes.unitSphericalArcABC import UnitSphericalArcABC
-from foundationTypes.mathTypes.unitSphericalSmallCircleABC import UnitSphericalSmallCircleABC
+from foundationTypes.mathTypes.sphericalABCs import UnitSphericalArcABC, UnitSphericalSmallCircleABC
 from foundationTypes.mathTypes.waveformABCs import (
     PositionWaveformABC,
     QuaternionWaveformABC,
@@ -81,7 +80,7 @@ class QuaternionType(QuaternionABC):
 
 
 @dataclass
-class PositionVectorType(PositionABC):
+class PositionType(PositionABC):
     """A 3D Cartesian position vector using right-handed (x, y, z) coordinates, in a
     caller-defined consistent length unit.
 
@@ -98,12 +97,12 @@ class PositionVectorType(PositionABC):
     """The z-axis (third Cartesian) component of the position."""
 
     @classmethod
-    def from_dict(cls, obj: Any) -> "PositionVectorType":
+    def from_dict(cls, obj: Any) -> "PositionType":
         assert isinstance(obj, dict)
         x = from_float(obj.get("x"))
         y = from_float(obj.get("y"))
         z = from_float(obj.get("z"))
-        return PositionVectorType(x, y, z)
+        return PositionType(x, y, z)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -122,20 +121,20 @@ class SpatialTransformType(SpatialTransformABC):
     orientation: QuaternionType | None = None  # type: ignore[assignment]
     """The quaternion orientation component of the pose."""
 
-    position: PositionVectorType | None = None  # type: ignore[assignment]
+    position: PositionType | None = None  # type: ignore[assignment]
     """The Cartesian position component of the pose."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SpatialTransformType":
         assert isinstance(obj, dict)
         orientation = QuaternionType.from_dict(obj.get("orientation"))
-        position = PositionVectorType.from_dict(obj.get("position"))
+        position = PositionType.from_dict(obj.get("position"))
         return SpatialTransformType(orientation, position)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         result["orientation"] = to_class(QuaternionType, self.orientation)
-        result["position"] = to_class(PositionVectorType, self.position)
+        result["position"] = to_class(PositionType, self.position)
         return result
 
 
@@ -243,7 +242,7 @@ class PositionWaveformType(PositionWaveformABC):
     dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
     """The fixed interval between consecutive samples."""
 
-    positions: Sequence[PositionVectorType] = ()
+    positions: Sequence[PositionType] = ()
     """The uniformly-sampled position values, in chronological order."""
 
     t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
@@ -253,14 +252,14 @@ class PositionWaveformType(PositionWaveformABC):
     def from_dict(cls, obj: Any) -> "PositionWaveformType":
         assert isinstance(obj, dict)
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
-        positions = from_list(PositionVectorType.from_dict, obj.get("positions"))
+        positions = from_list(PositionType.from_dict, obj.get("positions"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
         return PositionWaveformType(dt, positions, t0)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         result["dt"] = to_class(PrecisionTimeIntervalType, self.dt)
-        result["positions"] = from_list(lambda x: to_class(PositionVectorType, x), self.positions)
+        result["positions"] = from_list(lambda x: to_class(PositionType, x), self.positions)
         result["t0"] = to_class(PrecisionTimestampType, self.t0)
         return result
 
@@ -306,7 +305,7 @@ class SpatialTransformWaveformType(WaveformSpatialABC):
     dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
     """The fixed interval between consecutive samples."""
 
-    positions: Sequence[PositionVectorType] = ()
+    positions: Sequence[PositionType] = ()
     """The uniformly-sampled position values, in chronological order, parallel to quaternions."""
 
     quaternions: Sequence[QuaternionType] = ()
@@ -319,7 +318,7 @@ class SpatialTransformWaveformType(WaveformSpatialABC):
     def from_dict(cls, obj: Any) -> "SpatialTransformWaveformType":
         assert isinstance(obj, dict)
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
-        positions = from_list(PositionVectorType.from_dict, obj.get("positions"))
+        positions = from_list(PositionType.from_dict, obj.get("positions"))
         quaternions = from_list(QuaternionType.from_dict, obj.get("quaternions"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
         return SpatialTransformWaveformType(dt, positions, quaternions, t0)
@@ -327,7 +326,7 @@ class SpatialTransformWaveformType(WaveformSpatialABC):
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         result["dt"] = to_class(PrecisionTimeIntervalType, self.dt)
-        result["positions"] = from_list(lambda x: to_class(PositionVectorType, x), self.positions)
+        result["positions"] = from_list(lambda x: to_class(PositionType, x), self.positions)
         result["quaternions"] = from_list(lambda x: to_class(QuaternionType, x), self.quaternions)
         result["t0"] = to_class(PrecisionTimestampType, self.t0)
         return result
@@ -548,12 +547,12 @@ def precision_timestamp_type_to_dict(x: PrecisionTimestampType) -> Any:
     return to_class(PrecisionTimestampType, x)
 
 
-def position_vector_type_from_dict(s: Any) -> PositionVectorType:
-    return PositionVectorType.from_dict(s)
+def position_type_from_dict(s: Any) -> PositionType:
+    return PositionType.from_dict(s)
 
 
-def position_vector_type_to_dict(x: PositionVectorType) -> Any:
-    return to_class(PositionVectorType, x)
+def position_type_to_dict(x: PositionType) -> Any:
+    return to_class(PositionType, x)
 
 
 def quaternion_type_from_dict(s: Any) -> QuaternionType:

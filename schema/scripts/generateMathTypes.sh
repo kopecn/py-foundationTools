@@ -29,7 +29,7 @@ INPUT_SCHEMA_FILES=(
   "schema/schemas/Math/ReferenceFrame-schema.json"
   "schema/schemas/Math/PrecisionTimeInterval-schema.json"
   "schema/schemas/Math/PrecisionTimestamp-schema.json"
-  "schema/schemas/Math/PositionVector-schema.json"
+  "schema/schemas/Math/Position-schema.json"
   "schema/schemas/Math/Quaternion-schema.json"
   "schema/schemas/Math/UnitSphericalArc-schema.json"
   "schema/schemas/Math/UnitSphericalSmallCircle-schema.json"

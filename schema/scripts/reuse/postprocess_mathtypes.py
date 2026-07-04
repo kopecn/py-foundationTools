@@ -48,20 +48,18 @@ ENUMS = ["NumericSign", "ReferenceFrame", "Timescale"]
 
 # Type (public name) -> (module basename, Like class). Module basename is the
 # lowercase-first of the Like class name (the type name minus "Type", plus "Like"),
-# except Quaternion/PositionVector/SpatialTransform (share spatialABCs),
-# PrecisionTimeInterval/PrecisionTimestamp (share precisionTimeABC), and every
+# except Quaternion/Position/SpatialTransform (share spatialABCs),
+# PrecisionTimeInterval/PrecisionTimestamp (share precisionTimeABC),
+# UnitSphericalArc/UnitSphericalSmallCircle (share sphericalABCs), and every
 # waveform type (share waveformABCs).
 TYPE_TO_LIKE = {
     "QuaternionType": ("spatialABCs", "QuaternionABC"),
-    "PositionVectorType": ("spatialABCs", "PositionABC"),
+    "PositionType": ("spatialABCs", "PositionABC"),
     "SpatialTransformType": ("spatialABCs", "SpatialTransformABC"),
     "PrecisionTimeIntervalType": ("precisionTimeABC", "PrecisionTimeIntervalABC"),
     "PrecisionTimestampType": ("precisionTimeABC", "PrecisionTimestampABC"),
-    "UnitSphericalArcType": ("unitSphericalArcABC", "UnitSphericalArcABC"),
-    "UnitSphericalSmallCircleType": (
-        "unitSphericalSmallCircleABC",
-        "UnitSphericalSmallCircleABC",
-    ),
+    "UnitSphericalArcType": ("sphericalABCs", "UnitSphericalArcABC"),
+    "UnitSphericalSmallCircleType": ("sphericalABCs", "UnitSphericalSmallCircleABC"),
     "PositionWaveformType": ("waveformABCs", "PositionWaveformABC"),
     "QuaternionWaveformType": ("waveformABCs", "QuaternionWaveformABC"),
     "SpatialTransformWaveformType": ("waveformABCs", "WaveformSpatialABC"),
@@ -92,7 +90,7 @@ def field_default(field_type: str) -> str:
     list_match = re.fullmatch(r"List\[(.+)\]", field_type)
     if list_match:
         return f"Sequence[{list_match.group(1)}] = ()"
-    # Nested single-object carrier (e.g. PositionVectorType). A literal `None`
+    # Nested single-object carrier (e.g. PositionType). A literal `None`
     # default is the only thing that clears the inherited abstract `@property`
     # accessor (default_factory does not), but it makes the field Optional, which
     # is an incompatible override of the non-Optional Tier-2 accessor. That
