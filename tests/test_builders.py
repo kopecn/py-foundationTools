@@ -141,9 +141,7 @@ class TestBuildRsyncCommandModes:
         ]
 
     def test_push_mode_remote_destination(self) -> None:
-        command = build_rsync_command(
-            src="/local/path", dst="/remote/path", ssh_host="example.com"
-        )
+        command = build_rsync_command(src="/local/path", dst="/remote/path", ssh_host="example.com")
         assert command == [
             "rsync",
             "-e",

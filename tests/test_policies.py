@@ -161,9 +161,7 @@ class TestRetryPolicySync:
 
         def execute() -> CLITransactResultModel[Any]:
             calls["n"] += 1
-            return CLITransactResultModel(
-                return_code=0, stdout="x", success=True, model=None
-            )
+            return CLITransactResultModel(return_code=0, stdout="x", success=True, model=None)
 
         result = policy.run_sync(execute)
         assert result.success is True
@@ -299,9 +297,7 @@ class TestRetryPolicyAsync:
 
         async def execute() -> CLITransactResultModel[Any]:
             calls["n"] += 1
-            return CLITransactResultModel(
-                return_code=0, stdout="x", success=True, model=None
-            )
+            return CLITransactResultModel(return_code=0, stdout="x", success=True, model=None)
 
         result = await policy.run_async(execute)
         assert result.success is True

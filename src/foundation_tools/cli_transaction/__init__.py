@@ -10,9 +10,11 @@ from foundation_tools.cli_transaction.cliTransact import (
     CLITransactResult,
     CLITransactResultModel,
 )
+from foundation_tools.cli_transaction.sshTransact import SSHTransact
 
 __all__ = [
     "CLITransact",
     "CLITransactResult",
     "CLITransactResultModel",
+    "SSHTransact",
 ]

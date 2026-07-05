@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan05SocketByteTransport
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.2
+status: complete
+last_updated: 2026-07-05
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -55,10 +55,10 @@ ABC: `src/foundation_abc/peripheralByteTransport.py`.
 
 ## Acceptance criteria
 
-- [ ] `isinstance(transport, PeripheralByteTransport)` and all abstract methods
+- [x] `isinstance(transport, PeripheralByteTransport)` and all abstract methods
       implemented per docstring contracts.
-- [ ] No framing/serialization knowledge in the module.
-- [ ] `make fullCheck` passes.
+- [x] No framing/serialization knowledge in the module.
+- [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists).
 
 ## Out of scope
 

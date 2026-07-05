@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan06SSHTransact
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.1
+status: complete
+last_updated: 2026-07-05
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -49,11 +49,19 @@ Contract: [sshTransact.md](../specs/sshTransact.md).
 
 ## Acceptance criteria
 
-- [ ] All 10 Compliance Requirements in sshTransact.md have tests.
-- [ ] Module contains no subprocess import, no try/except, no result mutation.
-- [ ] `make fullCheck` passes.
+- [x] All 10 Compliance Requirements in sshTransact.md have tests.
+- [x] Module contains no subprocess import, no try/except, no result mutation.
+- [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists).
 
 ## Out of scope
 
 - SCP/SFTP, connection multiplexing, known-hosts management.
 - Retry implementation (policies own it).
+
+## Implementation notes
+
+Skipped the live smoke test against a real `ssh` binary — exercising it for real
+would need an actual sshd endpoint (loopback or otherwise), which is exactly the
+"no network in CI" case the step explicitly permits skipping. All coverage is via
+mock/spy on `CLITransact`, which fully exercises command construction and
+delegation without needing a live SSH target.

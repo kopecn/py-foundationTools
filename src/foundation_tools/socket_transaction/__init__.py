@@ -8,5 +8,12 @@ serialization) over ``SocketByteTransport``
 
 See ``.claude/specs/socketTransact.md`` and
 ``.claude/specs/transport_transaction_architecture.md`` (Stream-Transport Family)
-for the full contract. Status: planned — no modules implemented yet.
+for the full contract. Status: ``SocketByteTransport`` (Layer 1) implemented;
+codecs, router, and facade planned.
 """
+
+from foundation_tools.socket_transaction.socket_byte_transport import SocketByteTransport
+
+__all__ = [
+    "SocketByteTransport",
+]
