@@ -183,6 +183,17 @@ class TestCLITransact:
             cli._determine_success(SUCCESS_RETURN_CODE, "Operation completed") is False  # pylint: disable=protected-access
         )
 
+    def test_determine_success_with_error_sentinel(self) -> None:
+        """The framework error sentinel (-1) is always a failure, marker or not."""
+        cli = CLITransact()
+        assert cli._determine_success(ERROR_RETURN_CODE, "output") is False  # pylint: disable=protected-access
+
+        cli_with_marker = CLITransact(success_marker="SUCCESS")
+        assert (
+            cli_with_marker._determine_success(ERROR_RETURN_CODE, "SUCCESS")  # pylint: disable=protected-access
+            is False
+        )
+
     def test_normalize_output_none(self) -> None:
         """Test output normalization with None input."""
         cli = CLITransact()
@@ -335,6 +346,15 @@ class TestCLITransactSync:
         result = CLITransact.run_sync(["whatever"])
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "kernel-level surprise" in result.stderr
+        assert result.success is False
+
+    def test_run_sync_nonexistent_binary_is_contained(self) -> None:
+        """A real (unmocked) missing binary raises FileNotFoundError in subprocess;
+        it must be contained as a framework-error result, not escape as an exception.
+        """
+        result = CLITransact.run_sync(["definitely-not-a-real-binary-xyz"])
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "Command execution failed" in result.stderr
         assert result.success is False
 
 
@@ -526,6 +546,16 @@ class TestCLITransactAsync:
         mock_proc.kill.assert_called()
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Timeout after 1 seconds" in result.stderr
+        assert result.success is False
+
+    @pytest.mark.asyncio
+    async def test_run_async_nonexistent_binary_is_contained(self) -> None:
+        """A real (unmocked) missing binary raises FileNotFoundError from
+        create_subprocess_exec; it must be contained as a framework-error result.
+        """
+        result = await CLITransact.run_async(["definitely-not-a-real-binary-xyz"])
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.stderr is not None and "Command execution failed" in result.stderr
         assert result.success is False
 
 

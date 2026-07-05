@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan01PackageRestructure
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.1
+status: complete
+last_updated: 2026-07-04
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -44,9 +44,10 @@ import from the package, not the module file.
 
 ## Acceptance criteria
 
-- [ ] All three subpackages importable; `cli_transaction` re-exports its surface.
-- [ ] No production logic added or changed (diff is `__init__`/docstrings only).
-- [ ] `make fullCheck` passes.
+- [x] All three subpackages importable; `cli_transaction` re-exports its surface.
+- [x] No production logic added or changed (diff is `__init__`/docstrings only).
+- [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists — Makefile has
+      migrated to the `uv-` targets; CLAUDE.md is stale on this point).
 
 ## Out of scope
 

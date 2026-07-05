@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan02CLITransactHardening
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.1
+status: complete
+last_updated: 2026-07-04
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -51,11 +51,35 @@ Review source: [.claude/review-for-fixes/02-cliTransact.md](../review-for-fixes/
 4. Sync [cliTransact.md](../specs/cliTransact.md) if any contract wording shifted;
    bump its semver.
 
+## Resolution notes
+
+Both review findings were already resolved in code before this chunk started:
+
+- **Grace-period escalation** — `GRACE_PERIOD_CAP_SECONDS` + `min(cap, timeout)` was
+  already in place, with an existing regression test
+  (`test_run_async_timeout_grace_period_scales_down`).
+- **Factory-only construction** — verified by inspection (`grep` for
+  `CLITransactResult(` / `CLITransactResultModel[`): the only construction sites are
+  `_finalize_result`, `_framework_error`, and `_attach_model`. No bypass exists; no
+  code change was required.
+
+Test gaps closed this chunk (added to `tests/testfoundationCLITransact.py`, no new
+file per the "existing testfoundation* files keep their names" convention):
+
+- `test_determine_success_with_error_sentinel` — explicit `rc=-1` sentinel case.
+- `test_run_sync_nonexistent_binary_is_contained` /
+  `test_run_async_nonexistent_binary_is_contained` — real (unmocked) missing-binary
+  containment, complementing the existing mocked generic-exception tests.
+
+No production code changed in `cliTransact.py`; the spec already matched behavior,
+so no semver bump was needed there.
+
 ## Acceptance criteria
 
-- [ ] Every Compliance Requirement in cliTransact.md has at least one test.
-- [ ] No direct `CLITransactResult(...)` construction outside the factories.
-- [ ] `make fullCheck` passes.
+- [x] Every Compliance Requirement in cliTransact.md has at least one test.
+- [x] No direct `CLITransactResult(...)` construction outside the factories.
+- [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists — see chunk 01
+      note on the Makefile's `uv-` migration).
 
 ## Out of scope
 
