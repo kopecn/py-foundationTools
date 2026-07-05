@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan04CommandBuilders
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.2
+status: complete
+last_updated: 2026-07-04
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -65,11 +65,21 @@ construction rules in [sshTransact.md](../specs/sshTransact.md) and
 
 ## Acceptance criteria
 
-- [ ] Builders import nothing from subprocess, policies, or transactions.
-- [ ] Every construction rule in both specs has a golden-argv test.
-- [ ] `make fullCheck` passes.
+- [x] Builders import nothing from subprocess, policies, or transactions.
+- [x] Every construction rule in both specs has a golden-argv test.
+- [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists).
 
 ## Out of scope
 
 - Executing commands, success semantics, retries (transactions own delegation).
 - Docker/Git/Kubectl builders (extension model exists; add on demand).
+
+## Implementation notes
+
+`rsyncTransact.md` describes pull/push modes but gives the builder no
+filesystem-probing-free way to tell which of `src`/`dst` is remote from
+`ssh_host` alone. Resolved by adding an explicit `remote_side: Literal["src",
+"dst"] = "dst"` parameter (defaults to push, the common case); `"src"` selects
+pull. Kept out of the spec's literal parameter list since it's additive and
+doesn't change any documented rule — flagging here in case chunk 07
+(`RsyncTransact`) wants to promote it into the spec itself.
