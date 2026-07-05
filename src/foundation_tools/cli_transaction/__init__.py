@@ -10,11 +10,21 @@ from foundation_tools.cli_transaction.cliTransact import (
     CLITransactResult,
     CLITransactResultModel,
 )
+from foundation_tools.cli_transaction.rsyncTransact import (
+    RSYNC_PERMANENT_RETURN_CODES,
+    RSYNC_TRANSIENT_RETURN_CODES,
+    WINDOWS_SAFE_RSYNC_OPTIONS,
+    RsyncTransact,
+)
 from foundation_tools.cli_transaction.sshTransact import SSHTransact
 
 __all__ = [
+    "RSYNC_PERMANENT_RETURN_CODES",
+    "RSYNC_TRANSIENT_RETURN_CODES",
+    "WINDOWS_SAFE_RSYNC_OPTIONS",
     "CLITransact",
     "CLITransactResult",
     "CLITransactResultModel",
+    "RsyncTransact",
     "SSHTransact",
 ]

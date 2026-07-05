@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan07RsyncTransact
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.1
+status: complete
+last_updated: 2026-07-05
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -50,11 +50,19 @@ Contract: [rsyncTransact.md](../specs/rsyncTransact.md).
 
 ## Acceptance criteria
 
-- [ ] All 12 Compliance Requirements in rsyncTransact.md have tests.
-- [ ] No subprocess import, no retry loop, no option merging/dedup in the module.
-- [ ] `make fullCheck` passes.
+- [x] All 12 Compliance Requirements in rsyncTransact.md have tests.
+- [x] No subprocess import, no retry loop, no option merging/dedup in the module.
+- [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists).
 
 ## Out of scope
 
 - rsync daemon (`rsync://`) mode, `--delete` safety rails, bandwidth limiting.
 - Cross-run resume orchestration (higher-layer workflow concern).
+
+## Implementation notes
+
+Reused chunk 04's `remote_side: Literal["src", "dst"] = "dst"` parameter
+(documented there) to select pull vs. push, since the spec doesn't otherwise give
+the transaction a heuristic-free way to know which side is remote. The rsync
+binary was present locally (`openrsync` on macOS), so the local-to-local smoke
+test in the Steps section ran for real rather than being skipped.
