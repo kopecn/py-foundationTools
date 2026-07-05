@@ -8,5 +8,13 @@ itself never retries. Policies may be *selected* by a transport transaction but
 never *implemented* by one — see the Policy Ownership rule in the umbrella spec.
 
 See ``.claude/specs/transport_transaction_architecture.md`` (Layer 3 — Execution
-Policies) for the full contract. Status: planned — no policies implemented yet.
+Policies) for the full contract.
 """
+
+from foundation_tools.policies.backoff_policy import BackoffPolicy
+from foundation_tools.policies.retry_policy import RetryPolicy
+
+__all__ = [
+    "BackoffPolicy",
+    "RetryPolicy",
+]

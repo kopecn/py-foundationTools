@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan03ExecutionPolicies
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.2
+status: complete
+last_updated: 2026-07-04
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -65,12 +65,23 @@ Contract: Layer 3 of
 2. Implement `BackoffPolicy`, then `RetryPolicy`.
 3. `make fullCheck`.
 
+## Resolution notes
+
+`BackoffPolicy` and `RetryPolicy` implemented as frozen dataclasses per the design
+constraints. One implementation wrinkle: mypy types `int ** int` as `Any` in
+typeshed (the exponent could be negative), so `compute_delay` uses a float base
+(`2.0 ** attempt`) instead of `2 ** attempt` to keep the return type checked as
+`float`. `RetryPolicy` is generic over `R = TypeVar("R", bound=CLITransactResult)`
+so it applies unchanged to both `CLITransactResult` and `CLITransactResultModel[T]`.
+
 ## Acceptance criteria
 
-- [ ] Policies never import subprocess/asyncio-subprocess or builders.
-- [ ] Sync and async application paths behave identically (same test matrix).
-- [ ] Exhausted retries return the final `CLITransactResult` — no exception.
-- [ ] `make fullCheck` passes.
+- [x] Policies never import subprocess/asyncio-subprocess or builders (enforced by
+      a source-inspection test in `tests/test_policies.py`).
+- [x] Sync and async application paths behave identically (same test matrix, plus
+      an explicit parity test).
+- [x] Exhausted retries return the final `CLITransactResult` — no exception.
+- [x] `make uv-fullCheck` passes.
 
 ## Out of scope
 
