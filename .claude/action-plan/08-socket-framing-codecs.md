@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan08SocketFramingCodecs
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.1
+status: complete
+last_updated: 2026-07-05
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -51,13 +51,32 @@ Contract: Layer 2 of [socketTransact.md](../specs/socketTransact.md).
 
 ## Acceptance criteria
 
-- [ ] Both codecs satisfy the protocol (structural check in tests).
-- [ ] Partial-delivery reassembly proven by byte-at-a-time tests.
-- [ ] Wire-bridge round trip passes with a real generated model.
-- [ ] `make fullCheck` passes.
+- [x] Both codecs satisfy the protocol (structural check in tests).
+- [x] Partial-delivery reassembly proven by byte-at-a-time tests.
+- [x] Wire-bridge round trip passes with a real generated model.
+- [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists).
 
 ## Out of scope
 
 - Checksums/BCC/escape-sequence framing (add as new codecs when a device needs
   them).
 - tx_id semantics (chunk 09).
+
+## Implementation notes
+
+"Malformed inbound length" needed a concrete definition: an unsigned length
+prefix can never decode to something structurally invalid, so the only realistic
+malformed/corrupt case is a declared length that would force unbounded
+reassembly-buffer growth (e.g. a bit-flipped or malicious prefix). Added an
+opt-in `max_frame_size` constructor parameter (default: the largest value
+`prefix_width` can represent, i.e. no extra restriction) — when a declared length
+exceeds it, `feed` raises immediately instead of buffering forever waiting for
+bytes that will never arrive.
+
+The wire-bridge round-trip test used `GeoCoordinate` (an existing schema-generated
+model) with `wire_encode`/`wire_decode` monkeypatched in for the test only, since
+no `wire_config.py` wiring exists in the repo yet — `DataModelHelper.to_wire`
+looks up `type(self).wire_encode`/`cls.wire_decode` as plain (unbound) callables,
+so the monkeypatched lambdas must NOT be wrapped in `staticmethod`/`classmethod`
+or the internal `encoder(self, **kwargs)` / `decoder(cls, wire_str)` call sites
+would double-supply `self`/`cls`.

@@ -8,12 +8,20 @@ serialization) over ``SocketByteTransport``
 
 See ``.claude/specs/socketTransact.md`` and
 ``.claude/specs/transport_transaction_architecture.md`` (Stream-Transport Family)
-for the full contract. Status: ``SocketByteTransport`` (Layer 1) implemented;
-codecs, router, and facade planned.
+for the full contract. Status: ``SocketByteTransport`` (Layer 1) and the framing
+codecs (Layer 2) implemented; router and facade planned.
 """
 
+from foundation_tools.socket_transaction.framing_codecs import (
+    DelimiterCodec,
+    FramingCodec,
+    LengthPrefixedCodec,
+)
 from foundation_tools.socket_transaction.socket_byte_transport import SocketByteTransport
 
 __all__ = [
+    "DelimiterCodec",
+    "FramingCodec",
+    "LengthPrefixedCodec",
     "SocketByteTransport",
 ]
