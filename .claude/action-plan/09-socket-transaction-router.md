@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan09SocketTransactionRouter
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.3
+status: complete
+last_updated: 2026-07-05
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -78,11 +78,39 @@ Contract: Layer 3 of [socketTransact.md](../specs/socketTransact.md).
 
 ## Acceptance criteria
 
-- [ ] All invariants in the spec's router section have tests.
-- [ ] No thread usage; exactly one reader task, structurally cancelled.
-- [ ] `make fullCheck` passes (pytest-asyncio, no event-loop warnings).
+- [x] All invariants in the spec's router section have tests.
+- [x] No thread usage; exactly one reader task, structurally cancelled.
+- [x] `make uv-fullCheck` passes (pytest-asyncio, no event-loop warnings;
+      `make fullCheck` no longer exists).
 
 ## Out of scope
 
 - Result-object containment and model parsing (chunk 10 — the facade).
 - Reconnect/resubscribe logic.
+
+## Implementation notes
+
+Two bugs surfaced by the tests themselves (both fixed before this chunk was
+marked complete):
+
+- **Future-before-send race, exactly the scenario step 2 calls out**: the first
+  draft re-fetched the future via `self._pending[resolved_tx_id]` *after*
+  awaiting `transport.send(...)`. With an echo transport that replies
+  synchronously, the reader task can resolve-and-pop that entry before `request()`
+  resumes, so the re-fetch raised `KeyError`. Fixed by capturing the future
+  reference *before* `send()` is awaited, per the spec's exact ordering
+  (register → inject → encode → send).
+- **Cancellation leaked pending entries**: the original cleanup only ran on
+  `TimeoutError`, but `asyncio.CancelledError` is a `BaseException`, not an
+  `Exception`, so a cancelled `request()` call skipped cleanup and left a stale
+  entry in the pending dict. Added a catch-all `except BaseException` cleanup
+  path (re-raising unchanged) so cancellation also releases its `tx_id`.
+- The reader-loop's transport-error branch (`ConnectionError`/`RuntimeError`/
+  `OSError`) originally propagated the raw transport exception to pending
+  futures; the spec calls for "a connection-closed error" regardless of cause,
+  so both that branch and the empty-read branch now wrap in the same
+  `ConnectionClosedError`.
+
+Added a small `is_running` property (not in the spec) purely for test
+observability of the reader-task lifecycle, avoiding tests reaching into a
+private attribute.
