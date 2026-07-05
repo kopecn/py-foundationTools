@@ -152,6 +152,18 @@ class CLITransact:
 
         Parsing runs only on success with non-empty stdout, and never changes the
         execution ``success`` flag — a parser failure is appended to stderr.
+
+        ``output_parser`` is any ``Callable[[str], T]`` bound to a
+        ``DataModelHelper`` subclass — a generated model's own domain-specific
+        parser::
+
+            result = CLITransact.run_sync_with_model("df -h", DiskUsage.from_df_output)
+
+        or, when the model's ``wire_encode``/``wire_decode`` are configured,
+        ``Model.from_wire`` directly (its signature already matches
+        ``output_parser`` with no glue)::
+
+            result = CLITransact.run_sync_with_model(["cat", "coord.json"], GeoCoordinate.from_wire)
         """
         return cls(success_marker)._run_sync_with_model(cli_command, output_parser, timeout)
 
