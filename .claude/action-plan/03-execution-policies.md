@@ -3,7 +3,7 @@ plan: ActionPlan03ExecutionPolicies
 scope: project
 status: pending
 last_updated: 2026-07-03
-semver: 0.0.1
+semver: 0.0.2
 author: Nicholas Bergantz
 ---
 
@@ -45,6 +45,14 @@ Contract: Layer 3 of
 - Policy applies to a `Callable[[], CLITransactResult]` (sync) and
   `Callable[[], Awaitable[CLITransactResult]]` (async) — it wraps *execution*, so it
   works unchanged for any transport transaction.
+- **Timeout is per-attempt** (canonical rule in
+  [transport_transaction_architecture.md](../specs/transport_transaction_architecture.md)):
+  the caller's `timeout` governs each attempt; the policy adds no overall deadline.
+  Worst-case wall time ≈ `attempts × timeout` + sum of backoff delays.
+- **Policies wrap the whole call**: for `run_*_with_model` the policy wraps the full
+  callable (execution + parse). Retry classification reads only `return_code`; a
+  parser failure never changes `success` and never triggers a retry — parsing runs
+  at most once, on the terminal attempt.
 - Stateless invocation: policy objects are immutable config; per-run state stays
   local to the call.
 
@@ -52,7 +60,8 @@ Contract: Layer 3 of
 
 1. Tests first: backoff sequence exactness (incl. cap, jitter bounds), retry stops
    on success, retries only transient codes, exhaustion returns the last result
-   (never raises), async parity, zero-sleep injection.
+   (never raises), async parity, zero-sleep injection, and: a `with_model` result
+   with `return_code == 0` but a failed parse is terminal success — never retried.
 2. Implement `BackoffPolicy`, then `RetryPolicy`.
 3. `make fullCheck`.
 

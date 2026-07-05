@@ -19,7 +19,7 @@ single source of truth for a model's shape; the `.py` is a generated artifact. T
 change a model's shape you edit its schema and regenerate — never the generated file.
 This spec governs schemas under `schema/schemas/`, the codegen scripts under
 `schema/scripts/`, and their generated output. It complements
-[`data_model_helper.md`](data_model_helper.md), which governs the base class every
+[`dataModelHelper.md`](dataModelHelper.md), which governs the base class every
 generated model inherits.
 
 ## Golden Workflow

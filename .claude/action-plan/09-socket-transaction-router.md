@@ -3,7 +3,7 @@ plan: ActionPlan09SocketTransactionRouter
 scope: project
 status: pending
 last_updated: 2026-07-03
-semver: 0.0.2
+semver: 0.0.3
 author: Nicholas Bergantz
 ---
 
@@ -32,15 +32,25 @@ Contract: Layer 3 of [socketTransact.md](../specs/socketTransact.md).
   tests use an in-memory fake transport, no real sockets needed).
 - One background reader task: `receive → feed → dispatch`. Started on `start()`,
   cancelled on `stop()`.
-- Correlation contract is a **pair** configured at construction:
-  `tx_id_injector: Callable[[bytes, str], bytes]` (outbound stamping) +
+- **Reader loop contract:** the loop calls
+  `transport.receive(read_size, timeout=poll_timeout)` with constructor parameters
+  `read_size` (default 4096) and `poll_timeout` (default 1.0 s). `TimeoutError` is
+  an **idle tick** — loop continues, never tears down. An empty read (`b""`) or a
+  transport error (`ConnectionError` / `RuntimeError` / `OSError`) means the
+  connection is gone → teardown: fail all pending futures with a
+  connection-closed error, end the unsolicited stream.
+- Correlation contract is a **pair required at construction — no default exists**
+  (the wire format is protocol-specific, so a silent default would mis-correlate):
+  `tx_id_injector: Callable[[bytes, str], bytes]` (outbound stamping; MUST
+  overwrite an already-embedded tx_id) +
   `tx_id_extractor: Callable[[bytes], str | None]` (inbound readback); default
   tx_id generator is a monotonic counter rendered as `str`.
 - Request path order: generate tx_id → **register future** → inject → encode →
   send (a fast endpoint must never reply before the future exists). Explicit
   `tx_id=...` skips the injector (payload already embeds it) and sends verbatim.
 - Dispatch: matching pending future → resolve; no match or `None` tx_id → bounded
-  `asyncio.Queue` exposed as an async iterator.
+  queue exposed as an async iterator. On overflow the **oldest frame is dropped**
+  (with a structured log) — the reader task never awaits queue capacity.
 - Per-request timeout via `asyncio.wait_for`; timed-out entries are removed so late
   replies become unsolicited frames.
 - Reusing an in-flight tx_id raises immediately at request time.
@@ -57,7 +67,10 @@ Contract: Layer 3 of [socketTransact.md](../specs/socketTransact.md).
    test (fake transport replies synchronously on send); unsolicited frame reaches
    the stream; late reply after timeout → unsolicited; duplicate in-flight tx_id
    raises; teardown cancels pending futures; reader never leaks (no pending-task
-   warnings).
+   warnings); unsolicited-queue overflow drops the oldest frame without stalling
+   correlated replies; receive `TimeoutError` (idle tick) does not kill the
+   reader; empty read (`b""`) tears down and fails pending futures with a
+   connection-closed error.
 3. Implement the router.
 4. Integration test over the real `SocketByteTransport` + `DelimiterCodec` against
    the chunk-05 asyncio server fixture.

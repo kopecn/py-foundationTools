@@ -11,7 +11,7 @@ applies_to: schema/schemas/Math/, schema/scripts/generateMathTypes.sh, schema/sc
 > outside this repository. This spec governs how every non-enum type under the
 > `Math` schema domain is layered. It complements
 > [`schemaCodegen.md`](schemaCodegen.md) (Tier 1's codegen authority) and
-> [`data_model_helper.md`](data_model_helper.md) (the serialization base class every
+> [`dataModelHelper.md`](dataModelHelper.md) (the serialization base class every
 > tier transitively inherits).
 
 ## Goal — SE(3) rigid body transformations

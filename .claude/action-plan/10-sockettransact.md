@@ -3,7 +3,7 @@ plan: ActionPlan10SocketTransact
 scope: project
 status: pending
 last_updated: 2026-07-03
-semver: 0.0.2
+semver: 0.0.3
 author: Nicholas Bergantz
 ---
 
@@ -29,7 +29,9 @@ Contract: Layer 4 of [socketTransact.md](../specs/socketTransact.md).
 ## Design constraints
 
 - Construction wires the default stack (`SocketByteTransport` → codec → router);
-  an alternative `PeripheralByteTransport` is injectable. Async context manager
+  an alternative `PeripheralByteTransport` is injectable. The correlation pair
+  (`tx_id_injector` / `tx_id_extractor`) is **required at construction — no
+  default exists** (forwarded to the router per chunk 09). Async context manager
   entry connects and starts the router; exit tears down.
 - API: `request(payload, *, tx_id=None, timeout=None)`, `request_with_model(...)`,
   `send(payload)`, `unsolicited()`. All async; `tx_id`/`timeout` keyword-only.

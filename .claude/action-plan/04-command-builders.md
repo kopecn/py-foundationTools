@@ -3,7 +3,7 @@ plan: ActionPlan04CommandBuilders
 scope: project
 status: pending
 last_updated: 2026-07-03
-semver: 0.0.1
+semver: 0.0.2
 author: Nicholas Bergantz
 ---
 
@@ -33,17 +33,20 @@ construction rules in [sshTransact.md](../specs/sshTransact.md) and
 ## Design constraints
 
 **SSH builder** (`build_ssh_command(...) -> list[str]`):
-- always `-p <port>` (even 22); `-i <identity_file>` only when supplied (no
-  validation); target `user@host` when user given, else `host`
+- `port: int | None = None` — `-p <port>` only when a port is supplied, never a
+  synthesized default (a command-line `-p` overrides `~/.ssh/config` `Port`
+  settings, breaking SSH aliases; see [sshTransact.md](../specs/sshTransact.md));
+  `-i <identity_file>` only when supplied (no validation); target `user@host`
+  when user given, else `host`
 - remote command contract: `str` → single remote-shell argument;
   `list[str]` → argv segments appended
 
 **Rsync builder** (`build_rsync_command(...) -> list[str]`, never `str`):
 - option precedence exactly: `options` not None → use exactly; `[]` → no defaults;
   None → `default_options`. No merging, no dedup, caller order preserved.
-- SSH injection via `-e "ssh -p PORT [-i FILE]"` whenever any of `ssh_host`,
-  non-default `ssh_port`, `ssh_identity_file` present; reuse the SSH builder's
-  formatting rules for the inner command.
+- SSH injection via `-e "ssh [-p PORT] [-i FILE]"` whenever any of `ssh_host`,
+  `ssh_port`, `ssh_identity_file` is supplied; reuse the SSH builder's
+  formatting rules for the inner command (`-p` only when a port is supplied).
 - `src`/`dst` accept `str | Path` (stringified); remote side formatted
   `[user@]host:path`; local/pull/push modes.
 - expose `WINDOWS_SAFE_RSYNC_OPTIONS = ["-avz", "--partial", "--append-verify",

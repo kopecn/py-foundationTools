@@ -3,7 +3,7 @@ plan: ActionPlan05SocketByteTransport
 scope: project
 status: pending
 last_updated: 2026-07-03
-semver: 0.0.1
+semver: 0.0.2
 author: Nicholas Bergantz
 ---
 
@@ -35,6 +35,9 @@ ABC: `src/foundation_abc/peripheralByteTransport.py`.
   `RuntimeError` when sending/receiving while disconnected, `TimeoutError` when
   `receive` times out with no data; `timeout=0` non-blocking; short reads allowed
   at end-of-stream.
+- **EOF signal:** when the peer has closed the connection and no buffered data
+  remains, `receive` returns `b""` immediately — never `TimeoutError`. The empty
+  read is the closed-connection signal the router (chunk 09) relies on.
 - `disconnect()` closes the writer and awaits `wait_closed()`; double-disconnect
   is a no-op; async context manager comes from the ABC unchanged.
 - Never blocks the event loop; no threads.
@@ -45,7 +48,8 @@ ABC: `src/foundation_abc/peripheralByteTransport.py`.
 2. Tests first: connect/is_connected/disconnect lifecycle, `__aenter__`/`__aexit__`,
    send-receive round trip, receive timeout raises `TimeoutError`, disconnected use
    raises `RuntimeError`, refused connect raises `ConnectionError`,
-   double-disconnect no-op, short read at EOF.
+   double-disconnect no-op, short read at EOF, peer-closed connection with no
+   buffered data returns `b""` (not `TimeoutError`).
 3. Implement the transport.
 4. `make fullCheck`.
 

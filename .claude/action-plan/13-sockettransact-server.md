@@ -3,7 +3,7 @@ plan: ActionPlan13SocketTransactServer
 scope: project
 status: pending
 last_updated: 2026-07-03
-semver: 0.0.1
+semver: 0.0.2
 author: Nicholas Bergantz
 ---
 
@@ -39,6 +39,10 @@ tests and the API-symmetry review).
   `bytes` → reply sent with the **request's own tx_id** injected; `None` → no
   reply. The server never strips or interprets payload beyond the injector/extractor
   pair (shared with the client stack).
+- **Injector overwrite:** the shared `tx_id_injector` MUST overwrite any tx_id
+  already embedded in the handler's reply (idempotent re-stamp). This is what
+  makes a naive echo handler correct: the echoed request already carries the
+  tx_id, and re-injection replaces rather than duplicates it.
 - Concurrent dispatch: one task per inbound frame; optional
   `max_concurrent: int | None` semaphore (default unbounded). Replies complete out
   of order by design.
@@ -55,7 +59,8 @@ tests and the API-symmetry review).
    (fragmented frames on two connections don't cross-contaminate); handler
    exception → loop survives, next request still served; `None` return → no reply;
    error_reply_factory path; `max_concurrent` honored; teardown cancels in-flight
-   handlers.
+   handlers; echo handler's reply carries the request's tx_id exactly once
+   (injector overwrite, no duplication).
 2. **End-to-end tests** (real sockets, `SocketTransact` client ↔
    `SocketTransactServer`):
    - `asyncio.gather` of N client requests against a handler with randomized

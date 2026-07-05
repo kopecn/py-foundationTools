@@ -3,7 +3,7 @@ plan: SocketTransactionTransportLayer
 scope: project
 status: aligned
 last_updated: 2026-07-03
-semver: 0.1.1
+semver: 0.1.2
 author: Nicholas Bergantz
 ---
 
@@ -51,7 +51,8 @@ All socket behavior is composed:
 Every connection yields **two independent inbound channels**:
 
 - correlated replies → resolve the awaiting request's `asyncio.Future`
-- unsolicited frames → an async-iterator stream (bounded queue, backpressure)
+- unsolicited frames → an async-iterator stream (bounded queue, drop-oldest on
+  overflow — the reader task never blocks on queue capacity)
 
 These operate simultaneously and do not interfere. (The original draft's
 `data_handler`/`string_handler` callback pair, recast as awaitables and streams.)

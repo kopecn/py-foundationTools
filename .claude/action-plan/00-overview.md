@@ -3,7 +3,7 @@ plan: ActionPlanOverview
 scope: project
 status: active
 last_updated: 2026-07-03
-semver: 0.1.0
+semver: 0.1.1
 author: Nicholas Bergantz
 ---
 
@@ -54,6 +54,9 @@ The two tracks are independent after chunk 01 and may proceed in parallel
    adjacent work in.
 7. **Frontmatter** — any created/edited managed markdown carries
    `last_updated` / `semver` / `author`.
+8. **Test naming** — new test files use `tests/test_<module>.py` (snake_case).
+   Existing `testfoundation*.py` files keep their names; renaming them is out of
+   scope for this plan.
 
 ## Chunk index
 
