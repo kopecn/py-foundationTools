@@ -371,6 +371,19 @@ class TestCLITransactAsync:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    async def test_run_async_string_command_executes_via_bash_c(self) -> None:
+        """A non-empty string command must execute via the ``["bash", "-c",
+        cli_command]`` path (Command Input Contract) and capture output. A
+        shell pipeline is used so the assertion only passes if the command was
+        actually interpreted by a shell — only the empty-string case touched
+        this path before."""
+        result = await CLITransact.run_async("echo hello | tr 'a-z' 'A-Z'")
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.stdout == "HELLO"
+        assert result.success is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
     async def test_run_async_successful_command(self) -> None:
         """Test asynchronous execution of successful command."""
         result = await CLITransact.run_async(["echo", "hello"])

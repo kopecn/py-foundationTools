@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan16SocketByteTransportNonblocking
 scope: project
-status: pending
+status: complete
 last_updated: 2026-07-06
-semver: 0.1.0
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -60,14 +60,40 @@ None — independent.
 
 ## Acceptance criteria
 
-- [ ] `receive(size, timeout=0)` returns buffered bytes when available.
-- [ ] `receive(size, timeout=0)` raises `TimeoutError` when none available, and
+- [x] `receive(size, timeout=0)` returns buffered bytes when available.
+- [x] `receive(size, timeout=0)` raises `TimeoutError` when none available, and
       returns `b""` at EOF.
-- [ ] All existing positive-timeout tests pass unchanged.
-- [ ] `make uv-fullCheck` passes.
+- [x] All existing positive-timeout tests pass unchanged.
+- [x] `make uv-fullCheck` passes.
 
 ## Out of scope
 
 - Changing the ABC contract or its docstrings.
 - Router/facade changes (they use positive timeouts and are unaffected).
 - Negative-timeout semantics beyond treating them as zero.
+
+## Resolution notes
+
+- Added three tests to `tests/test_socket_byte_transport.py`:
+  `test_receive_timeout_zero_returns_buffered_data` (echo server + a short
+  `asyncio.sleep(0.05)` after `send()` to let the event loop deliver bytes into
+  the `StreamReader` buffer before the non-blocking `receive`) and
+  `test_receive_timeout_zero_at_eof_returns_empty_bytes` (peer closes
+  immediately, zero-timeout `receive` must return `b""`, not raise). The
+  pre-existing `test_receive_timeout_zero_non_blocking` (no data, silent
+  handler) continues to cover the "no data buffered → `TimeoutError`" case.
+  Ran against the pre-fix implementation first to confirm both new tests failed
+  (`asyncio.wait_for(..., timeout=0)` never let the read task get scheduled).
+- Implemented the fast path in `receive()` exactly per the chunk's design
+  constraint: for `timeout <= 0`, `asyncio.ensure_future(self._reader.read(size))`,
+  one `await asyncio.sleep(0)`, then done → `task.result()`; not done →
+  `task.cancel()` + `await task` under `contextlib.suppress(asyncio.CancelledError)`
+  + raise `TimeoutError`. No busy-wait loop, no reach into `StreamReader`
+  internals. Docstring updated to state the one-tick non-blocking rule.
+- Positive-timeout branch (`asyncio.wait_for(self._reader.read(size), timeout=timeout)`)
+  left untouched; all pre-existing tests pass unchanged.
+- No surprises — the fix was a direct, mechanical application of the chunk's
+  prescribed shape. `make uv-fullCheck` (`uv-lint` + `uv-typecheck` (mypy) +
+  `uv-test`, 300 tests) passes; note `ty` is intentionally excluded from
+  `uv-fullCheck` per the Makefile's own comment (pre-release, decision D1),
+  unrelated to this chunk.

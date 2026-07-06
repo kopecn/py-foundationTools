@@ -7,6 +7,7 @@ delimiters, length prefixes) is owned by the codecs layered on top (chunk 08). S
 """
 
 import asyncio
+import contextlib
 
 from foundation_abc.peripheralByteTransport import PeripheralByteTransport
 
@@ -66,6 +67,12 @@ class SocketByteTransport(PeripheralByteTransport):
     async def receive(self, size: int, timeout: float = 1.0) -> bytes:
         """Receive up to ``size`` bytes.
 
+        A ``timeout`` of zero (or negative) is non-blocking: the read is
+        scheduled and given exactly one event-loop tick to consume data already
+        buffered on the connection (or an already-pending end-of-stream). If it
+        has not completed by then, it is cancelled and ``TimeoutError`` is
+        raised — no busy-waiting, no blocking on the event loop.
+
         Returns ``b""`` immediately when the peer has closed the connection and no
         buffered data remains — the end-of-stream signal upper layers rely on —
         rather than raising ``TimeoutError``. A short read (fewer than ``size``
@@ -77,6 +84,15 @@ class SocketByteTransport(PeripheralByteTransport):
         """
         if self._reader is None:
             raise RuntimeError("Cannot receive: transport is not connected")
+        if timeout <= 0:
+            task = asyncio.ensure_future(self._reader.read(size))
+            await asyncio.sleep(0)
+            if task.done():
+                return task.result()
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+            raise TimeoutError("Receive timed out (non-blocking, no data buffered)")
         try:
             return await asyncio.wait_for(self._reader.read(size), timeout=timeout)
         except (asyncio.TimeoutError, TimeoutError) as error:

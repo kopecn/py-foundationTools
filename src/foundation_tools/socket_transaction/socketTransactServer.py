@@ -26,6 +26,14 @@ ErrorReplyFactory = Callable[[bytes, Exception], bytes | None]
 CodecFactory = Callable[[], FramingCodec]
 
 
+async def _wait_closed_quietly(writer: "_StreamWriterLike") -> None:
+    """Await ``writer.wait_closed()``, swallowing any exception — used in a
+    teardown ``gather(..., return_exceptions=True)`` where a per-connection
+    failure must never block the rest of teardown."""
+    with suppress(Exception):
+        await writer.wait_closed()
+
+
 class _StreamWriterLike(Protocol):
     """Structural subset of ``asyncio.StreamWriter`` this module depends on —
     lets tests substitute a fake writer without a real socket."""
@@ -88,6 +96,7 @@ class SocketTransactServer:
         self._server: asyncio.base_events.Server | None = None
         self._connections: dict[_StreamWriterLike, FramingCodec] = {}
         self._request_tasks: set[asyncio.Task[None]] = set()
+        self._reader_tasks: set[asyncio.Task[None]] = set()
 
     # -----------------------------------------------------------------------
     # MARK: - Lifecycle
@@ -102,8 +111,8 @@ class SocketTransactServer:
         )
 
     async def stop(self) -> None:
-        """Stop accepting new connections, cancel in-flight handler tasks, and
-        close all connections."""
+        """Stop accepting new connections, cancel in-flight handler tasks,
+        cancel per-connection reader loops, and close all connections."""
         if self._server is not None:
             self._server.close()
             await self._server.wait_closed()
@@ -114,12 +123,22 @@ class SocketTransactServer:
         if self._request_tasks:
             await asyncio.gather(*self._request_tasks, return_exceptions=True)
 
+        # Cancel the per-connection reader loops (`_on_connect` tasks) after
+        # handler-dispatch tasks so a still-connected client's reader loop
+        # doesn't outlive teardown. `return_exceptions=True` bounds this even
+        # if a reader task is already finishing on its own.
+        for task in list(self._reader_tasks):
+            task.cancel()
+
+        awaitables: list[asyncio.Task[None]] = list(self._reader_tasks)
         for writer in list(self._connections):
             self._close_writer(writer)
-        for writer in list(self._connections):
-            with suppress(Exception):
-                await writer.wait_closed()
+            awaitables.append(asyncio.ensure_future(_wait_closed_quietly(writer)))
+        if awaitables:
+            await asyncio.gather(*awaitables, return_exceptions=True)
+
         self._connections.clear()
+        self._reader_tasks.clear()
 
     async def serve_forever(self) -> None:
         """Block until ``stop()`` closes the server (or the task is
@@ -170,6 +189,13 @@ class SocketTransactServer:
     async def _on_connect(
         self, reader: "_StreamReaderLike", writer: "_StreamWriterLike"
     ) -> None:
+        # Track this connection's reader-loop task so `stop()` can cancel and
+        # await it — without this, the loop below outlives teardown for any
+        # client that hasn't sent EOF (Server Compliance Requirement 7).
+        reader_task = asyncio.current_task()
+        if reader_task is not None:
+            self._reader_tasks.add(reader_task)
+
         codec = self._codec_factory()
         self._connections[writer] = codec
         connection_tasks: set[asyncio.Task[None]] = set()
@@ -185,6 +211,8 @@ class SocketTransactServer:
                     self._spawn_dispatch(frame, codec, writer, connection_tasks)
         finally:
             self._connections.pop(writer, None)
+            if reader_task is not None:
+                self._reader_tasks.discard(reader_task)
             for task in list(connection_tasks):
                 task.cancel()
             if connection_tasks:

@@ -280,6 +280,51 @@ class TestTeardown:
         assert writer.is_closing()
 
 
+class TestReaderTaskLifecycle:
+    """Chunk 17: `stop()` must cancel per-connection reader loops (`_on_connect`
+    tasks), not just handler-dispatch tasks — otherwise a still-connected client
+    leaves its reader loop running forever after teardown."""
+
+    @pytest.mark.asyncio
+    async def test_stop_with_live_connection_returns_promptly(self) -> None:
+        async def silent_handler(request: bytes) -> bytes | None:
+            return None
+
+        server = _make_server(silent_handler)
+        reader, writer = FakeStreamReader(), FakeStreamWriter()
+        connection_task = _run_connection(server, reader, writer)
+        await asyncio.sleep(0.02)  # let _on_connect register the connection
+
+        # No EOF is ever pushed on `reader` — if stop() didn't cancel the
+        # reader loop, both stop() and the connection task would hang forever.
+        await asyncio.wait_for(server.stop(), timeout=1.0)
+        done, pending = await asyncio.wait([connection_task], timeout=1.0)
+
+        assert connection_task in done
+        assert not pending
+        assert connection_task.cancelled()
+        assert writer.is_closing()
+
+    @pytest.mark.asyncio
+    async def test_stop_leaves_no_lingering_tasks(self) -> None:
+        async def silent_handler(request: bytes) -> bytes | None:
+            return None
+
+        server = _make_server(silent_handler)
+        reader, writer = FakeStreamReader(), FakeStreamWriter()
+
+        before = asyncio.all_tasks()
+        connection_task = _run_connection(server, reader, writer)
+        await asyncio.sleep(0.02)
+
+        await asyncio.wait_for(server.stop(), timeout=1.0)
+        await asyncio.wait([connection_task], timeout=1.0)
+
+        after = asyncio.all_tasks()
+        leaked = after - before
+        assert leaked == set()
+
+
 class TestEndToEnd:
     @pytest.mark.asyncio
     async def test_concurrent_requests_with_random_delay_resolve_out_of_order(self) -> None:

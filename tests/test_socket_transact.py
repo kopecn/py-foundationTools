@@ -9,6 +9,7 @@ asyncio server that replies out of order (mirroring the chunk-05/09 fixtures).
 
 import asyncio
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -241,6 +242,68 @@ class TestModelRoundTrip:
         assert result.model is None
         assert result.error is not None
         assert "Model parsing failed" in result.error
+
+    @pytest.mark.asyncio
+    async def test_outbound_to_wire_raising_yields_contained_failure(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A model whose ``to_wire`` raises must yield a contained
+        ``success=False`` result from ``request_with_model``, never an
+        exception escaping to the caller."""
+        monkeypatch.setattr(
+            GeoCoordinate,
+            "wire_encode",
+            lambda instance, **_kwargs: (_ for _ in ()).throw(ValueError("outbound boom")),
+        )
+
+        transport = FakeTransport()
+        transport.enable_echo()
+        model = GeoCoordinate(latitude=1.0, longitude=2.0)
+
+        async with _make_socket_transact(transport) as st:
+            result = await st.request_with_model(model, GeoCoordinate, timeout=1.0)
+
+        assert result.success is False
+        assert result.model is None
+        assert result.error is not None
+        assert "outbound boom" in result.error
+
+
+class TestSendSuccess:
+    @pytest.mark.asyncio
+    async def test_send_encodes_and_writes_uncorrelated_frame(self) -> None:
+        """A successful uncorrelated ``send()`` must run the payload through
+        the codec and write the encoded bytes to the transport — only the
+        raise-on-failure path was covered before."""
+        transport = FakeTransport()
+        codec = DelimiterCodec()
+
+        async with _make_socket_transact(transport, codec=codec) as st:
+            await st.send(b"broadcast-payload")
+
+        assert transport.sent == [codec.encode(b"broadcast-payload")]
+
+
+class TestRequestWithModelEmptyPayloadSkipsParser:
+    @pytest.mark.asyncio
+    async def test_empty_correlated_reply_skips_parser_and_succeeds(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A ``b""`` correlated reply must skip model parsing entirely — the
+        parser is never invoked — while still yielding ``success=True`` with
+        ``model=None``."""
+        parser_mock = MagicMock()
+        monkeypatch.setattr(GeoCoordinate, "wire_decode", parser_mock)
+
+        transport = FakeTransport()
+        async with _make_socket_transact(transport) as st:
+            with patch.object(st._router, "request", new=AsyncMock(return_value=b"")):  # noqa: SLF001
+                result = await st.request_with_model(b"query", GeoCoordinate, timeout=1.0)
+
+        assert result.success is True
+        assert result.model is None
+        assert result.error is None
+        parser_mock.assert_not_called()
 
 
 class TestUnsolicitedIteration:

@@ -122,6 +122,37 @@ async def _running_router(
         await router.stop()
 
 
+class SynchronousReplyTransport(FakeTransport):
+    """A transport whose ``send`` synchronously delivers the correlated reply
+    to the reader loop before ``send`` itself returns — engineered await-point
+    interleaving (not sleeps/timing luck) that proves the response future is
+    registered in the pending map before ``send`` completes, not after. The
+    current ``FakeTransport.send`` has no await point, so this race can never
+    interleave with the plain fixture; this subclass exists to make it
+    deterministic."""
+
+    async def send(self, data: bytes) -> None:
+        await super().send(data)
+        self.push_inbound(data)  # echo the frame back as the correlated reply
+        await asyncio.sleep(0)  # reader task runs here
+        await asyncio.sleep(0)  # ... and resolves the future
+
+
+class TestRegisterBeforeSendRace:
+    @pytest.mark.asyncio
+    async def test_future_registered_before_send_completes(self) -> None:
+        """Regression test for the exact register-before-send ordering the
+        chunk-09 implementation notes describe: if the future were registered
+        AFTER ``send`` instead of before, this reply would arrive with no
+        pending future to resolve (misrouted to the unsolicited stream), and
+        ``request`` would time out instead of returning the reply.
+        """
+        transport = SynchronousReplyTransport()
+        async with _running_router(transport) as router:
+            reply = await router.request(b"race-ping", timeout=1.0)
+        assert reply.endswith(b"race-ping")
+
+
 class TestRequestReplyCorrelation:
     @pytest.mark.asyncio
     async def test_single_request_reply_round_trip(self) -> None:

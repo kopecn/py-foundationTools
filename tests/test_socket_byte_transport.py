@@ -160,6 +160,34 @@ class TestSocketByteTransportIO:
                 await transport.disconnect()
 
     @pytest.mark.asyncio
+    async def test_receive_timeout_zero_returns_buffered_data(self) -> None:
+        async with _running_server(_echo_handler) as (host, port):
+            transport = SocketByteTransport(host=host, port=port)
+            await transport.connect()
+            try:
+                await transport.send(b"hello")
+                # Give the event loop a chance to deliver the echoed bytes into
+                # the StreamReader's internal buffer before requesting a
+                # non-blocking read, so the fast path has data to return.
+                await asyncio.sleep(0.05)
+                received = await transport.receive(size=1024, timeout=0)
+                assert received == b"hello"
+            finally:
+                await transport.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_receive_timeout_zero_at_eof_returns_empty_bytes(self) -> None:
+        async with _running_server(_close_immediately_handler) as (host, port):
+            transport = SocketByteTransport(host=host, port=port)
+            await transport.connect()
+            try:
+                await asyncio.sleep(0.05)
+                received = await transport.receive(size=1024, timeout=0)
+                assert received == b""
+            finally:
+                await transport.disconnect()
+
+    @pytest.mark.asyncio
     async def test_send_while_disconnected_raises(self) -> None:
         transport = SocketByteTransport(host="127.0.0.1", port=1)
         with pytest.raises(RuntimeError):

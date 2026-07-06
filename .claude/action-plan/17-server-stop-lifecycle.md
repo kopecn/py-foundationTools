@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan17ServerStopLifecycle
 scope: project
-status: pending
+status: complete
 last_updated: 2026-07-06
-semver: 0.1.0
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -58,14 +58,36 @@ None — independent.
 
 ## Acceptance criteria
 
-- [ ] `stop()` with live client connections terminates all per-connection reader
+- [x] `stop()` with live client connections terminates all per-connection reader
       loops promptly; no task leak (`all_tasks()` delta empty).
-- [ ] `stop()` remains idempotent; graceful client-close path unchanged.
-- [ ] All existing server unit + e2e tests pass unchanged.
-- [ ] `make uv-fullCheck` passes.
+- [x] `stop()` remains idempotent; graceful client-close path unchanged.
+- [x] All existing server unit + e2e tests pass unchanged.
+- [x] `make uv-fullCheck` passes.
 
 ## Out of scope
 
 - Reconnect/keepalive, drain semantics, or a configurable shutdown grace period.
 - `broadcast` semantics (best-effort fan-out stays as documented in chunk 13).
 - Client-side (`SocketTransact`) lifecycle changes.
+
+## Resolution notes
+
+`SocketTransactServer` now tracks each `_on_connect` reader-loop task in a
+`self._reader_tasks: set[asyncio.Task[None]]`, populated via
+`asyncio.current_task()` on entry and discarded in the existing `finally`
+block. `stop()` cancels these reader tasks *after* cancelling
+`_request_tasks` (handler-dispatch), then awaits them alongside closing
+writers via one `asyncio.gather(..., return_exceptions=True)` — bounded even
+if a reader task is mid-teardown on its own. A small `_wait_closed_quietly`
+helper wraps `writer.wait_closed()` for that same gather call.
+
+Two new tests in `tests/test_socket_transact_server.py`
+(`TestReaderTaskLifecycle`): `test_stop_with_live_connection_returns_promptly`
+(bounded via `asyncio.wait_for`; previously hung/timed out) and
+`test_stop_leaves_no_lingering_tasks` (`asyncio.all_tasks()` delta before vs.
+after `stop()`). Both failed before the fix (confirmed), pass after.
+
+Existing behavior preserved: handler tasks still cancelled first, writers
+still closed, `stop()` idempotent, graceful client EOF path untouched. No
+existing test needed modification. `make uv-fullCheck`: 302 passed, ruff +
+mypy + ty clean.
