@@ -5,6 +5,10 @@ All assertions are golden-argv comparisons: given fixed inputs, the builder must
 produce an exact, deterministic ``list[str]``.
 """
 
+import itertools
+
+import pytest
+
 from foundation_tools.builders import (
     WINDOWS_SAFE_RSYNC_OPTIONS,
     build_rsync_command,
@@ -172,15 +176,17 @@ class TestBuildRsyncCommandSshInjection:
         assert "-e" in command
         assert command[command.index("-e") + 1] == "ssh"
 
-    def test_injected_when_only_ssh_port_supplied(self) -> None:
-        command = build_rsync_command(src="/local", dst="/remote", ssh_port=2222)
-        assert "-e" in command
-        assert command[command.index("-e") + 1] == "ssh -p 2222"
+    def test_injected_when_only_ssh_port_supplied_but_host_missing_raises(self) -> None:
+        # Corrective (Action Plan 15): ssh_port alone (no ssh_host) is a build-time
+        # caller bug, not a valid injection — see TestBuildRsyncCommandHostlessSshGuard.
+        with pytest.raises(ValueError):
+            build_rsync_command(src="/local", dst="/remote", ssh_port=2222)
 
-    def test_injected_when_only_ssh_identity_file_supplied(self) -> None:
-        command = build_rsync_command(src="/local", dst="/remote", ssh_identity_file="/k")
-        assert "-e" in command
-        assert command[command.index("-e") + 1] == "ssh -i /k"
+    def test_injected_when_only_ssh_identity_file_supplied_but_host_missing_raises(self) -> None:
+        # Corrective (Action Plan 15): ssh_identity_file alone (no ssh_host) is a
+        # build-time caller bug — see TestBuildRsyncCommandHostlessSshGuard.
+        with pytest.raises(ValueError):
+            build_rsync_command(src="/local", dst="/remote", ssh_identity_file="/k")
 
     def test_ssh_port_omitted_by_default(self) -> None:
         command = build_rsync_command(src="/local", dst="/remote", ssh_host="example.com")
@@ -199,6 +205,72 @@ class TestBuildRsyncCommandSshInjection:
     def test_no_injection_when_no_ssh_parameters(self) -> None:
         command = build_rsync_command(src="/local", dst="/remote")
         assert "-e" not in command
+
+
+class TestBuildRsyncCommandHostlessSshGuard:
+    """Corrective (Action Plan 15): ssh_port/ssh_identity_file alone (no ssh_host)
+    must raise ValueError at build time rather than emit an invalid ``None:/path``
+    argv. ssh_user alone must NOT trigger injection (unchanged rule)."""
+
+    def test_ssh_port_alone_raises(self) -> None:
+        with pytest.raises(ValueError):
+            build_rsync_command(src="/local", dst="/remote", ssh_port=2222)
+
+    def test_ssh_identity_file_alone_raises(self) -> None:
+        with pytest.raises(ValueError):
+            build_rsync_command(src="/local", dst="/remote", ssh_identity_file="/k")
+
+    def test_ssh_port_and_identity_file_without_host_raises(self) -> None:
+        with pytest.raises(ValueError):
+            build_rsync_command(src="/local", dst="/remote", ssh_port=2222, ssh_identity_file="/k")
+
+    def test_ssh_user_alone_does_not_trigger_injection(self) -> None:
+        command = build_rsync_command(src="/local", dst="/remote", ssh_user="alice")
+        assert "-e" not in command
+        assert command == ["rsync", "/local", "/remote"]
+
+    def test_valid_combinations_still_raise_no_error(self) -> None:
+        # sanity: ssh_host present with port/identity is still valid.
+        build_rsync_command(
+            src="/local",
+            dst="/remote",
+            ssh_host="example.com",
+            ssh_port=2222,
+            ssh_identity_file="/k",
+        )
+
+
+class TestBuildRsyncCommandGoldenArgvNoneSweep:
+    """Sweeps every combination of the SSH-related kwargs; any combination that
+    does not raise must produce an argv with no ``"None"`` substring anywhere."""
+
+    def test_no_valid_command_contains_none_substring(self) -> None:
+        hosts: list[str | None] = [None, "example.com"]
+        users: list[str | None] = [None, "alice"]
+        ports: list[int | None] = [None, 2222]
+        identity_files: list[str | None] = [None, "/keys/id_rsa"]
+        remote_sides = ["src", "dst"]
+
+        checked_at_least_one = False
+        for ssh_host, ssh_user, ssh_port, ssh_identity_file, remote_side in itertools.product(
+            hosts, users, ports, identity_files, remote_sides
+        ):
+            try:
+                command = build_rsync_command(
+                    src="/local",
+                    dst="/remote",
+                    ssh_host=ssh_host,
+                    ssh_user=ssh_user,
+                    ssh_port=ssh_port,
+                    ssh_identity_file=ssh_identity_file,
+                    remote_side=remote_side,  # type: ignore[arg-type]
+                )
+            except ValueError:
+                continue
+            checked_at_least_one = True
+            for part in command:
+                assert "None" not in part
+        assert checked_at_least_one
 
 
 class TestBuildRsyncCommandBlockingIo:

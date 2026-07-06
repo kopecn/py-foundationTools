@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan15RsyncBuilderHostlessSsh
 scope: project
-status: pending
+status: complete
 last_updated: 2026-07-06
-semver: 0.1.0
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -66,12 +66,12 @@ None — independent.
 
 ## Acceptance criteria
 
-- [ ] Host-less injection triggers `ValueError` at build time; no argv containing
+- [x] Host-less injection triggers `ValueError` at build time; no argv containing
       `"None:"` can be produced.
-- [ ] All existing golden-argv tests pass unchanged (valid combinations
+- [x] All existing golden-argv tests pass unchanged (valid combinations
       unaffected).
-- [ ] `rsyncTransact.md` documents the validation boundary; frontmatter bumped.
-- [ ] `make uv-fullCheck` passes.
+- [x] `rsyncTransact.md` documents the validation boundary; frontmatter bumped.
+- [x] `make uv-fullCheck` passes.
 
 ## Out of scope
 
@@ -79,3 +79,38 @@ None — independent.
 - Extracting a shared ssh-formatting helper (recorded as declined, see design
   constraints).
 - Validation of other argument combinations not implicated by the finding.
+
+## Resolution notes
+
+- Added the `ValueError` guard in `build_rsync_command`
+  (`src/foundation_tools/builders/rsync_builder.py`): raised when SSH injection is
+  triggered (`ssh_host`/`ssh_port`/`ssh_identity_file` any-of-three, unchanged)
+  but `ssh_host is None`. `ssh_user` alone still does not trigger injection and
+  does not raise.
+- New tests: `TestBuildRsyncCommandHostlessSshGuard` and
+  `TestBuildRsyncCommandGoldenArgvNoneSweep` in `tests/test_builders.py` (the
+  latter sweeps every combination of `ssh_host`/`ssh_user`/`ssh_port`/
+  `ssh_identity_file`/`remote_side`, asserting any non-raising combination's argv
+  contains no `"None"` substring); `TestRsyncTransactHostlessSshGuardPropagation`
+  in `tests/test_rsync_transact.py` (asserts `CLITransact.run_sync` is never
+  called when the builder raises).
+- Deviation from "existing golden-argv tests pass unchanged": two pre-existing
+  tests directly exercised the defect being fixed —
+  `test_injected_when_only_ssh_port_supplied` and
+  `test_injected_when_only_ssh_identity_file_supplied` in
+  `TestBuildRsyncCommandSshInjection` asserted that port/identity-file alone
+  (no `ssh_host`) produced a (buggy) injected command. These are exactly the
+  invalid combinations the guard now rejects, so they were updated in place to
+  assert `ValueError` (renamed to `..._but_host_missing_raises`) rather than left
+  as regressions. All tests covering genuinely valid combinations are unchanged.
+- `.claude/specs/rsyncTransact.md`: added "Validation: Host-less SSH Injection"
+  section (rationale + the never-raise-is-about-execution-not-build-args
+  boundary) and Compliance Requirement #13; semver 0.3.0 → 0.4.0,
+  `last_updated` → 2026-07-06.
+- Recorded-decision cross-reference comment added to
+  `_build_ssh_transport_argument` in `rsync_builder.py`, pointing at
+  `ssh_builder.py`'s formatting rules; no shared helper extracted (per design
+  constraints).
+- Gate: `make uv-fullCheck` passes (298 tests). `ruff format --check` also
+  verified clean on all touched files (not part of `uv-fullCheck`, which
+  excludes format per the Makefile's own comment, but checked anyway).

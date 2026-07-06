@@ -22,6 +22,15 @@ automatically — callers opt in explicitly via ``default_options`` or ``options
 
 
 def _build_ssh_transport_argument(ssh_port: int | None, ssh_identity_file: str | None) -> str:
+    """Format the ``-e "ssh ..."`` transport string.
+
+    This is a deliberate local mirror of :func:`ssh_builder.build_ssh_command`'s
+    ``-p``/``-i`` formatting rules (the ``-e`` string vs argv-list shapes differ
+    enough that extracting a shared helper is not clearly better — see
+    ``.claude/action-plan/15-rsync-builder-hostless-ssh.md``). Keep the two in
+    sync by hand: any change to port/identity-file formatting in
+    ``ssh_builder.py`` should be mirrored here, and vice versa.
+    """
     parts = ["ssh"]
     if ssh_port is not None:
         parts += ["-p", str(ssh_port)]
@@ -59,6 +68,13 @@ def build_rsync_command(
 
     ``blocking_io`` appends ``--blocking-io`` and is opt-in only; it is never part
     of :data:`WINDOWS_SAFE_RSYNC_OPTIONS`.
+
+    Raises:
+        ValueError: if ``ssh_port`` or ``ssh_identity_file`` is supplied without
+            ``ssh_host`` — this is a build-time caller bug (a host-less SSH
+            injection would otherwise format the remote address as the literal
+            invalid string ``"None:/path"``). ``ssh_user`` alone never triggers
+            SSH injection and does not raise.
     """
     if options is not None:
         resolved_options = options
@@ -68,6 +84,11 @@ def build_rsync_command(
         resolved_options = []
 
     inject_ssh = ssh_host is not None or ssh_port is not None or ssh_identity_file is not None
+    if inject_ssh and ssh_host is None:
+        raise ValueError(
+            "ssh_port/ssh_identity_file require ssh_host; a host-less SSH injection "
+            "would produce an invalid rsync remote address (e.g. 'None:/path')"
+        )
 
     command = ["rsync", *resolved_options]
     if blocking_io:

@@ -149,6 +149,19 @@ class TestRsyncTransactSshInjection:
         assert "-e" not in mock_run_sync.call_args.args[0]
 
 
+class TestRsyncTransactHostlessSshGuardPropagation:
+    """Corrective (Action Plan 15): the builder's ValueError for host-less SSH
+    injection (ssh_port/ssh_identity_file without ssh_host) must propagate out of
+    RsyncTransact.run_sync before any subprocess is spawned — the never-raise
+    containment rule applies to execution, not to invalid build-time arguments."""
+
+    def test_run_sync_raises_before_kernel_invoked(self) -> None:
+        with patch.object(CLITransact, "run_sync") as mock_run_sync:
+            with pytest.raises(ValueError):
+                RsyncTransact.run_sync(src="/local", dst="/remote", ssh_port=2222)
+        mock_run_sync.assert_not_called()
+
+
 class TestRsyncTransactBlockingIoAndPreset:
     def test_blocking_io_opt_in(self) -> None:
         with patch.object(

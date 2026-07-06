@@ -3,8 +3,8 @@ spec: RsyncTransact
 scope: project
 status: implemented
 applies_to: src/foundation_tools/cli_transaction/rsyncTransact.py
-last_updated: 2026-07-05
-semver: 0.3.0
+last_updated: 2026-07-06
+semver: 0.4.0
 author: Nicholas Bergantz
 ---
 
@@ -259,6 +259,38 @@ otherwise
 ```text
 host
 ```
+
+---
+
+# Validation: Host-less SSH Injection
+
+SSH injection SHALL raise `ValueError` at build time when triggered by `ssh_port`
+or `ssh_identity_file` but `ssh_host` is `None`.
+
+Rationale: SSH injection is triggered by any of `ssh_host`/`ssh_port`/
+`ssh_identity_file` (unchanged rule — see [SSH Transport](#ssh-transport)). When
+triggered without `ssh_host`, the remote side would otherwise format as the
+literal invalid string `"None:/path"` — an invalid rsync argv, silently
+constructed with no error. This is a build-time caller bug, not an execution
+failure; precedent: framing codecs raise `ValueError` at encode (see
+[socketTransact.md](socketTransact.md)). Silently ignoring the port/identity
+(falling back to local mode) was rejected — it would drop caller intent without
+signaling anything.
+
+`ssh_user` alone SHALL NOT trigger injection and SHALL NOT raise; it remains
+ignored in local mode (unchanged rule).
+
+## Boundary with the never-raise containment rule
+
+`CLITransact`'s never-raise containment rule (all failures captured into a
+result object) applies to **execution**, not to invalid build-time arguments.
+`RsyncTransact` builds its command via `build_rsync_command` *before* any
+delegation to `CLITransact` — a host-less SSH `ValueError` therefore propagates
+directly out of `RsyncTransact.run_sync`/`run_async`/`run_sync_with_model`/
+`run_async_with_model` to the caller, and no subprocess is spawned. This is
+intentional: distinguishing "your call was malformed" (raise, caller's bug) from
+"the transfer failed" (result object, expected operational outcome) keeps the
+two failure modes from being conflated.
 
 ---
 
@@ -580,3 +612,6 @@ A compliant `RsyncTransact` implementation MUST:
 10. Contain no retry or backoff implementation.
 11. Contain no execution policy beyond rsync command construction.
 12. Remain stateless.
+13. Raise `ValueError` at build time for host-less SSH injection (`ssh_port` or
+    `ssh_identity_file` without `ssh_host`), before any delegation to
+    `CLITransact` — see [Validation: Host-less SSH Injection](#validation-host-less-ssh-injection).
