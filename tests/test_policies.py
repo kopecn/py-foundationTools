@@ -2,6 +2,8 @@
 Tests for the execution-policy layer (Action Plan 03): BackoffPolicy + RetryPolicy.
 """
 
+import subprocess
+import sys
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -303,6 +305,37 @@ class TestRetryPolicyAsync:
         assert result.success is True
         assert result.model is None
         assert calls["n"] == 1
+
+
+class TestFreshInterpreterImportHealth:
+    """Regression for the Chunk 14 policy-layer import cycle.
+
+    Each import MUST succeed as the *first* import in a brand-new interpreter, so
+    an in-suite import order (e.g. importing ``foundation_tools.cli_transaction``
+    before ``foundation_tools.policies`` elsewhere in the suite) can never mask a
+    circular-import defect. Sweeps every internal-but-importable subpackage per
+    the transport_transaction_architecture.md public-surface rule.
+    """
+
+    @pytest.mark.parametrize(
+        "import_statement",
+        [
+            "from foundation_tools.policies import RetryPolicy",
+            "from foundation_tools.builders import build_rsync_command",
+            "import foundation_tools.socket_transaction",
+        ],
+    )
+    def test_first_import_succeeds_in_fresh_interpreter(self, import_statement: str) -> None:
+        result = subprocess.run(
+            [sys.executable, "-c", import_statement],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, (
+            f"{import_statement!r} failed as first import in a fresh interpreter:\n"
+            f"{result.stderr}"
+        )
 
 
 class TestNoForbiddenImports:

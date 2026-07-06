@@ -19,12 +19,21 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
-from foundation_tools.cli_transaction import CLITransactResult
 from foundation_tools.policies.backoff_policy import BackoffPolicy
 
-R = TypeVar("R", bound=CLITransactResult)
+if TYPE_CHECKING:
+    # Deferred: importing this eagerly (even from the submodule) forces
+    # foundation_tools.cli_transaction's package __init__ to execute, which pulls in
+    # rsyncTransact -> foundation_tools.policies.retry_policy -- a cycle when this
+    # module is imported first (e.g. `from foundation_tools.policies import
+    # RetryPolicy` as the first import in a fresh interpreter). The string bound
+    # below is resolved by static type checkers only; no runtime import needed since
+    # CLITransactResult is never referenced outside the type bound.
+    from foundation_tools.cli_transaction.cliTransact import CLITransactResult
+
+R = TypeVar("R", bound="CLITransactResult")
 
 SyncSleeper = Callable[[float], None]
 AsyncSleeper = Callable[[float], Awaitable[None]]
