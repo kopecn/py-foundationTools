@@ -1,9 +1,9 @@
 ---
 plan: ActionPlanOverview
 scope: project
-status: complete
-last_updated: 2026-07-05
-semver: 0.2.0
+status: in_progress
+last_updated: 2026-07-06
+semver: 0.3.0
 author: Nicholas Bergantz
 ---
 
@@ -75,3 +75,26 @@ The two tracks are independent after chunk 01 and may proceed in parallel
 | 11 | [Wire-parser bridge](11-wire-parser-bridge.md) | shared | 02 |
 | 12 | [Docs & drift sync](12-docs-and-drift-sync.md) | shared | all |
 | 13 | [SocketTransactServer](13-sockettransact-server.md) | Socket | 08, 10 |
+
+## Corrective actions (post-audit, 2026-07-06)
+
+A full audit of chunks 00–13 (plans + specs + implementation + tests, top
+findings confirmed at runtime) found the work substantially complete; the gaps
+below are decomposed into corrective chunks. 14–17 are independent of each other;
+18 follows 14; 19 runs last.
+
+```
+14 policies import cycle ─┐
+15 rsync builder guard    ├─→ 18 test-coverage closure ─→ 19 docs sweep
+16 byte-transport t=0     │      (18 depends only on 14;
+17 server stop lifecycle ─┘       19 depends on all of 14–18)
+```
+
+| # | chunk | track | depends on |
+| --- | --- | --- | --- |
+| 14 | [Policies import cycle](14-policies-import-cycle.md) | CLI | — |
+| 15 | [Rsync builder host-less SSH](15-rsync-builder-hostless-ssh.md) | CLI | — |
+| 16 | [Byte-transport non-blocking receive](16-socket-byte-transport-nonblocking.md) | Socket | — |
+| 17 | [Server stop() lifecycle](17-server-stop-lifecycle.md) | Socket | — |
+| 18 | [Test-coverage closure](18-test-coverage-closure.md) | shared | 14 |
+| 19 | [Docs & convention sweep](19-docs-convention-sweep.md) | shared | 14–18 |
