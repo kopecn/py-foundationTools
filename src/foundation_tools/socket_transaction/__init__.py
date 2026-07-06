@@ -9,8 +9,8 @@ serialization) over ``SocketByteTransport``
 See ``.claude/specs/socketTransact.md`` and
 ``.claude/specs/transport_transaction_architecture.md`` (Stream-Transport Family)
 for the full contract. Status: ``SocketByteTransport`` (Layer 1), the framing
-codecs (Layer 2), ``TransactionRouter`` (Layer 3), and ``SocketTransact``
-(Layer 4, client facade) implemented; server facade planned.
+codecs (Layer 2), ``TransactionRouter`` (Layer 3), ``SocketTransact`` (Layer 4,
+client facade), and ``SocketTransactServer`` (Layer 4b, server role) implemented.
 """
 
 from foundation_tools.socket_transaction.framing_codecs import (
@@ -24,6 +24,7 @@ from foundation_tools.socket_transaction.socketTransact import (
     SocketTransactResult,
     SocketTransactResultModel,
 )
+from foundation_tools.socket_transaction.socketTransactServer import SocketTransactServer
 from foundation_tools.socket_transaction.transaction_router import (
     ConnectionClosedError,
     TransactionRouter,
@@ -38,5 +39,6 @@ __all__ = [
     "SocketTransact",
     "SocketTransactResult",
     "SocketTransactResultModel",
+    "SocketTransactServer",
     "TransactionRouter",
 ]

@@ -1,21 +1,22 @@
 ---
 spec: SocketTransact
 scope: project
-status: proposed
+status: implemented
 applies_to: src/foundation_tools/socket_transaction/
-last_updated: 2026-07-03
-semver: 0.3.0
+last_updated: 2026-07-05
+semver: 0.4.0
 author: Nicholas Bergantz
 ---
 
 # Socket Transaction Transport Layer Specification
 
-> **Status — proposed.** Nothing in this spec is implemented yet. It defines the
-> required contract for the `foundation_tools/socket_transaction/` subpackage: an
-> **asyncio-native**, long-lived-connection counterpart to the process-transaction
-> family. It supersedes an earlier thread-driven draft; the thread/callback model is
-> intentionally replaced by asyncio primitives (see
-> [Learned Behaviors](#learned-behaviors)).
+> **Status — implemented.** All layers described below — the raw transport, the
+> framing codecs, the transaction router, and both the client (`SocketTransact`)
+> and server (`SocketTransactServer`) facades — are implemented in
+> `foundation_tools/socket_transaction/`: an **asyncio-native**, long-lived-connection
+> counterpart to the process-transaction family. It supersedes an earlier
+> thread-driven draft; the thread/callback model was intentionally replaced by
+> asyncio primitives (see [Learned Behaviors](#learned-behaviors)).
 >
 > This is the stream-transport family of the umbrella
 > [transport_transaction_architecture.md](transport_transaction_architecture.md);
@@ -99,7 +100,7 @@ idea of the original draft, recast from callback threads to async streams.)
 
 # Layer 1 — SocketByteTransport
 
-Status: Proposed (`socket_byte_transport.py`)
+Status: Implemented (`socket_byte_transport.py`)
 
 An asyncio TCP client implementing `foundation_abc.PeripheralByteTransport`
 (`connect` / `disconnect` / `send` / `receive` / `is_connected`, plus the async
@@ -130,7 +131,7 @@ Guarantees:
 
 # Layer 2 — Framing Codecs
 
-Status: Proposed (`framing_codecs.py`)
+Status: Implemented (`framing_codecs.py`)
 
 A codec converts between a byte stream and discrete frames. Codecs are pluggable
 behind one protocol (structural typing / `typing.Protocol`):
@@ -175,7 +176,7 @@ Bridge** section of
 
 # Layer 3 — Transaction Router
 
-Status: Proposed (`transaction_router.py`)
+Status: Implemented (`transaction_router.py`)
 
 The router owns the single reader task and correlates request/response traffic.
 
@@ -253,7 +254,7 @@ Invariants:
 
 # Layer 4 — SocketTransact (public facade)
 
-Status: Proposed (`socketTransact.py`)
+Status: Implemented (`socketTransact.py`)
 
 `SocketTransact` is the only class end users need. It mirrors the process family's
 ethos: minimal surface, result objects, no exceptions on the transaction surface.
@@ -271,11 +272,12 @@ async with SocketTransact(
     ...
 ```
 
-Construction wires the default stack (SocketByteTransport → codec → router). The
-correlation pair is **required** — tx_id placement is protocol-specific and the
-stack defines no serialization format of its own, so there is no default the
-facade could supply. An alternative `PeripheralByteTransport` implementation MAY
-be injected for testing or non-TCP streams.
+Construction wires the default stack (SocketByteTransport → codec → router).
+`codec` defaults to `DelimiterCodec()` when omitted. The correlation pair is
+**required** — tx_id placement is protocol-specific and the stack defines no
+serialization format of its own, so there is no default the facade could supply.
+An alternative `PeripheralByteTransport` implementation MAY be injected for
+testing or non-TCP streams.
 
 ## Public API
 
@@ -319,7 +321,7 @@ class SocketTransactResult:
 
 # Layer 4b — SocketTransactServer (server role)
 
-Status: Proposed (`socketTransactServer.py`)
+Status: Implemented (`socketTransactServer.py`)
 
 `SocketTransactServer` is the server-side counterpart of `SocketTransact`: it
 accepts connections, services **plural inbound requests simultaneously**, and feeds

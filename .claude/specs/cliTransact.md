@@ -1,21 +1,25 @@
 ---
 spec: CLITransact
 scope: project
-status: partial
+status: implemented
 applies_to: src/foundation_tools/cli_transaction/cliTransact.py
-last_updated: 2026-07-03
-semver: 0.2.0
+last_updated: 2026-07-05
+semver: 0.3.0
 author: Nicholas Bergantz
 ---
 
 # CLI Transaction Manager Specification
 
-> **Status — partial.** The `CLITransact` execution kernel described below is
+> **Status — implemented.** The `CLITransact` execution kernel described below is
 > **implemented** in `src/foundation_tools/cli_transaction/cliTransact.py` and matches
-> this spec. The sibling layers — `SSHTransact`, `RsyncTransact`, the retry/backoff
-> engine, and the Windows/MSYS2 reliability layer — are **planned, not yet
-> implemented**; their sections are marked accordingly and describe target behavior
-> only. Keep the kernel sections in sync with the code when the class changes.
+> this spec. The sibling layers this kernel supports — `SSHTransact`, `RsyncTransact`,
+> the retry/backoff engine — are also implemented; each now has its own dedicated spec
+> ([sshTransact.md](sshTransact.md), [rsyncTransact.md](rsyncTransact.md)) or is
+> described in the umbrella architecture doc (retry/backoff — see
+> [transport_transaction_architecture.md](transport_transaction_architecture.md)), so
+> they are no longer duplicated here — see
+> [Sibling Layers](#sibling-layers-see-their-own-specs) below. Keep the kernel
+> sections in sync with the code when the class changes.
 >
 > **Naming note.** The canonical package home is `foundation_tools.cli_transaction`
 > (module `cliTransact.py`). Earlier drafts referenced `foundationCLIHelpers` and
@@ -275,68 +279,31 @@ requirements. They encode real-world automation assumptions.
 delegate execution down to it:
 
 ```text
-RsyncTransact  → builds rsync command, selects policies (planned)
-SSHTransact    → builds ssh command                      (planned)
+RsyncTransact  → builds rsync command, selects policies (implemented)
+SSHTransact    → builds ssh command                      (implemented)
 CLITransact    → executes command deterministically      (implemented)
 subprocess     → raw system interface
 ```
 
-## Planned Layers (not yet implemented)
+## Sibling Layers (see their own specs)
 
-> The following describe **target** behavior for sibling modules that do not yet exist
-> in the repo. They are recorded here so the contract is stable when they are built.
-> Until implemented, they impose no requirement on the current code.
+`SSHTransact`, `RsyncTransact`, and the retry/backoff engine are all implemented,
+built directly on this kernel per the layering above. Each is specified where it
+lives rather than duplicated here — this section is a pointer, not a copy:
 
-### `SSHTransact` — planned
-
-Stateless, functional, deterministic SSH command builder that delegates to
-`CLITransact`. No internal state. Command construction: include `-p <port>` only when a
-port is supplied (a synthesized default would override `~/.ssh/config` alias ports — see
-[sshTransact.md](sshTransact.md)); include `-i <identity_file>` only when provided; format the host as
-`user@host` when a user is given, else `host`. Remote command semantics mirror the input
-contract (`str` → single remote-shell argument; `list` → argv segments).
-
-### `RsyncTransact` — planned
-
-Builds the rsync command and may **select** a retry policy (an optional parameter or
-documented default — never a retry implementation of its own; see the policy-ownership
-rule in [transport_transaction_architecture.md](transport_transaction_architecture.md)),
-delegating execution to `CLITransact`.
-
-- **Option precedence:** explicit `options` (if not `None`) overrides `default_options`;
-  `options == []` disables all defaults; `options is None` falls back to defaults.
-- **SSH injection:** `-e ssh ...` is injected when any of `ssh_host`, a non-22
-  `ssh_port`, or `ssh_identity_file` is set; the SSH command is constructed inline.
-- **`blocking_io`:** `blocking_io=True` adds `--blocking-io`; it MUST stay opt-in and
-  out of default presets (it is a workaround for specific MSYS2/Windows rsync bugs).
-
-### Retry / Backoff engine — planned
-
-Applies only to transient runtime failures within a single transfer session — never
-cross-run recovery or logical file repair.
-
-- **Retryable** return codes: `{10, 12, 30, 35, -1}` (network instability, stream
-  interruption, timeout, subprocess failure).
-- **Non-retryable:** `23`, `24` (file-level), `2`, `4` (usage/protocol).
-- **Backoff:** `delay = min(backoff_max, backoff_base * 2 ** attempt)`, with optional
-  jitter `delay = random(0, delay)` to avoid synchronized retry storms.
-- **Termination:** stop on success, on a non-transient failure, or when retries are
-  exhausted.
-- **Timeout composition:** the caller's `timeout` is **per-attempt**; the policy adds
-  no overall deadline. Worst-case wall time ≈ `attempts × timeout` plus the sum of
-  backoff delays.
-- **Model composition:** the policy wraps the full `run_*_with_model` callable. Retry
-  classification reads only `return_code`; parser failures never change `success` and
-  therefore never trigger a retry. Because success terminates retries, parsing runs at
-  most once — on the terminal attempt.
-
-### Windows / MSYS2 reliability layer — planned
-
-Handles rsync 3.4.x socket instability (`rc=12`, `errno=11` / EAGAIN) and recoverable
-partial transfers. `WINDOWS_SAFE_RSYNC_OPTIONS` MUST include `-avz`, `--partial`,
-`--append-verify`, `--timeout=30`, `--contimeout=15` (resumable transfers + fail-fast on
-stalled streams + connection-hang prevention). `--blocking-io` stays separate and
-opt-in, never in the preset.
+- **`SSHTransact`** (`src/foundation_tools/cli_transaction/sshTransact.py`,
+  command construction in `src/foundation_tools/builders/ssh_builder.py`) — see
+  [sshTransact.md](sshTransact.md) for the full contract.
+- **`RsyncTransact`** (`src/foundation_tools/cli_transaction/rsyncTransact.py`,
+  command construction in `src/foundation_tools/builders/rsync_builder.py`,
+  including the Windows/MSYS2 `WINDOWS_SAFE_RSYNC_OPTIONS` preset) — see
+  [rsyncTransact.md](rsyncTransact.md) for the full contract.
+- **Retry / Backoff engine** (`src/foundation_tools/policies/retry_policy.py`,
+  `backoff_policy.py`) — see the `RetryPolicy`/`BackoffPolicy` sections of
+  [transport_transaction_architecture.md](transport_transaction_architecture.md).
+  Both `SSHTransact` and `RsyncTransact` accept an optional `retry_policy:
+  RetryPolicy | None = None` on every method, per the policy-ownership rule: they
+  may *select* a policy, never implement retry logic themselves.
 
 ## Compliance Requirements
 

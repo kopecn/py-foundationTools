@@ -4,7 +4,7 @@ A comprehensive collection of Python foundation utilities designed to extend the
 
 ## Features
 
-### 🔧 CLI Transaction Management (`foundationCLIHelpers`)
+### 🔧 CLI Transaction Management (`foundation_tools.cli_transaction`)
 - **Synchronous & Asynchronous execution** - Run shell commands with both sync and async support
 - **Timeout handling** - Built-in timeout management for long-running commands
 - **Success validation** - Optional success string validation for command output

@@ -14,7 +14,7 @@ how CLI output can be automatically parsed into structured data models.
 import asyncio
 from pathlib import Path
 
-from foundationCLIHelpers.cliTransact import CLITransact
+from foundation_tools.cli_transaction.cliTransact import CLITransact
 from foundationTypes.commonTypes.DiskUsage import DiskUsage
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 
@@ -27,10 +27,10 @@ def example_basic_datamodel():
 
     # Create and save a coord
     geoCoord = GeoCoordinate(3.1, 2.3)
-    geoCoord.saveToFile(aCoordfile)
+    geoCoord.save_to_file(aCoordfile)
 
     # load and validate the coord
-    reloadedCoord = GeoCoordinate.loadFromFile(aCoordfile)
+    reloadedCoord = GeoCoordinate.load_from_file(aCoordfile)
     print(f"Original: {geoCoord}")
     print(f"Reloaded: {reloadedCoord}")
     coords_match = (

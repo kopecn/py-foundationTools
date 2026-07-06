@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan13SocketTransactServer
 scope: project
-status: pending
-last_updated: 2026-07-03
-semver: 0.0.2
+status: complete
+last_updated: 2026-07-05
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -76,10 +76,10 @@ tests and the API-symmetry review).
 
 ## Acceptance criteria
 
-- [ ] All 8 Server Compliance Requirements in socketTransact.md have tests.
-- [ ] End-to-end concurrent out-of-order scenario passes with our client.
-- [ ] Handler exception proven non-fatal to the connection.
-- [ ] `make fullCheck` passes.
+- [x] All 8 Server Compliance Requirements in socketTransact.md have tests.
+- [x] End-to-end concurrent out-of-order scenario passes with our client.
+- [x] Handler exception proven non-fatal to the connection.
+- [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists).
 
 ## Out of scope
 
@@ -87,3 +87,46 @@ tests and the API-symmetry review).
 - Targeted per-connection push (broadcast only until a consumer needs it).
 - Request routing/multiplexing by message type (a single handler; dispatch tables
   are the application's concern).
+
+## Implementation notes
+
+- `asyncio.start_server(...)` already serves immediately on return
+  (`start_serving=True` by default) — confirmed empirically before
+  implementing: calling `Server.close()` cancels an in-progress
+  `serve_forever()` await, so `start()`/`__aenter__` alone is sufficient to
+  accept connections, and `serve_forever()` is purely the optional
+  script-blocking convenience the spec's construction example shows. No
+  `start_serving`/serve_forever coordination bug to design around.
+- `_on_connect` (and the internals it drives — `_dispatch`, `_spawn_dispatch`,
+  `_close_writer`) depend only on a structural `_StreamReaderLike`/
+  `_StreamWriterLike` protocol (`read`/`write`/`drain`/`close`/
+  `wait_closed`/`is_closing`), not concrete `asyncio.StreamReader`/`StreamWriter`
+  — this is what let the unit tests drive the connection loop with plain fake
+  objects (`FakeStreamReader`/`FakeStreamWriter` in the test file) instead of
+  real sockets, mirroring the fake-transport convention from chunks 09/10.
+- Two task registries: a per-connection `connection_tasks` set (local to
+  `_on_connect`, cancelled/awaited in its `finally` so one connection's
+  teardown doesn't touch another's in-flight handlers) and a server-wide
+  `self._request_tasks` set (so `stop()` can cancel every in-flight handler
+  across all connections). A task's `add_done_callback` removes it from both.
+- `max_concurrent` is enforced with a plain `asyncio.Semaphore` wrapping
+  `_dispatch_unbounded`; `None` (default) skips the semaphore entirely rather
+  than using an unbounded one, avoiding a needless async context manager on
+  the hot path.
+- `broadcast` is deliberately non-raising per connection (loop over
+  `self._connections`, catch `ConnectionError`/`RuntimeError`/`OSError` per
+  writer and continue) — the spec doesn't classify `broadcast` in the
+  Error-Handling Summary table, but a fan-out operation where one dead
+  connection kills delivery to every other connected client would be a worse
+  default than best-effort delivery with a structured log per failure.
+- The `address` property (not in the spec) exposes the actually-bound
+  `(host, port)` — needed because every test constructs the server with
+  `port=0` (OS-assigned ephemeral port), matching the existing convention in
+  the chunk-05/09 socket test fixtures.
+- End-to-end tests are the chunk's headline proof: `SocketTransact` (chunk 10)
+  against `SocketTransactServer` over real `asyncio.start_server` sockets —
+  concurrent randomized-delay out-of-order replies, two simultaneous client
+  connections, `broadcast` landing on a client's `unsolicited()` stream, and a
+  full `to_wire`/`from_wire` model round trip through both facades (JSON-field
+  tx_id scheme, same reasoning as chunk 10's model test: a raw string-prefix
+  tx_id scheme would corrupt the wire string for JSON parsing).

@@ -3,8 +3,8 @@ spec: TransportTransactionArchitecture
 scope: project
 status: accepted
 applies_to: src/foundation_tools/
-last_updated: 2026-07-03
-semver: 0.3.0
+last_updated: 2026-07-05
+semver: 0.4.0
 author: Nicholas Bergantz
 ---
 
@@ -65,20 +65,20 @@ All modules live under the `foundation_tools` package:
 src/foundation_tools/
     cli_transaction/
         cliTransact.py          # execution kernel (implemented)
-        sshTransact.py          # planned
-        rsyncTransact.py        # planned
+        sshTransact.py          # implemented
+        rsyncTransact.py        # implemented
     builders/
-        ssh_builder.py          # planned
-        rsync_builder.py        # planned
+        ssh_builder.py          # implemented
+        rsync_builder.py        # implemented
     policies/
-        retry_policy.py         # planned
-        backoff_policy.py       # planned
+        retry_policy.py         # implemented
+        backoff_policy.py       # implemented
     socket_transaction/
-        socket_byte_transport.py    # planned
-        framing_codecs.py           # planned
-        transaction_router.py       # planned
-        socketTransact.py           # planned — client facade
-        socketTransactServer.py     # planned — server facade
+        socket_byte_transport.py    # implemented
+        framing_codecs.py           # implemented
+        transaction_router.py       # implemented
+        socketTransact.py           # implemented — client facade
+        socketTransactServer.py     # implemented — server facade
 ```
 
 `cliTransact.py` **is** the execution kernel — there is no separate
@@ -156,17 +156,19 @@ CLITransact is intentionally transport-agnostic.
 
 # Layer 2 — Command Builders
 
-Status: Proposed
+Status: Implemented (`src/foundation_tools/builders/`) — `build_ssh_command`
+(`ssh_builder.py`) and `build_rsync_command` (`rsync_builder.py`). Docker/Git
+builders below are illustrative examples of the pattern, not implemented.
 
 Command builders produce executable command vectors.
 
 Examples:
 
 ```
-RsyncCommandBuilder
-SSHCommandBuilder
-DockerCommandBuilder
-GitCommandBuilder
+build_ssh_command      (implemented)
+build_rsync_command    (implemented)
+DockerCommandBuilder    (hypothetical — illustrates the extension pattern)
+GitCommandBuilder       (hypothetical — illustrates the extension pattern)
 ```
 
 Each exposes a pure function:
@@ -193,16 +195,20 @@ Command builders never execute commands.
 
 # Layer 3 — Execution Policies
 
-Status: Proposed
+Status: Implemented (`src/foundation_tools/policies/`) — `RetryPolicy` and
+`BackoffPolicy`. `SuccessPolicy`/`TimeoutPolicy` below are illustrative examples
+of the pattern, not implemented as separate classes: success evaluation and
+per-attempt timeout are already owned by `CLITransact` itself (see
+[cliTransact.md](cliTransact.md)), so no dedicated policy class exists for them.
 
 Execution policies decorate command execution.
 
 Examples include:
 
-- RetryPolicy
-- BackoffPolicy
-- SuccessPolicy
-- TimeoutPolicy
+- RetryPolicy (implemented)
+- BackoffPolicy (implemented)
+- SuccessPolicy (hypothetical — `CLITransact` already owns success evaluation)
+- TimeoutPolicy (hypothetical — `CLITransact` already owns per-attempt timeout)
 
 Policies are composable and independent.
 
@@ -303,17 +309,18 @@ Future transports may compose richer validation without modifying CLITransact.
 
 # Layer 4 — Transport Transactions
 
-Status: Proposed
+Status: Implemented (`SSHTransact`, `RsyncTransact`) — `GitTransact`/`DockerTransact`
+below are illustrative examples of the extension pattern, not implemented.
 
 Transport transactions are the public user-facing APIs.
 
 Examples:
 
 ```
-SSHTransact
-RsyncTransact
-GitTransact
-DockerTransact
+SSHTransact       (implemented)
+RsyncTransact     (implemented)
+GitTransact       (hypothetical — illustrates the extension pattern)
+DockerTransact    (hypothetical — illustrates the extension pattern)
 ```
 
 Each transport transaction:
@@ -357,7 +364,7 @@ It delegates execution to CLITransact.
 
 # Stream-Transport Family (socket)
 
-Status: Proposed — full contract in [socketTransact.md](socketTransact.md).
+Status: Implemented — full contract in [socketTransact.md](socketTransact.md).
 
 The socket family is the long-lived-connection counterpart to the process family.
 It is **asyncio-native** and layers as:

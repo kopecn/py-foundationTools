@@ -1,23 +1,22 @@
 ---
 spec: RsyncTransact
 scope: project
-status: planned
+status: implemented
 applies_to: src/foundation_tools/cli_transaction/rsyncTransact.py
-last_updated: 2026-07-03
-semver: 0.2.0
+last_updated: 2026-07-05
+semver: 0.3.0
 author: Nicholas Bergantz
 ---
 
 # Rsync Transaction Manager Specification
 
-> **Status — planned.**
+> **Status — implemented.**
 >
 > `RsyncTransact` is the rsync-specific command builder that sits immediately above
 > `CLITransact`. It owns rsync command construction, transfer semantics, SSH transport
 > injection, and rsync-specific behavioral policy. It **does not** execute subprocesses
-> directly; all execution is delegated to `CLITransact`.
->
-> This document defines the required contract for the future implementation.
+> directly; all execution is delegated to `CLITransact`. Command construction lives in
+> `src/foundation_tools/builders/rsync_builder.py`.
 
 ---
 
@@ -55,7 +54,7 @@ Those behaviors belong to `CLITransact` or higher orchestration layers.
 Application
       │
       ▼
-Retry Policy (planned)
+Retry Policy (optional, caller-selected)
       │
       ▼
 RsyncTransact
@@ -116,12 +115,17 @@ build rsync argv
 
 ↓
 
-delegate to CLITransact
+delegate to CLITransact (optionally through a retry_policy)
 
 ↓
 
 return CLITransactResult
 ```
+
+Every method additionally accepts an optional, keyword-only
+`retry_policy: RetryPolicy | None = None`. When supplied, the built command is
+executed through `retry_policy.run_sync`/`run_async` instead of calling
+`CLITransact` directly — see [Retry Integration](#retry-integration).
 
 ---
 
@@ -513,19 +517,23 @@ belong exclusively to `CLITransact`.
 
 ---
 
-# Future Retry Integration
+# Retry Integration
 
-Retry behavior is intentionally **outside** this module.
+Retry behavior is intentionally **outside** this module — it is never implemented
+here, only optionally selected.
 
 Per the policy-ownership rule in
 [transport_transaction_architecture.md](transport_transaction_architecture.md),
-`RsyncTransact` MAY **accept or select** a `RetryPolicy` (an optional parameter, or a
-documented recommended default) and route execution through it — but it MUST NOT
-implement retry, backoff, or recovery logic itself.
+`RsyncTransact` accepts an optional, keyword-only `retry_policy: RetryPolicy | None
+= None` on every method and routes execution through it (`retry_policy.run_sync`/
+`run_async`) when supplied — but it MUST NOT implement retry, backoff, or recovery
+logic itself.
 
-Future retry engines MAY classify rsync return codes as transient.
+`RSYNC_TRANSIENT_RETURN_CODES` and `RSYNC_PERMANENT_RETURN_CODES` (exported from
+`rsyncTransact.py`) classify rsync return codes as transient or permanent for a
+caller-supplied `RetryPolicy`.
 
-The recommended transient set is
+The transient set is
 
 ```text
 10

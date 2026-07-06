@@ -1,10 +1,10 @@
 ---
 spec: SSHTransact
 scope: project
-status: proposed
+status: implemented
 applies_to: src/foundation_tools/cli_transaction/sshTransact.py
-last_updated: 2026-07-03
-semver: 0.2.0
+last_updated: 2026-07-05
+semver: 0.3.0
 author: Nicholas Bergantz
 ---
 
@@ -85,10 +85,15 @@ Exactly four stateless class methods.
 Each method:
 
 1. builds the SSH command
-2. delegates directly to CLITransact
+2. delegates directly to CLITransact (optionally through a `retry_policy`)
 3. returns the CLITransact result unchanged
 
 No additional result processing occurs.
+
+Every method additionally accepts an optional, keyword-only
+`retry_policy: RetryPolicy | None = None`. When supplied, the built command is
+executed through `retry_policy.run_sync`/`run_async` instead of calling
+`CLITransact` directly — see [Zero execution policy](#zero-execution-policy).
 
 ---
 

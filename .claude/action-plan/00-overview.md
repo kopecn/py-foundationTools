@@ -1,9 +1,9 @@
 ---
 plan: ActionPlanOverview
 scope: project
-status: active
-last_updated: 2026-07-03
-semver: 0.1.1
+status: complete
+last_updated: 2026-07-05
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
