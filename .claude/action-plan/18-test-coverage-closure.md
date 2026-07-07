@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan18TestCoverageClosure
 scope: project
-status: pending
+status: complete
 last_updated: 2026-07-06
-semver: 0.1.1
+semver: 0.1.2
 author: Nicholas Bergantz
 ---
 
@@ -89,13 +89,56 @@ Chunk 02/09/10 audit findings (corrective follow-up to plans 00–13).
 
 ## Acceptance criteria
 
-- [ ] All five coverage items above have passing, behavior-asserting tests.
-- [ ] The race test fails if the future-registration line is moved after `send`
+- [x] All five coverage items above have passing, behavior-asserting tests.
+- [x] The race test fails if the future-registration line is moved after `send`
       (verified once by mutation during development, noted in resolution notes).
-- [ ] `make uv-fullCheck` passes.
+- [x] `make uv-fullCheck` passes.
 
 ## Out of scope
 
 - Coverage tooling/thresholds.
 - New production features; refactors beyond a minimal defect fix if one surfaces.
 - Legacy `testfoundation*.py` renames.
+
+## Resolution notes
+
+All five coverage items were added against the current implementation; no
+production defect was found — every new test passed on first run (behavior
+already existed, just unproven), so no code fix or spec bump was needed.
+
+1. `tests/testfoundationCLITransact.py::TestCLITransactAsync::test_run_async_string_command_executes_via_bash_c`
+   — a shell pipeline (`"echo hello | tr 'a-z' 'A-Z'"`) proves the async
+   string path is genuinely interpreted by a shell (`["bash", "-c",
+   cli_command]`), not just accepted as a no-op.
+2. `tests/test_socket_transact.py::TestModelRoundTrip::test_outbound_to_wire_raising_yields_contained_failure`
+   — monkeypatches `GeoCoordinate.wire_encode` to raise; asserts
+   `request_with_model` returns `success=False` with the error message
+   captured, never an exception.
+3. `tests/test_socket_transact.py::TestSendSuccess::test_send_encodes_and_writes_uncorrelated_frame`
+   — asserts `send()` writes `codec.encode(payload)` (using a real
+   `DelimiterCodec`, not the identity stub) to the fake transport.
+4. `tests/test_socket_transact.py::TestRequestWithModelEmptyPayloadSkipsParser::test_empty_correlated_reply_skips_parser_and_succeeds`
+   — stubs the router's `request()` to return `b""`; monkeypatches
+   `GeoCoordinate.wire_decode` with a `MagicMock` and asserts it is never
+   called, while `success=True`/`model=None`.
+5. `tests/test_transaction_router.py::TestRegisterBeforeSendRace::test_future_registered_before_send_completes`
+   — adds `SynchronousReplyTransport(FakeTransport)` exactly per the chunk's
+   fake shape (reusing the existing `push_inbound` helper rather than a new
+   method), queuing the echoed reply inside `send()` and yielding twice via
+   `await asyncio.sleep(0)` so the reader delivers it before `send()` returns.
+
+**Mutation check (performed once during development, per acceptance
+criteria):** in `src/foundation_tools/socket_transaction/transaction_router.py`,
+temporarily moved the `future = self._register(resolved_tx_id)` calls from
+before `await self._transport.send(...)` to after it. Re-ran
+`test_future_registered_before_send_completes` — it failed with
+`TimeoutError: request timed out waiting for reply to tx_id '0'` (the
+correlated reply arrived while the tx_id was not yet in the pending map, so it
+was misrouted to the unsolicited stream and the request timed out). Reverted
+the change (`git diff` confirmed no residual diff) and re-ran the test to
+confirm it passes again against the real implementation. This confirms the
+test is a genuine regression guard for the register-before-send ordering, not
+a vacuously-passing test.
+
+Gate: `make uv-fullCheck` passes — 307 tests total (up from 302), ruff/mypy/ty
+clean.

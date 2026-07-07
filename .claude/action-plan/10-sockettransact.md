@@ -2,8 +2,8 @@
 plan: ActionPlan10SocketTransact
 scope: project
 status: complete
-last_updated: 2026-07-05
-semver: 0.1.0
+last_updated: 2026-07-06
+semver: 0.1.1
 author: Nicholas Bergantz
 ---
 
@@ -63,7 +63,7 @@ Contract: Layer 4 of [socketTransact.md](../specs/socketTransact.md).
 
 ## Acceptance criteria
 
-- [x] All 11 Compliance Requirements in socketTransact.md have tests (this chunk
+- [x] All 12 Compliance Requirements in socketTransact.md have tests (this chunk
       closes the ones chunks 05/08/09 didn't).
 - [x] `request*` proven non-raising across the failure matrix.
 - [x] `make uv-fullCheck` passes (`make fullCheck` no longer exists).

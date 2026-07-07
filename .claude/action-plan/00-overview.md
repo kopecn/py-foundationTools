@@ -3,7 +3,7 @@ plan: ActionPlanOverview
 scope: project
 status: in_progress
 last_updated: 2026-07-06
-semver: 0.3.0
+semver: 0.3.1
 author: Nicholas Bergantz
 ---
 
@@ -43,8 +43,8 @@ The two tracks are independent after chunk 01 and may proceed in parallel
 
 1. **TDD** — define behavior → write failing test → implement → pass → refactor.
    Tests validate the spec contract, not implementation details.
-2. **Gate** — `make fullCheck` (ruff lint + format + mypy + ty + pytest) must pass
-   before a chunk is considered done.
+2. **Gate** — `make uv-fullCheck` (ruff lint + mypy + pytest) must pass before a
+   chunk is considered done.
 3. **Zero runtime deps** — stdlib only; `[project].dependencies` stays empty.
 4. **Result objects, not exceptions**, on transaction surfaces (kernel/facade
    containment rules per spec); raw transports keep ABC raising semantics.

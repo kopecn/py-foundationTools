@@ -2,7 +2,10 @@
 spec: SchemaCodegen
 scope: project
 status: implemented
-applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/StandardizedLoggerConfig/
+applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/standardizedLoggerConfig/
+last_updated: 2026-07-06
+semver: 0.0.1
+author: Nicholas Bergantz
 ---
 
 # Schema Codegen Specification

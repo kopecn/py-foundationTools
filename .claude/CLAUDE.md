@@ -8,16 +8,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-All workflows go through the Makefile (`make help` lists them). Key ones:
+All workflows go through the Makefile (`make help` lists them). The `uv-` prefixed
+targets are the primary path (self-contained via `uv run --no-project`, no
+pre-existing `.venv` required); bare targets are the pip-based fallback. Key ones:
 
-- `make test` — run pytest in the current environment
-- `pytest tests/testfoundation_math.py` — run a single test file
-- `pytest tests/testfoundation_math.py::test_clamp` — run a single test
+- `make uv-fullCheck` — CI gate: `uv-lint` + `uv-typecheck` + `uv-test`. Run this before considering work done.
+- `make uv-lint` — ruff check (read-only, non-zero exit for CI)
+- `make uv-format` — `ruff format` + `ruff check --fix --unsafe-fixes` (mutating)
+- `make uv-typecheck` — strict `mypy` over `src/` + `tests/`. `ty` is a dev
+  dependency but is intentionally **not** wired into this gate yet (pre-release).
+- `make uv-test` — sync deps then run pytest on `DEFAULT_PYTHON`
+- `make test` — run pytest directly in the current environment (no sync)
+- `pytest tests/testfoundationMath.py` — run a single test file
+- `pytest tests/testfoundationMath.py::test_clamp` — run a single test
 - `make testInEnv` — run tests in an isolated throwaway venv (installs from pyproject, validates packaging path)
-- `make fullCheck` — CI gate: `lintCheck` + `formatCheck` + `typecheck` + `test`. Run this before considering work done.
-- `make lint` / `make format` — ruff with autofix; `make lintCheck` / `make formatCheck` are the non-mutating CI variants
-- `make typecheck` — runs **both** `mypy src/` and `ty check src/`; both must pass
-- `make devInstall` or `make e` — editable install for development
+- `make installDev` or `make e` — pip-based editable install for development
 
 Linting/formatting is **ruff** (line-length 100, double quotes; rule set E/F/I/UP/B). The README references `pylint`/`black`/`make docs` (Sphinx) but the Makefile has migrated to ruff and has no working docs target — trust the Makefile, not the README, for tooling.
 
@@ -45,7 +50,7 @@ The full contract for this class is specified in [`.claude/specs/dataModelHelper
 
 ### Schema-driven model generation (do not hand-edit generated models)
 
-Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, and `foundationTypes/StandardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
+Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, and `foundationTypes/standardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
 
 1. JSON Schema in `schema/schemas/`
 2. A per-model shell script in `schema/scripts/` (e.g. `generateGeoCoordinate.sh`) runs `quicktype` (`--lang py --src-lang schema --no-pydantic-base-model`), then `sed`-injects the `DataModelHelper` base class and import, then formats.
@@ -69,7 +74,7 @@ The kernel is Layer 1 of the umbrella [`.claude/specs/transport_transaction_arch
 
 ### StandardizedLogger
 
-`foundation_tools/standardized_logger.py` defines `StandardizedLogger`, a `logging.Logger` subclass that self-configures a stderr handler (JSON by default, human-readable via `console_pretty`) plus an optional date-rolling JSON file handler when `log_dir` is set. Build one from a `StandardizedLoggerConfig` (`foundationTypes/StandardizedLoggerConfig/`, itself a schema-generated `DataModelHelper` model) via `StandardizedLogger.from_config(...)`, or construct directly. `debug`/`info`/`warning`/`error`/`critical` accept arbitrary keyword args, which become structured JSON fields on file output. No dedicated spec exists yet for this module.
+`foundation_tools/standardized_logger.py` defines `StandardizedLogger`, a `logging.Logger` subclass that self-configures a stderr handler (JSON by default, human-readable via `console_pretty`) plus an optional date-rolling JSON file handler when `log_dir` is set. Build one from a `StandardizedLoggerConfig` (`foundationTypes/standardizedLoggerConfig/`, itself a schema-generated `DataModelHelper` model) via `StandardizedLogger.from_config(...)`, or construct directly. `debug`/`info`/`warning`/`error`/`critical` accept arbitrary keyword args, which become structured JSON fields on file output. No dedicated spec exists yet for this module.
 
 ## Tests
 

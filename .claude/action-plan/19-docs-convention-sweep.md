@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan19DocsConventionSweep
 scope: project
-status: pending
+status: complete
 last_updated: 2026-07-06
-semver: 0.1.0
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -73,15 +73,53 @@ plans 00–13).
 
 ## Acceptance criteria
 
-- [ ] `grep -rn "make fullCheck\|make lintCheck\|make formatCheck\|make typecheck"`
+- [x] `grep -rn "make fullCheck\|make lintCheck\|make formatCheck\|make typecheck"`
       over `.claude/` and `README.md` returns only exempted historical notes.
-- [ ] `grep -rn "testfoundation_math"` over `.claude/` and `README.md` is empty.
-- [ ] `grep -rn "StandardizedLoggerConfig/"` over `.claude/` is empty (path
+- [x] `grep -rn "testfoundation_math"` over `.claude/` and `README.md` is empty.
+- [x] `grep -rn "StandardizedLoggerConfig/"` over `.claude/` is empty (path
       references; prose class-name mentions of the generated model are fine).
-- [ ] `grep -n "foundation_cli_helpers" pyproject.toml` is empty.
-- [ ] All specs under `.claude/specs/` carry `last_updated`/`semver`/`author`.
-- [ ] Every `applies_to:` path in every spec exists on a case-sensitive check.
-- [ ] `make uv-fullCheck` passes.
+- [x] `grep -n "foundation_cli_helpers" pyproject.toml` is empty.
+- [x] All specs under `.claude/specs/` carry `last_updated`/`semver`/`author`.
+- [x] Every `applies_to:` path in every spec exists on a case-sensitive check.
+- [x] `make uv-fullCheck` passes.
+
+## Resolution notes
+
+- Rewrote `.claude/CLAUDE.md` Commands section against the real Makefile:
+  `uv-fullCheck` (= `uv-lint` + `uv-typecheck` + `uv-test`), `uv-lint`, `uv-format`,
+  `uv-typecheck` (mypy only — `ty` is a dev dep but intentionally not wired into
+  the gate per the Makefile's own comment), `uv-test`, `test`, `testInEnv`,
+  `installDev`/`e` (previously misdocumented as `devInstall`).
+- Fixed `tests/testfoundation_math.py` → `tests/testfoundationMath.py` (2
+  occurrences in `.claude/CLAUDE.md`).
+- Fixed `StandardizedLoggerConfig/` → `standardizedLoggerConfig/` casing in
+  `.claude/CLAUDE.md` (2 occurrences) and `schemaCodegen.md`'s `applies_to:`.
+- `00-overview.md` convention #2: `make fullCheck` → `make uv-fullCheck`
+  (dropped the stale `+ ty` from the parenthetical — `ty` isn't wired in).
+- Added `last_updated: 2026-07-06` / `semver: 0.0.1` / `author: Nicholas
+  Bergantz` frontmatter to `dataModelHelper.md`, `mathTypeTiers.md`,
+  `schemaCodegen.md`.
+- `pyproject.toml` keyword `foundation_cli_helpers` → `pyFoundationTools`.
+- `10-sockettransact.md`: "all 11 Compliance Requirements" → "all 12" (verified
+  by counting the numbered list in `socketTransact.md`'s Compliance
+  Requirements section — items 1–12); bumped its frontmatter
+  (`last_updated: 2026-07-06`, `semver: 0.1.0` → `0.1.1`).
+- `00-overview.md` frontmatter bumped `semver: 0.3.0` → `0.3.1` (edited today,
+  already dated).
+- Additional minimal fix beyond the chunk's literal file list, needed to
+  satisfy the acceptance grep over `README.md`: two `make fullCheck` /
+  `make typecheck` lines in README's "Testing & Quality Assurance" section
+  → `make uv-fullCheck` / `make uv-typecheck`. Left everything else in that
+  README section untouched (`make lint` still says pylint, `make format` still
+  says black, `make dist`/`make tag`/`make releaseTest`/`cleanBuild`/`cleanTest`
+  are also stale but out of scope — no full README overhaul per chunk 12's
+  tracked issue).
+- Left the `01`–`13` action-plan chunks' own `make fullCheck` mentions
+  untouched — they are historical records of what a completed chunk actually
+  ran, several already annotated "(`make fullCheck` no longer exists)"; not in
+  this chunk's `Files` list and outside its scope.
+- `make uv-fullCheck`: ruff clean, mypy clean (37 + 19 files), 307 tests
+  passed.
 
 ## Out of scope
 

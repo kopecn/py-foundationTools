@@ -3,6 +3,9 @@ spec: MathTypeTiers
 scope: project
 status: implemented
 applies_to: schema/schemas/Math/, schema/scripts/generateMathTypes.sh, schema/scripts/reuse/postprocess_mathtypes.py, src/foundationTypes/mathTypes/
+last_updated: 2026-07-06
+semver: 0.0.1
+author: Nicholas Bergantz
 ---
 
 # Math Type Tiers Specification

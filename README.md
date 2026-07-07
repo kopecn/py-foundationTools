@@ -132,9 +132,9 @@ make e             # Install package in editable mode
 ```bash
 make test          # Run tests in current environment
 make testInEnv     # Run tests in isolated virtual environment
-make fullCheck     # Run complete quality checks (lint + typecheck + test)
+make uv-fullCheck  # Run complete quality checks (lint + typecheck + test)
 make lint          # Run pylint on source code
-make typecheck     # Run mypy type checking
+make uv-typecheck  # Run mypy type checking
 make format        # Format code with black
 ```
 
