@@ -3,7 +3,7 @@ plan: ActionPlanOverview
 scope: project
 status: in_progress
 last_updated: 2026-07-06
-semver: 0.3.1
+semver: 0.4.0
 author: Nicholas Bergantz
 ---
 
@@ -98,3 +98,28 @@ below are decomposed into corrective chunks. 14–17 are independent of each oth
 | 17 | [Server stop() lifecycle](17-server-stop-lifecycle.md) | Socket | — |
 | 18 | [Test-coverage closure](18-test-coverage-closure.md) | shared | 14 |
 | 19 | [Docs & convention sweep](19-docs-convention-sweep.md) | shared | 14–18 |
+
+## Corrective actions — second audit (post-audit of 14–19, 2026-07-06)
+
+A follow-up audit of the executed corrective chunks 14–19 (plans + specs +
+implementation + tests; the surviving finding and the gate confirmed firsthand,
+including a runtime probe of the untested paths) found them faithfully
+implemented. One coverage gap survived verification; everything else was
+recorded no-action:
+
+- **Confirmed → chunk 20:** `rsyncTransact.md` Requirement #13 claims the
+  host-less-SSH `ValueError` propagates from all four `RsyncTransact` methods;
+  only `run_sync` is tested (behavior confirmed correct at runtime on the other
+  three).
+- **No action:** chunk 19's acceptance greps are empty over live docs but not
+  literally empty (chunk 19 self-references the strings it removed) — cosmetic;
+  historical `make fullCheck` step lines in chunks 01–13 — explicitly exempted
+  records; zero-timeout `receive` sees StreamReader-buffered (not OS-buffered)
+  bytes — the plan-prescribed one-tick shape, consumer note only; theoretical
+  accept-during-`stop()` reader-task window — the plan-authorized
+  `current_task()`-tracking approach; chunk 17's "ruff + mypy + ty clean" note —
+  executor ran `ty` additionally, gate correctly excludes it.
+
+| # | chunk | track | depends on |
+| --- | --- | --- | --- |
+| 20 | [Rsync guard propagation tests](20-rsync-guard-propagation-tests.md) | CLI | — |
