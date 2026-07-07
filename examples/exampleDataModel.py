@@ -19,7 +19,7 @@ from foundationTypes.commonTypes.DiskUsage import DiskUsage
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 
 
-def example_basic_datamodel():
+def example_basic_datamodel() -> None:
     """Demonstrate basic data model serialization with GeoCoordinate."""
     print("=== Basic Data Model Example ===")
 
@@ -44,7 +44,7 @@ def example_basic_datamodel():
     print()
 
 
-def example_cli_with_datamodel():
+def example_cli_with_datamodel() -> None:
     """Demonstrate CLI transaction with automatic data model serialization."""
     print("=== CLI Transaction with Data Model Example ===")
 
@@ -81,7 +81,7 @@ def example_cli_with_datamodel():
     print()
 
 
-async def example_async_cli_with_datamodel():
+async def example_async_cli_with_datamodel() -> None:
     """Demonstrate asynchronous CLI transaction with data model serialization."""
     print("=== Async CLI Transaction with Data Model Example ===")
 
@@ -107,7 +107,7 @@ async def example_async_cli_with_datamodel():
     print()
 
 
-def example_custom_serializer():
+def example_custom_serializer() -> None:
     """Demonstrate custom serializer for simple command output."""
     print("=== Custom Serializer Example ===")
 
