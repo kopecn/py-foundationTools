@@ -60,7 +60,7 @@ Requires `quicktype` (npm global) and a formatter. **To change a model's shape, 
 
 A model needing hand-written wire behavior (e.g. `wire_encode`/`wire_decode`/`wire_invoke`) lives in its own subfolder alongside a `wire_config.py` sibling, rather than baking that logic into the generated `.py` or a per-model codegen post-processing step — see `foundationTypes/commonTypes/disk_usage/` (`DiskUsage.py` generated + hand-written `wire_config.py`) for the canonical shape. The folder's `__init__.py` imports `wire_config` for its side effect so the wiring activates on any import.
 
-The full codegen contract — the golden script template (`generateUnitSphericalSmallCircle.sh`), the required pipeline order, the shared libraries, and the strict-typing requirement — is specified in [`.claude/specs/schemaCodegen.md`](specs/schemaCodegen.md). Consult it before adding or modifying a schema, codegen script, or generated type. Run `make codegen-all` to regenerate all models in one pass.
+The full codegen contract — the golden script template (`generateDiskUsage.sh`), the required pipeline order, the shared libraries, and the strict-typing requirement — is specified in [`.claude/specs/schemaCodegen.md`](specs/schemaCodegen.md). Consult it before adding or modifying a schema, codegen script, or generated type. Run `make codegen-all` to regenerate all models in one pass.
 
 ### CLITransact pattern
 
