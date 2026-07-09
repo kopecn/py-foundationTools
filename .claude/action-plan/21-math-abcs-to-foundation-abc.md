@@ -1,6 +1,6 @@
 ---
 last_updated: 2026-07-08
-semver: 0.0.1
+semver: 0.1.0
 author: Nicholas Bergantz
 status: complete
 ---

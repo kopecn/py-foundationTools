@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan22MathTierContractTests
 scope: project
-status: pending
+status: complete
 last_updated: 2026-07-08
-semver: 0.0.1
+semver: 0.1.0
 author: Nicholas Bergantz
 ---
 
@@ -41,25 +41,25 @@ parity.
 
 ## Implementation Steps
 
-- [ ] **1. Add `tests/typeTests/test_math_tier_contract.py`** with a
+- [x] **1. Add `tests/typeTests/test_math_tier_contract.py`** with a
   module-level table of all 13 `(XxxxType, XxxxABC)` pairs (mirror
   `TYPE_TO_LIKE` in `schema/scripts/reuse/postprocess_mathtypes.py`) and
   representative `from_dict` payloads per type (nested waveform payloads need
   `t0`/`dt`; include a `PrecisionTimestampType` case with optionals present
   AND a case with optionals absent).
-- [ ] **2. Structural test (F2):** for every pair assert
+- [x] **2. Structural test (F2):** for every pair assert
   `issubclass(XxxxType, XxxxABC)`, `issubclass(XxxxType, DataModelHelper)`,
   and `XxxxType.__mro__.index(XxxxABC) < XxxxType.__mro__.index(DataModelHelper)`
   (Invariant 4, ABC first).
-- [ ] **3. Parity test (F1):** for every pair, build `inst =
+- [x] **3. Parity test (F1):** for every pair, build `inst =
   XxxxType.from_dict(payload)` and assert
   `XxxxABC.to_dict(inst) == inst.to_dict()` — calling the ABC's concrete
   implementation explicitly so the shadowed code path actually runs.
-- [ ] **4. Spec:** add a compliance item to
+- [x] **4. Spec:** add a compliance item to
   `.claude/specs/mathTypeTiers.md` requiring the parity + base-order
   assertions in `tests/typeTests/test_math_tier_contract.py` for every new
   Math type; bump `last_updated`/`semver` (minor).
-- [ ] **5. Gate:** `make uv-fullCheck` green.
+- [x] **5. Gate:** `make uv-fullCheck` green.
 
 ## Out of Scope
 
@@ -71,9 +71,43 @@ parity.
 
 ## Acceptance
 
-- [ ] New test module runs 13 structural + 13 parity assertions (subTest or
+- [x] New test module runs 13 structural + 13 parity assertions (subTest or
   parametrize per type) and fails if any ABC `to_dict` diverges from the
   generated wire shape or if base order flips.
-- [ ] `make uv-fullCheck` passes.
-- [ ] `mathTypeTiers.md` compliance checklist names the new test; frontmatter
+- [x] `make uv-fullCheck` passes.
+- [x] `mathTypeTiers.md` compliance checklist names the new test; frontmatter
   bumped.
+
+## Resolution notes
+
+- `tests/typeTests/test_math_tier_contract.py` added: a `PAIRS` module table
+  of all 13 `(XxxxType, XxxxABC, payload)` tuples (mirrors
+  `postprocess_mathtypes.py`'s `TYPE_TO_LIKE`), driving two
+  `pytest.mark.parametrize` tests — `test_abc_precedes_data_model_helper_in_mro`
+  (F2, Invariant 4) and `test_abc_to_dict_matches_generated_to_dict` (F1,
+  calls `XxxxABC.to_dict(instance)` unbound so the shadowed ABC code path
+  actually executes). A 27th standalone test,
+  `test_precision_timestamp_parity_with_optionals_present`, covers
+  `PrecisionTimestampType` with `referenceFrame`/`timescale`/`uncertainty`
+  populated; the PAIRS-table entry for that type uses the optionals-absent
+  payload, so both variants required by step 1 are covered without inflating
+  the acceptance-criteria "13 parity assertions" count.
+- **Deviation/surprise:** `pytest.mark.parametrize(ids=...)` calls the `ids`
+  callback once per scalar parameter value, not once per tuple row — an
+  initial `_pair_id(pair)` taking the whole 3-tuple raised
+  `TypeError: type 'QuaternionType' is not subscriptable` at collection time.
+  Fixed by making `_pair_id` a single-value function that names only `type`
+  instances (both `type_cls` and `abc_cls` columns) and returns `None` (pytest
+  auto-numbers) for the payload dict column.
+- **Verification beyond the plan's steps:** manually mutated
+  `QuaternionABC.to_dict` (added `+ 1` to the `z` field) and confirmed
+  `test_abc_to_dict_matches_generated_to_dict[QuaternionType-...]` fails with
+  a clear diff, then reverted via `git checkout --` (chunk 21's staged rename
+  of that file was left untouched — verified via `git status --short` showing
+  only the new test file as untracked afterward).
+- No spec-forced implementation changes were needed beyond the planned
+  compliance-item addition (Step 4); `mathTypeTiers.md` bumped to `0.2.0`
+  (minor, per Convention 5) and its `applies_to` list extended to include the
+  new test module.
+- Gate: `make uv-fullCheck` — ruff clean, mypy strict clean (38 src files + 21
+  test files), pytest 339/339 passed (312 pre-existing + 27 new).

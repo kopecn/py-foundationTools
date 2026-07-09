@@ -2,9 +2,9 @@
 spec: MathTypeTiers
 scope: project
 status: implemented
-applies_to: schema/schemas/Math/, schema/scripts/generateMathTypes.sh, schema/scripts/reuse/postprocess_mathtypes.py, src/foundationTypes/mathTypes/, src/foundation_abc/math/
+applies_to: schema/schemas/Math/, schema/scripts/generateMathTypes.sh, schema/scripts/reuse/postprocess_mathtypes.py, src/foundationTypes/mathTypes/, src/foundation_abc/math/, tests/typeTests/test_math_tier_contract.py
 last_updated: 2026-07-08
-semver: 0.1.0
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -157,3 +157,7 @@ A new Math object type MUST, when its schema is authored:
 5. Not introduce any import from `foundationTypes`, `foundation_math`, or
    `foundation_tools` into the new `XxxxLike` module — enforced by
    `tests/test_package_layering.py`.
+6. Add a `(XxxxType, XxxxABC)` entry to the pairs table in
+   `tests/typeTests/test_math_tier_contract.py` with a representative
+   `from_dict` payload — this pins invariant 4 (ABC-first base order) and the
+   Tier-1/Tier-2 `to_dict` serialization parity for the new type.

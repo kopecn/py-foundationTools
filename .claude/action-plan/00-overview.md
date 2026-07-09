@@ -1,9 +1,9 @@
 ---
 plan: ActionPlanOverviewMathABCs
 scope: project
-status: in_progress
+status: complete
 last_updated: 2026-07-08
-semver: 0.1.0
+semver: 0.1.2
 author: Nicholas Bergantz
 ---
 
@@ -20,8 +20,8 @@ chunk here unchanged.
 | # | chunk | status | depends on |
 | --- | --- | --- | --- |
 | 21 | [Math ABCs to foundation_abc](21-math-abcs-to-foundation-abc.md) | complete | — |
-| 22 | [Math tier contract tests](22-math-tier-contract-tests.md) | pending | 21 |
-| 23 | [Docs & convention sweep](23-docs-convention-sweep.md) | pending | 21 |
+| 22 | [Math tier contract tests](22-math-tier-contract-tests.md) | complete | 21 |
+| 23 | [Docs & convention sweep](23-docs-convention-sweep.md) | complete | 21 |
 
 ```
 21 math ABCs move (complete)

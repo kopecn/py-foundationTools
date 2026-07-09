@@ -1,9 +1,9 @@
 """Shared Math-domain enumerations.
 
 Hand-written leaf module (depends on nothing in this package) so both the
-generated ``MathTypes.py`` and the hand-written tier modules
-(``precisionTimeInterval.py`` / ``precisionTimestamp.py``) can import these
-without a circular import. Values mirror the JSON Schemas under
+generated ``MathTypes.py`` and the hand-written Tier-2 ABC module
+(``precisionTimeABC.py``) can import these without a circular import. Values
+mirror the JSON Schemas under
 ``schema/schemas/Math/`` (``NumericSign``, ``Timescale``, ``ReferenceFrame``);
 the codegen pipeline strips quicktype's inline copies and imports these instead.
 """
