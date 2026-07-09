@@ -32,7 +32,7 @@ Source uses a `src/` layout with **four independently-importable top-level packa
 
 - `foundationTypes` — data models + the serialization base class (the heart of the library)
 - `foundation_math` — pure-Python math utilities (e.g. `clamp`)
-- `foundation_abc` — abstract base interfaces shared across device/transport implementations
+- `foundation_abc` — abstract base interfaces shared across device/transport implementations; `foundation_abc/math/` holds the stdlib-only Math-domain `XxxxLike` ABCs (`spatialABCs.py`, `sphericalABCs.py`, `waveformABCs.py`, `precisionTimeABC.py`) plus their `mathEnums.py` enums — see [`.claude/specs/mathTypeTiers.md`](specs/mathTypeTiers.md)
 - `foundation_tools` — runtime utilities: the structured logger plus the full transaction/transport stack (`cli_transaction/`, `builders/`, `policies/`, `socket_transaction/`, all implemented) per [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md)
 
 Import paths are the package name directly, e.g. `from foundationTypes.data_model_helper import DataModelHelper`, **not** `from pyFoundationTools.foundationTypes...`.

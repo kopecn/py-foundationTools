@@ -11,14 +11,13 @@ the math contracts are in
 from abc import ABC, abstractmethod
 from typing import Any
 
-from foundationTypes.data_model_helper import DataModelHelper
-from foundationTypes.mathTypes.mathEnums import NumericSign, ReferenceFrame, Timescale
+from foundation_abc.math.mathEnums import NumericSign, ReferenceFrame, Timescale
 
 #: Number of attoseconds (10^-18 s) in one second.
 ATTOSECONDS_PER_SECOND = 1_000_000_000_000_000_000
 
 
-class PrecisionTimeIntervalABC(ABC, DataModelHelper):
+class PrecisionTimeIntervalABC(ABC):
     """Shared abstraction for an attosecond-precision time interval.
 
     Carries an unsigned ``(seconds, attoseconds)`` magnitude and an explicit
@@ -69,7 +68,7 @@ class PrecisionTimeIntervalABC(ABC, DataModelHelper):
         """Construct from a ``{"attoseconds", "seconds", "sign"}`` dict."""
 
 
-class PrecisionTimestampABC(ABC, DataModelHelper):
+class PrecisionTimestampABC(ABC):
     """Shared abstraction for an attosecond-precision absolute timestamp.
 
     Represents an offset from the Unix epoch (1970-01-01 00:00:00 UTC) as an

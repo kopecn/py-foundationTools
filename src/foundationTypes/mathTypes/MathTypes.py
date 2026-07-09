@@ -10,7 +10,20 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypeVar
 
+from foundation_abc.math.mathEnums import NumericSign, ReferenceFrame, Timescale
+from foundation_abc.math.precisionTimeABC import PrecisionTimeIntervalABC, PrecisionTimestampABC
+from foundation_abc.math.spatialABCs import PositionABC, QuaternionABC, SpatialTransformABC
+from foundation_abc.math.sphericalABCs import UnitSphericalArcABC, UnitSphericalSmallCircleABC
+from foundation_abc.math.waveformABCs import (
+    PositionWaveformABC,
+    QuaternionWaveformABC,
+    Waveform1dABC,
+    WaveformSpatialABC,
+    WaveformUnitSphericalArcABC,
+    WaveformUnitSphericalSmallCircleABC,
+)
 from foundationTypes.data_model_helper import (
+    DataModelHelper,
     from_float,
     from_int,
     from_list,
@@ -20,28 +33,13 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
-from foundationTypes.mathTypes.mathEnums import NumericSign, ReferenceFrame, Timescale
-from foundationTypes.mathTypes.precisionTimeABC import (
-    PrecisionTimeIntervalABC,
-    PrecisionTimestampABC,
-)
-from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC, SpatialTransformABC
-from foundationTypes.mathTypes.sphericalABCs import UnitSphericalArcABC, UnitSphericalSmallCircleABC
-from foundationTypes.mathTypes.waveformABCs import (
-    PositionWaveformABC,
-    QuaternionWaveformABC,
-    Waveform1dABC,
-    WaveformSpatialABC,
-    WaveformUnitSphericalArcABC,
-    WaveformUnitSphericalSmallCircleABC,
-)
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
 
 
 @dataclass
-class QuaternionType(QuaternionABC):
+class QuaternionType(QuaternionABC, DataModelHelper):
     """A quaternion representation of a 3D rotation: a scalar (real) part w and a vector
     (imaginary) part x, y, z. The schema does not enforce unit length; normalization is the
     concern of the downstream math implementation.
@@ -80,7 +78,7 @@ class QuaternionType(QuaternionABC):
 
 
 @dataclass
-class PositionType(PositionABC):
+class PositionType(PositionABC, DataModelHelper):
     """A 3D Cartesian position vector using right-handed (x, y, z) coordinates, in a
     caller-defined consistent length unit.
 
@@ -113,7 +111,7 @@ class PositionType(PositionABC):
 
 
 @dataclass
-class SpatialTransformType(SpatialTransformABC):
+class SpatialTransformType(SpatialTransformABC, DataModelHelper):
     """A full 6-degree-of-freedom rigid body state: a Cartesian position composed with a
     quaternion orientation.
     """
@@ -139,7 +137,7 @@ class SpatialTransformType(SpatialTransformABC):
 
 
 @dataclass
-class PrecisionTimeIntervalType(PrecisionTimeIntervalABC):
+class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
     """A time interval with attosecond precision. Stores seconds and attoseconds as unsigned
     integers with an explicit sign, avoiding floating-point precision loss over large spans.
 
@@ -173,7 +171,7 @@ class PrecisionTimeIntervalType(PrecisionTimeIntervalABC):
 
 
 @dataclass
-class PrecisionTimestampType(PrecisionTimestampABC):
+class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
     """An absolute timestamp with attosecond precision. Stores seconds and attoseconds as
     unsigned integers with an explicit sign. Optionally carries a timescale, reference frame,
     and measurement uncertainty (in attoseconds).
@@ -234,7 +232,7 @@ class PrecisionTimestampType(PrecisionTimestampABC):
 
 
 @dataclass
-class PositionWaveformType(PositionWaveformABC):
+class PositionWaveformType(PositionWaveformABC, DataModelHelper):
     """A uniformly-sampled time series of 3D Cartesian positions, anchored at a start timestamp
     and sampled at a fixed interval.
     """
@@ -265,7 +263,7 @@ class PositionWaveformType(PositionWaveformABC):
 
 
 @dataclass
-class QuaternionWaveformType(QuaternionWaveformABC):
+class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
     """A uniformly-sampled time series of quaternion orientations, anchored at a start timestamp
     and sampled at a fixed interval.
     """
@@ -296,7 +294,7 @@ class QuaternionWaveformType(QuaternionWaveformABC):
 
 
 @dataclass
-class SpatialTransformWaveformType(WaveformSpatialABC):
+class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
     """A uniformly-sampled time series of 6-DOF poses, represented as parallel position and
     quaternion arrays (not an array of SpatialTransform), anchored at a start timestamp and
     sampled at a fixed interval.
@@ -333,7 +331,7 @@ class SpatialTransformWaveformType(WaveformSpatialABC):
 
 
 @dataclass
-class ScalarWaveformType(Waveform1dABC):
+class ScalarWaveformType(Waveform1dABC, DataModelHelper):
     """A uniformly-sampled time series of a single scalar signal, anchored at a start timestamp
     and sampled at a fixed interval.
     """
@@ -364,7 +362,7 @@ class ScalarWaveformType(Waveform1dABC):
 
 
 @dataclass
-class UnitSphericalArcType(UnitSphericalArcABC):
+class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
     """Represents an arc on a unit sphere in spherical coordinates using physics convention.
     This arc is formed by a spherical reference point and then projected from that start
     point along the unit circle for the length of the arc in radians.
@@ -406,7 +404,7 @@ class UnitSphericalArcType(UnitSphericalArcABC):
 
 
 @dataclass
-class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC):
+class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC, DataModelHelper):
     """A uniformly-sampled time series of UnitSphericalArc samples, anchored at a start
     timestamp and sampled at a fixed interval.
     """
@@ -437,7 +435,7 @@ class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC):
 
 
 @dataclass
-class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC):
+class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper):
     """Represents a small circle on a unit sphere in spherical coordinates using physics
     convention.  A small circle is formed by intersecting the sphere with a plane that does
     notpass through the sphere's center, creating a circular path at a constantangular
@@ -475,7 +473,7 @@ class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC):
 
 
 @dataclass
-class UnitSphericalSmallCircleWaveformType(WaveformUnitSphericalSmallCircleABC):
+class UnitSphericalSmallCircleWaveformType(WaveformUnitSphericalSmallCircleABC, DataModelHelper):
     """A uniformly-sampled time series of UnitSphericalSmallCircle samples, anchored at a start
     timestamp and sampled at a fixed interval.
     """

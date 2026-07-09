@@ -22,10 +22,8 @@ are in :mod:`foundationTypes.mathTypes.positionVectorMathLike`,
 from abc import ABC, abstractmethod
 from typing import Any
 
-from foundationTypes.data_model_helper import DataModelHelper
 
-
-class PositionABC(ABC, DataModelHelper):
+class PositionABC(ABC):
     """Shared, storage-independent abstraction for a 3D position (``x``, ``y``, ``z``).
 
     This is the translation component of an SE(3) rigid body transformation —
@@ -56,7 +54,7 @@ class PositionABC(ABC, DataModelHelper):
         """Construct from a ``{"x", "y", "z"}`` dict."""
 
 
-class QuaternionABC(ABC, DataModelHelper):
+class QuaternionABC(ABC):
     """Shared, storage-independent abstraction for a quaternion.
 
     A quaternion has a scalar (real) component ``w`` and a vector (imaginary)
@@ -100,7 +98,7 @@ class QuaternionABC(ABC, DataModelHelper):
         """Construct from a ``{"w", "x", "y", "z"}`` dict."""
 
 
-class SpatialTransformABC(ABC, DataModelHelper):
+class SpatialTransformABC(ABC):
     """Shared abstraction for a 6-DOF pose (position + orientation).
 
     A pose is one element of SE(3), the Lie group of 3D rigid body

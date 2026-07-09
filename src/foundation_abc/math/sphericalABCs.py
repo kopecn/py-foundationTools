@@ -12,10 +12,8 @@ convention. The math contracts are in
 from abc import ABC, abstractmethod
 from typing import Any
 
-from foundationTypes.data_model_helper import DataModelHelper
 
-
-class UnitSphericalArcABC(ABC, DataModelHelper):
+class UnitSphericalArcABC(ABC):
     """Shared abstraction for a unit-sphere arc.
 
     An arc is a spherical reference point projected along the unit circle for a
@@ -56,7 +54,7 @@ class UnitSphericalArcABC(ABC, DataModelHelper):
         """Construct from an arc dict (camelCase wire keys)."""
 
 
-class UnitSphericalSmallCircleABC(ABC, DataModelHelper):
+class UnitSphericalSmallCircleABC(ABC):
     """Shared abstraction for a unit-sphere small circle.
 
     A small circle is the sphere intersected with a plane not through its

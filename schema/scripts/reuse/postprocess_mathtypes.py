@@ -2,20 +2,25 @@
 """Math-domain post-processor for quicktype output (MathTypes.py).
 
 The Math family uses a 3-tier architecture (see .claude/specs/mathTypeTiers.md):
-the generated ``XxxxType`` dataclass is the Tier-1 data carrier that inherits its
-hand-written Tier-2 ``XxxxLike`` abstraction. quicktype does not know about that
-abstraction, so this script rewrites its raw output to fit it. It is Math-specific
-on purpose (per-class distinct parents, enum extraction, literal field defaults);
-the shared reuse libraries stay generic for the other generators.
+the generated ``XxxxType`` dataclass is the Tier-1 data carrier that inherits both
+its hand-written Tier-2 ``XxxxLike`` ABC (from ``foundation_abc.math``, ABC first
+in the base list) and ``DataModelHelper`` directly (the ABCs themselves are
+stdlib-only — see Plan 21 — so the generated class is the sole place the two
+combine). quicktype does not know about any of that, so this script rewrites its
+raw output to fit it. It is Math-specific on purpose (per-class distinct parents,
+enum extraction, literal field defaults); the shared reuse libraries stay generic
+for the other generators.
 
 Transforms applied, in order:
   1. Strip quicktype's inline helper defs; import the equivalents from
      foundationTypes.data_model_helper.
   2. Strip the generated enum classes (NumericSign / Timescale / ReferenceFrame);
-     import them from foundationTypes.mathTypes.mathEnums (single source of truth,
-     also avoids a circular import with the Tier-2 modules).
-  3. Reparent each ``class XxxxType:`` to ``class XxxxType(XxxxLike):`` and inject
-     the matching ``from foundationTypes.mathTypes.<module> import XxxxLike``.
+     import them from foundation_abc.math.mathEnums (single source of truth, also
+     avoids a circular import with the Tier-2 modules).
+  3. Reparent each ``class XxxxType:`` to ``class XxxxType(XxxxLike, DataModelHelper):``
+     (ABC first, per the MRO rule in mathTypeTiers.md) and inject the matching
+     ``from foundation_abc.math.<module> import XxxxLike`` plus
+     ``from foundationTypes.data_model_helper import DataModelHelper``.
   4. Give every field a literal class-level default so the inherited abstract
      ``@property`` accessor is satisfied (a data descriptor otherwise blocks
      instantiation): scalars -> 0.0 / 0 / NumericSign.ZERO; lists become
@@ -133,13 +138,16 @@ def main(path: str) -> None:
     for e in ENUMS:
         content = strip_block(content, rf"class {e}\(Enum\):")
 
-    # Reparent each XxxxType to its Like and collect the Like imports needed.
+    # Reparent each XxxxType to its Like (ABC first, per the MRO rule in
+    # mathTypeTiers.md) plus DataModelHelper, and collect the Like imports needed.
     like_imports: list[str] = []
     for type_name, (module, like) in TYPE_TO_LIKE.items():
-        new, n = re.subn(rf"(?m)^class {type_name}:$", f"class {type_name}({like}):", content)
+        new, n = re.subn(
+            rf"(?m)^class {type_name}:$", f"class {type_name}({like}, DataModelHelper):", content
+        )
         if n:
             content = new
-            like_imports.append(f"from foundationTypes.mathTypes.{module} import {like}")
+            like_imports.append(f"from foundation_abc.math.{module} import {like}")
 
     content = inject_defaults(content)
 
@@ -148,9 +156,15 @@ def main(path: str) -> None:
     if present_helpers:
         items = ",\n    ".join(present_helpers)
         helper_block = f"from foundationTypes.data_model_helper import (\n    {items},\n)\n"
-    enum_block = "from foundationTypes.mathTypes.mathEnums import " + ", ".join(ENUMS) + "\n"
+    # DataModelHelper is a direct base of every XxxxType now (dual inheritance,
+    # ABC first) rather than reaching them transitively through the ABC, so it
+    # needs its own class import regardless of which from_*/to_* helpers are used.
+    dmh_block = "from foundationTypes.data_model_helper import DataModelHelper\n"
+    enum_block = "from foundation_abc.math.mathEnums import " + ", ".join(ENUMS) + "\n"
     seq_block = "from collections.abc import Sequence\n"
-    injected = seq_block + helper_block + enum_block + "\n".join(sorted(like_imports)) + "\n"
+    injected = (
+        seq_block + helper_block + dmh_block + enum_block + "\n".join(sorted(like_imports)) + "\n"
+    )
 
     # Insert after the last top-level `from ... import ...` / `import ...` line
     # in the header (quicktype groups them at the top).

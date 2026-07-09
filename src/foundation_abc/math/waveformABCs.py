@@ -5,7 +5,7 @@ See ``.claude/specs/mathTypeTiers.md``. Each ``XxxxWaveformABC`` (or
 uniformly-sampled time series anchored at ``t0`` with sample interval ``dt``
 (inherited by the matching codegen ``XxxxWaveformType``). :class:`PositionWaveformABC`
 and :class:`QuaternionWaveformABC` are the translation-only and rotation-only
-projections of an SE(3) trajectory (see :mod:`foundationTypes.mathTypes.spatialABCs`);
+projections of an SE(3) trajectory (see :mod:`foundation_abc.math.spatialABCs`);
 :class:`WaveformSpatialABC` carries both as parallel arrays. The math contracts are
 in the sibling ``XxxxMathLike`` modules.
 """
@@ -14,19 +14,18 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
-from foundationTypes.data_model_helper import DataModelHelper
-from foundationTypes.mathTypes.precisionTimeABC import (
+from foundation_abc.math.precisionTimeABC import (
     PrecisionTimeIntervalABC,
     PrecisionTimestampABC,
 )
-from foundationTypes.mathTypes.spatialABCs import PositionABC, QuaternionABC
-from foundationTypes.mathTypes.sphericalABCs import (
+from foundation_abc.math.spatialABCs import PositionABC, QuaternionABC
+from foundation_abc.math.sphericalABCs import (
     UnitSphericalArcABC,
     UnitSphericalSmallCircleABC,
 )
 
 
-class Waveform1dABC(ABC, DataModelHelper):
+class Waveform1dABC(ABC):
     """Shared abstraction for a uniformly-sampled 1D scalar time series."""
 
     @property
@@ -57,7 +56,7 @@ class Waveform1dABC(ABC, DataModelHelper):
         """Construct from a ``{"waveform", "t0", "dt"}`` dict."""
 
 
-class PositionWaveformABC(ABC, DataModelHelper):
+class PositionWaveformABC(ABC):
     """Shared abstraction for a uniformly-sampled 3D position time series."""
 
     @property
@@ -88,7 +87,7 @@ class PositionWaveformABC(ABC, DataModelHelper):
         """Construct from a ``{"positions", "t0", "dt"}`` dict."""
 
 
-class QuaternionWaveformABC(ABC, DataModelHelper):
+class QuaternionWaveformABC(ABC):
     """Shared abstraction for a uniformly-sampled quaternion time series."""
 
     @property
@@ -119,7 +118,7 @@ class QuaternionWaveformABC(ABC, DataModelHelper):
         """Construct from a ``{"quaternions", "t0", "dt"}`` dict."""
 
 
-class WaveformSpatialABC(ABC, DataModelHelper):
+class WaveformSpatialABC(ABC):
     """Shared abstraction for a uniformly-sampled 6-DOF pose time series.
 
     ``positions`` and ``quaternions`` are parallel (same length, same sample
@@ -160,7 +159,7 @@ class WaveformSpatialABC(ABC, DataModelHelper):
         """Construct from a ``{"positions", "quaternions", "t0", "dt"}`` dict."""
 
 
-class WaveformUnitSphericalArcABC(ABC, DataModelHelper):
+class WaveformUnitSphericalArcABC(ABC):
     """Shared abstraction for a uniformly-sampled unit-sphere-arc time series."""
 
     @property
@@ -191,7 +190,7 @@ class WaveformUnitSphericalArcABC(ABC, DataModelHelper):
         """Construct from an ``{"arcs", "t0", "dt"}`` dict."""
 
 
-class WaveformUnitSphericalSmallCircleABC(ABC, DataModelHelper):
+class WaveformUnitSphericalSmallCircleABC(ABC):
     """Shared abstraction for a uniformly-sampled small-circle time series."""
 
     @property

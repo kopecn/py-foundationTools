@@ -3,8 +3,8 @@ spec: SchemaCodegen
 scope: project
 status: implemented
 applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/standardizedLoggerConfig/
-last_updated: 2026-07-06
-semver: 0.0.1
+last_updated: 2026-07-08
+semver: 0.0.2
 author: Nicholas Bergantz
 ---
 
@@ -52,7 +52,13 @@ A conforming script:
 - `schema/scripts/reuse/add_datamodelhelper.sh` — `add_base_class` (inject
   `DataModelHelper` parent + import) and `add_helper_imports` (strip quicktype's inline
   `from_*`/`to_*` helpers and import the equivalents from
-  `foundationTypes.data_model_helper` instead).
+  `foundationTypes.data_model_helper` instead). The Math family
+  (`schema/scripts/generateMathTypes.sh`) does not call this library — its
+  post-processor (`schema/scripts/reuse/postprocess_mathtypes.py`, see
+  [`mathTypeTiers.md`](mathTypeTiers.md)) injects the equivalent `DataModelHelper`
+  parent + import itself, alongside its `XxxxLike` ABC reparenting, since Plan 21
+  moved those ABCs to `foundation_abc.math` and dropped their own
+  `DataModelHelper` inheritance.
 - `schema/scripts/reuse/normalize_generated.sh` — **single source of truth** for
   post-quicktype rewrites that must reach *every* generated model regardless of which
   script produced it. Currently rewrites quicktype's `from_dict` `@staticmethod`
