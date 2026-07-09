@@ -1,9 +1,9 @@
 ---
 plan: ActionPlan20RsyncGuardPropagationTests
 scope: project
-status: pending
-last_updated: 2026-07-06
-semver: 0.1.0
+status: complete
+last_updated: 2026-07-08
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -64,13 +64,23 @@ None — independent (chunk 15's guard and spec clause are already in place).
 
 ## Acceptance criteria
 
-- [ ] All four methods named by Requirement #13 have a passing propagation test
+- [x] All four methods named by Requirement #13 have a passing propagation test
       asserting the kernel is never invoked.
-- [ ] No production or spec changes (or, if a defect surfaced, it is fixed
+- [x] No production or spec changes (or, if a defect surfaced, it is fixed
       minimally and recorded in the resolution notes).
-- [ ] `make uv-fullCheck` passes.
+- [x] `make uv-fullCheck` passes.
 
 ## Out of scope
 
 - Changing the guard, the injection-trigger rule, or the spec text.
 - Any other `RsyncTransact` coverage not implicated by the finding.
+
+## Resolution notes
+
+Added `test_run_async_raises_before_kernel_invoked`,
+`test_run_sync_with_model_raises_before_kernel_invoked`, and
+`test_run_async_with_model_raises_before_kernel_invoked` to
+`TestRsyncTransactHostlessSshGuardPropagation` in `tests/test_rsync_transact.py`,
+mirroring the existing `run_sync` test's shape. All three passed on first run —
+no defect surfaced; the guard already propagates correctly on every path. No
+production or spec changes made. `make uv-fullCheck` passes (310/310 tests).

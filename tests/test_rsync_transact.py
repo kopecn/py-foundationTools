@@ -161,6 +161,38 @@ class TestRsyncTransactHostlessSshGuardPropagation:
                 RsyncTransact.run_sync(src="/local", dst="/remote", ssh_port=2222)
         mock_run_sync.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_run_async_raises_before_kernel_invoked(self) -> None:
+        mock_run_async = AsyncMock()
+        with patch.object(CLITransact, "run_async", mock_run_async):
+            with pytest.raises(ValueError):
+                await RsyncTransact.run_async(src="/local", dst="/remote", ssh_port=2222)
+        mock_run_async.assert_not_called()
+
+    def test_run_sync_with_model_raises_before_kernel_invoked(self) -> None:
+        def parser(_stdout: str) -> DataModelHelper:
+            raise AssertionError("parser should not be invoked by RsyncTransact itself")
+
+        with patch.object(CLITransact, "run_sync_with_model") as mock_run_sync_with_model:
+            with pytest.raises(ValueError):
+                RsyncTransact.run_sync_with_model(
+                    src="/local", dst="/remote", ssh_port=2222, output_parser=parser
+                )
+        mock_run_sync_with_model.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_run_async_with_model_raises_before_kernel_invoked(self) -> None:
+        def parser(_stdout: str) -> DataModelHelper:
+            raise AssertionError("parser should not be invoked by RsyncTransact itself")
+
+        mock_run_async_with_model = AsyncMock()
+        with patch.object(CLITransact, "run_async_with_model", mock_run_async_with_model):
+            with pytest.raises(ValueError):
+                await RsyncTransact.run_async_with_model(
+                    src="/local", dst="/remote", ssh_port=2222, output_parser=parser
+                )
+        mock_run_async_with_model.assert_not_called()
+
 
 class TestRsyncTransactBlockingIoAndPreset:
     def test_blocking_io_opt_in(self) -> None:
