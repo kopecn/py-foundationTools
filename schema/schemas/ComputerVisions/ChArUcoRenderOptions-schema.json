@@ -1,0 +1,43 @@
+{
+  "id": "http://json-schema.org/charuco-render-options",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "ChArUcoRenderOptions",
+  "description": "Specifies how a ChArUco board should be rendered into an image (PNG, PDF, SVG, etc.) suitable for display or printing. Orthogonal to ChArUcoBoard so the same board can be rendered at multiple sizes/resolutions.",
+  "type": "object",
+  "required": ["image_width", "image_height"],
+  "properties": {
+    "image_width": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Width of the generated image in pixels."
+    },
+
+    "image_height": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Height of the generated image in pixels."
+    },
+
+    "margin_size": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 20,
+      "description": "White border around the board, measured in pixels."
+    },
+
+    "border_bits": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4,
+      "default": 1,
+      "description": "Width of the black border surrounding each ArUco marker, expressed in marker cells."
+    },
+
+    "dpi": {
+      "type": "integer",
+      "minimum": 72,
+      "default": 300,
+      "description": "Target print resolution in dots per inch."
+    }
+  }
+}
