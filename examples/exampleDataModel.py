@@ -15,7 +15,7 @@ import asyncio
 from pathlib import Path
 
 from foundation_tools.cli_transaction.cliTransact import CLITransact
-from foundationTypes.commonTypes.DiskUsage import DiskUsage
+from foundationTypes.commonTypes.disk_usage.DiskUsage import DiskUsage
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 
 
@@ -48,8 +48,9 @@ def example_cli_with_datamodel() -> None:
     """Demonstrate CLI transaction with automatic data model serialization."""
     print("=== CLI Transaction with Data Model Example ===")
 
-    # Execute df -h command and automatically parse into DiskUsage model
-    result = CLITransact.run_sync_with_model("df -h", DiskUsage.from_df_output)
+    # DiskUsage declares its own wire_invoke (["df", "-h"]); the model class
+    # alone is enough to run the command and parse it via DiskUsage.from_wire.
+    result = CLITransact.run_sync_with_model(DiskUsage)
 
     print(f"Command success: {result.success}")
     print(f"Return code: {result.return_code}")
@@ -69,7 +70,7 @@ def example_cli_with_datamodel() -> None:
         # Demonstrate serialization to dict/JSON
         disk_data = result.model.to_dict()
         print(f"\nModel serializes to dictionary with {len(disk_data['entries'])} entries")
-
+        print(f"As JSON: \n{disk_data}")
         # Round-trip test
         reconstructed = DiskUsage.from_dict(disk_data)
         roundtrip_ok = len(reconstructed.entries) == len(result.model.entries)
@@ -85,7 +86,7 @@ async def example_async_cli_with_datamodel() -> None:
     """Demonstrate asynchronous CLI transaction with data model serialization."""
     print("=== Async CLI Transaction with Data Model Example ===")
 
-    result = await CLITransact.run_async_with_model("df -h", DiskUsage.from_df_output)
+    result = await CLITransact.run_async_with_model(DiskUsage)
 
     print(f"Async command success: {result.success}")
 

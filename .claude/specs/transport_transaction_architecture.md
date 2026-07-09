@@ -3,8 +3,8 @@ spec: TransportTransactionArchitecture
 scope: project
 status: accepted
 applies_to: src/foundation_tools/
-last_updated: 2026-07-05
-semver: 0.4.0
+last_updated: 2026-07-09
+semver: 0.4.1
 author: Nicholas Bergantz
 ---
 
@@ -416,6 +416,19 @@ data-model layer:
   `DataModelHelper.from_wire` (via the `wire_encode` / `wire_decode` ClassVars).
 
 No transport module defines its own serialization format; they compose the bridge.
+
+The bridge's invocation half is the `wire_invoke` ClassVar (see
+[dataModelHelper.md](dataModelHelper.md)): the class-level constant naming the
+request that produces a model's wire input, independent of `wire_encode`/
+`wire_decode`. `CLITransact.run_*_with_model` accepts a bare `DataModelHelper`
+subclass and resolves `wire_invoke` + `from_wire` for it (see
+[cliTransact.md](cliTransact.md)) — today only for `str`/`list[str]` requests.
+Should `SSHTransact`/`SocketTransact` grow the same model-based call form, the
+same asymmetry holds: `wire_invoke` is the request, `from_wire` parses the
+result, and an arm a given transport doesn't understand (e.g.
+`type[DataModelHelper]` for a transport that isn't request/response-over-model)
+raises rather than inventing a meaning for it — this is a forward-looking note,
+not an implemented capability of those transports.
 
 ---
 

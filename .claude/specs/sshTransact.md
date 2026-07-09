@@ -3,8 +3,8 @@ spec: SSHTransact
 scope: project
 status: implemented
 applies_to: src/foundation_tools/cli_transaction/sshTransact.py
-last_updated: 2026-07-05
-semver: 0.3.0
+last_updated: 2026-07-09
+semver: 0.3.1
 author: Nicholas Bergantz
 ---
 
@@ -298,6 +298,16 @@ No parser logic exists inside SSHTransact.
 The canonical parser is `DataModelHelper.from_wire` on a schema-generated model —
 see the **Wire Serialization Bridge** section of
 [transport_transaction_architecture.md](transport_transaction_architecture.md).
+
+> **Spec note — not yet implemented.** `CLITransact.run_*_with_model` also accepts
+> a bare `DataModelHelper` subclass, pulling the request from its `wire_invoke`
+> ClassVar (see [cliTransact.md](cliTransact.md) and
+> [dataModelHelper.md](dataModelHelper.md)). If `SSHTransact` grows the same
+> model-based call form, the same clause applies: `wire_invoke` supplies the
+> remote command, `from_wire` parses the response, and an unsupported
+> `wire_invoke` arm (e.g. `type[DataModelHelper]`) raises rather than inventing a
+> meaning for it. This is a forward-looking note only — no such support exists in
+> `SSHTransact` today.
 
 ---
 

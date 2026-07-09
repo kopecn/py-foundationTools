@@ -120,9 +120,10 @@ run_ruff() {
 }
 
 ensure_py_typed() {
-    local ref_file="${1:-$OUTPUT_PYTHON_FILE}"
-    local package_dir
-    package_dir="$(dirname "$(dirname "$ref_file")")"   # .../mathTypes/x.py -> foundationTypes
-    touch "${package_dir}/py.typed"
-    echo "Ensured py.typed: ${package_dir}/py.typed"
+    # Always the package root, regardless of how deeply OUTPUT_PYTHON_REL nests
+    # (e.g. "commonTypes/disk_usage/DiskUsage.py" is still under
+    # foundationTypes) -- a dirname/dirname walk from ref_file assumes exactly
+    # one level of nesting and breaks on a second.
+    touch "${_PYTHON_TYPES_BASE}/py.typed"
+    echo "Ensured py.typed: ${_PYTHON_TYPES_BASE}/py.typed"
 }

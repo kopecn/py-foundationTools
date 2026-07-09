@@ -141,6 +141,13 @@ class DataModelHelper:
     from environment variables.
     """
 
+    # Three-slot wire contract: wire_encode/wire_decode are a pure codec (instance
+    # <-> this model's wire representation); wire_invoke is the request that
+    # elicits that wire representation from a transport (invocation vs. result).
+    # A transact layer running model-based (e.g. CLITransact) sends wire_invoke
+    # and parses the response with from_wire — that pairing is a contract of the
+    # transact layer, not of the model itself.
+
     wire_encode: ClassVar[Callable[..., str] | None] = None
     """
     Optional encoder used for wire-format serialization.
@@ -153,6 +160,21 @@ class DataModelHelper:
     Optional decoder used for wire-format deserialization.
 
     Must be assigned externally (e.g., wire_config.py).
+    """
+
+    wire_invoke: ClassVar["str | list[str] | type[DataModelHelper] | None"] = None
+    """
+    Optional request that produces this model's wire input — a class-level
+    constant, never an instance.
+
+    Subclasses backed by a specific request set this so a transact layer can be
+    called with the model class alone, using ``wire_invoke`` for the request and
+    ``from_wire`` as the parser. For a CLI-sourced model this is the argv/shell
+    command, e.g. ``DiskUsage.wire_invoke = ["df", "-h"]``; the ``str | list[str]``
+    arms are what ``CLITransact`` supports today. The ``type[DataModelHelper]``
+    arm is reserved for transports where the request is itself a model (e.g. a
+    request/response pair over a socket transaction) — support for that arm is
+    transport-specific and not implied by declaring it here.
     """
 
     @classmethod

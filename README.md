@@ -54,9 +54,11 @@ async def main():
     result = await CLITransact.run_async(["python", "script.py"], timeout=30)
     return result
 
-# Parse command output into structured data
-from foundationTypes.commonTypes.DiskUsage import DiskUsage
-result = CLITransact.run_sync_with_model("df -h", DiskUsage.from_df_output)
+# Parse command output into structured data — DiskUsage declares its own
+# wire_invoke (["df", "-h"]), so the model class alone runs the command and
+# parses it via DiskUsage.from_wire
+from foundationTypes.commonTypes.disk_usage.DiskUsage import DiskUsage
+result = CLITransact.run_sync_with_model(DiskUsage)
 if result.success and result.model:
     for entry in result.model.entries:
         print(f"{entry.filesystem}: {entry.use_percent} used")

@@ -3,8 +3,8 @@ spec: DataModelHelper
 scope: project
 status: implemented
 applies_to: src/foundationTypes/data_model_helper.py
-last_updated: 2026-07-06
-semver: 0.0.1
+last_updated: 2026-07-09
+semver: 0.1.1
 author: Nicholas Bergantz
 ---
 
@@ -14,8 +14,9 @@ author: Nicholas Bergantz
 > `DataModelHelper`. All surfaces described below exist in code:
 > `from_dict`, `to_dict`, the snake_case `save_to_file` / `load_from_file`,
 > `from_env` (env-var resolution), `to_bytes` / `from_bytes`, `to_wire` / `from_wire`,
-> structured logging, and the `from_*` / `to_*` helper converters. Keep this spec in
-> sync with `src/foundationTypes/data_model_helper.py` when the class changes.
+> the `wire_invoke` invocation ClassVar, structured logging, and the `from_*` /
+> `to_*` helper converters. Keep this spec in sync with
+> `src/foundationTypes/data_model_helper.py` when the class changes.
 
 ## Overview
 
@@ -197,9 +198,22 @@ Loads a model from a JSON file.
 
 ## Wire Protocol Support
 
-`DataModelHelper` supports protocol-specific serialization through externally
-assigned encoder and decoder functions, held in the `wire_encode` / `wire_decode`
-ClassVars (default `None`). The model itself contains no protocol logic.
+`DataModelHelper` supports protocol-specific serialization through a three-slot
+wire contract, each slot independent of the others:
+
+| slot | direction | scope | purpose |
+| --- | --- | --- | --- |
+| `wire_encode` | instance → wire | instance-bound | serialize an existing instance's data for the wire |
+| `wire_decode` | wire → instance | class-bound | reconstruct an instance from wire data |
+| `wire_invoke` | — | class-level constant | the request that *produces* the wire input in the first place |
+
+`wire_encode`/`wire_decode` are a pure codec — instance ↔ this model's wire
+representation — and are never used for invocation. `wire_invoke` is invocation,
+not result: it names the request that elicits the wire data `wire_decode` then
+parses. A transact layer running model-based (e.g. `CLITransact`, see
+[cliTransact.md](cliTransact.md)) sends `wire_invoke` and parses the response
+with `from_wire` — that pairing is a contract of the *transact layer*, not of
+the model. The model itself contains no protocol or transport logic.
 
 ### Encoder / decoder
 
@@ -222,6 +236,37 @@ def from_wire(cls, wire_str: str)
 wire = command.to_wire()
 command = Command.from_wire(wire)
 ```
+
+### `wire_invoke`
+
+```python
+wire_invoke: ClassVar[str | list[str] | type["DataModelHelper"] | None] = None
+```
+
+A class-level constant only — never an instance. Set by subclasses backed by a
+specific request, e.g. a CLI-sourced model:
+
+```python
+DiskUsage.wire_invoke = ["df", "-h"]
+```
+
+`src/foundationTypes/commonTypes/disk_usage/wire_config.py` is the repo's first
+real `wire_config.py`: `DiskUsage.py` is generated (from
+`schema/schemas/DiskUsage-schema.json` via `schema/scripts/generateDiskUsage.sh`,
+following the same generic pipeline as `generateGeoCoordinate.sh` — no
+model-specific codegen step) and carries only `from_dict`/`to_dict`; `wire_config.py`
+is the hand-written sibling that assigns `wire_encode`, `wire_decode` (the `df -h`
+parser), and `wire_invoke` (`["df", "-h"]`) on the generated class after import.
+The package's `__init__.py` imports `wire_config` for its side effect, so any
+import of the `disk_usage` package activates the wiring.
+
+The `str | list[str]` arms are argv/shell-command requests, understood by
+`CLITransact` today. The `type[DataModelHelper]` arm is reserved for transports
+where the request is itself a model (e.g. a request/response pair over a socket
+transaction); declaring it here does not imply any transport supports it —
+support is transport-specific, and a transport that doesn't understand an arm
+MUST raise rather than invent a meaning for it (see
+[cliTransact.md](cliTransact.md)).
 
 ## Logging Requirements
 

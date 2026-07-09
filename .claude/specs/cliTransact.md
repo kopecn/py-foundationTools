@@ -3,8 +3,8 @@ spec: CLITransact
 scope: project
 status: implemented
 applies_to: src/foundation_tools/cli_transaction/cliTransact.py
-last_updated: 2026-07-05
-semver: 0.3.0
+last_updated: 2026-07-09
+semver: 0.4.0
 author: Nicholas Bergantz
 ---
 
@@ -54,7 +54,12 @@ rsync), or domain-specific command composition. Those belong to higher layers
 
 `CLITransact` is a deterministic execution kernel, not a workflow engine. Invariants:
 
-- All failures are captured and returned as structured results, never raised.
+- All **execution** failures (subprocess errors, timeouts, parser exceptions) are
+  captured and returned as structured results, never raised. This does not cover
+  **invocation-shape** errors — e.g. resolving the model-class form of
+  `run_*_with_model` against a model with no usable `wire_invoke` — which are
+  programmer-contract violations caught before any subprocess runs and raise
+  `ValueError` immediately (see [Model Extension Layer](#model-extension-layer)).
 - Execution semantics are consistent across sync and async paths.
 - Output is always normalized.
 - Success is a computed semantic property, not just a return code.
@@ -130,7 +135,16 @@ a private implementation. `timeout` and `success_marker` are keyword-only.
 | `run_sync_with_model(command, output_parser, *, timeout=None, success_marker=None)` | `CLITransactResultModel[T]` | `run_sync` + post-parse. |
 | `run_async_with_model(command, output_parser, *, timeout=None, success_marker=None)` | `CLITransactResultModel[T]` | `run_async` + post-parse. |
 
-No public method raises; every path returns a complete result object.
+`run_*_with_model` additionally accept a bare `DataModelHelper` subclass in place
+of `(command, output_parser)` — see [Model Extension Layer](#model-extension-layer).
+
+No public method raises when the two-argument form is used (`command,
+output_parser`); every path returns a complete result object. The model-class
+form raises `ValueError` eagerly, before any subprocess runs, when the model's
+`wire_invoke` is unset or holds an arm this transport doesn't support — a
+programmer-contract violation caught at resolution time, not an execution
+failure, so it is not contained like execution/parsing failures are (see
+[Model Extension Layer](#model-extension-layer)).
 
 ## Success Evaluation
 
@@ -231,6 +245,36 @@ The canonical `output_parser` is `DataModelHelper.from_wire` (or `from_bytes` / 
 [transport_transaction_architecture.md](transport_transaction_architecture.md).
 Ad-hoc parser classes should be the exception, not the norm.
 
+### Model-class invocation (`wire_invoke`)
+
+`run_sync_with_model`/`run_async_with_model` accept a bare `DataModelHelper`
+subclass in place of the `(command, output_parser)` pair:
+
+```python
+result = CLITransact.run_sync_with_model(DiskUsage)
+```
+
+Resolution (`_resolve_model_invocation`):
+
+1. If the first argument is a `type`, it is treated as the model class. Its
+   `wire_invoke` ClassVar supplies the command, and `from_wire` is the parser
+   unless an explicit `output_parser` is also passed (which overrides the
+   model's own `from_wire`).
+2. `wire_invoke` unset (`None`) → `ValueError` naming `wire_invoke`.
+3. `wire_invoke` holding a `type[DataModelHelper]` (a request-model class, used
+   by transports where the request is itself a model) → `ValueError`. The CLI
+   transport supports only a `str`/`list[str]` `wire_invoke`; it does **not**
+   invent a meaning for the `type[DataModelHelper]` arm (e.g. no stdin piping of
+   a request model's wire form) — see [dataModelHelper.md](dataModelHelper.md).
+4. Otherwise the first argument is treated as a plain `str | list[str]` command,
+   paired with the required explicit `output_parser`.
+
+`CLITransact` never sends via `wire_encode` — invocation (`wire_invoke`) and
+result (`from_wire`) are deliberately asymmetric concepts; `wire_encode` remains
+reserved for transports that genuinely serialize an existing instance onto the
+wire (e.g. `SocketTransact`), not for building a request from a model that has no
+instance yet.
+
 ## Learned Behaviors / Design Rationale
 
 These were previously implicit in the implementation and are now formalized as
@@ -311,7 +355,9 @@ A compliant `CLITransact` MUST:
 
 1. Return a `CLITransactResult` (or `CLITransactResultModel`) from every public
    method — never `None`, never a partial/invalid object.
-2. Never let an exception escape a public method (`BaseException` excepted).
+2. Never let an *execution* exception escape a public method (`BaseException`
+   excepted); an invocation-shape error resolving the model-class form (§ Model-class
+   invocation) raises immediately instead, before any execution begins.
 3. Normalize all stdout/stderr to a stripped string or `None`.
 4. Compute `success` as `return_code == 0 AND (success_marker is None OR success_marker
    in stdout)`.
@@ -319,3 +365,6 @@ A compliant `CLITransact` MUST:
 6. Parse a model only when `success is True` and `stdout` exists, and never let parsing
    change `success`.
 7. Implement no retry, backoff, or transport-construction logic.
+8. Support only a `str`/`list[str]` `wire_invoke` for the model-class invocation
+   form; raise on a `type[DataModelHelper]` `wire_invoke` rather than inventing a
+   meaning for it.

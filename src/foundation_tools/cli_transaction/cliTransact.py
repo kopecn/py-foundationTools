@@ -37,7 +37,7 @@ import asyncio
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, overload
 
 from foundationTypes.data_model_helper import DataModelHelper
 
@@ -139,11 +139,33 @@ class CLITransact:
         """
         return await cls(success_marker)._run_async(cli_command, timeout)
 
+    @overload
+    @classmethod
+    def run_sync_with_model(
+        cls,
+        cli_command: type[T],
+        output_parser: Callable[[str], T] | None = None,
+        *,
+        timeout: int | None = None,
+        success_marker: str | None = None,
+    ) -> "CLITransactResultModel[T]": ...
+
+    @overload
     @classmethod
     def run_sync_with_model(
         cls,
         cli_command: str | list[str],
         output_parser: Callable[[str], T],
+        *,
+        timeout: int | None = None,
+        success_marker: str | None = None,
+    ) -> "CLITransactResultModel[T]": ...
+
+    @classmethod
+    def run_sync_with_model(
+        cls,
+        cli_command: "str | list[str] | type[T]",
+        output_parser: Callable[[str], T] | None = None,
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
@@ -153,20 +175,31 @@ class CLITransact:
         Parsing runs only on success with non-empty stdout, and never changes the
         execution ``success`` flag — a parser failure is appended to stderr.
 
-        ``output_parser`` is any ``Callable[[str], T]`` bound to a
-        ``DataModelHelper`` subclass — a generated model's own domain-specific
-        parser::
+        Pass a ``DataModelHelper`` subclass alone when it declares its own
+        ``wire_invoke`` — the command to run and the canonical ``from_wire``
+        parser are both pulled from the model::
 
-            result = CLITransact.run_sync_with_model("df -h", DiskUsage.from_df_output)
+            result = CLITransact.run_sync_with_model(DiskUsage)
 
-        or, when the model's ``wire_encode``/``wire_decode`` are configured,
-        ``Model.from_wire`` directly (its signature already matches
-        ``output_parser`` with no glue)::
+        or supply an explicit ``(cli_command, output_parser)`` pair, e.g. when
+        the caller constructs the command itself::
 
             result = CLITransact.run_sync_with_model(["cat", "coord.json"], GeoCoordinate.from_wire)
         """
-        return cls(success_marker)._run_sync_with_model(cli_command, output_parser, timeout)
+        command, parser = cls._resolve_model_invocation(cli_command, output_parser)
+        return cls(success_marker)._run_sync_with_model(command, parser, timeout)
 
+    @overload
+    @classmethod
+    async def run_async_with_model(
+        cls,
+        cli_command: type[T],
+        *,
+        timeout: int | None = None,
+        success_marker: str | None = None,
+    ) -> "CLITransactResultModel[T]": ...
+
+    @overload
     @classmethod
     async def run_async_with_model(
         cls,
@@ -175,13 +208,67 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+    ) -> "CLITransactResultModel[T]": ...
+
+    @classmethod
+    async def run_async_with_model(
+        cls,
+        cli_command: "str | list[str] | type[T]",
+        output_parser: Callable[[str], T] | None = None,
+        *,
+        timeout: int | None = None,
+        success_marker: str | None = None,
     ) -> "CLITransactResultModel[T]":
         """Execute asynchronously and parse stdout into a data model.
 
         Parsing runs only on success with non-empty stdout, and never changes the
         execution ``success`` flag — a parser failure is appended to stderr.
+
+        Accepts either a bare ``DataModelHelper`` subclass (using its own
+        ``wire_invoke``/``from_wire``) or an explicit ``(cli_command,
+        output_parser)`` pair — see ``run_sync_with_model`` for the two forms.
         """
-        return await cls(success_marker)._run_async_with_model(cli_command, output_parser, timeout)
+        command, parser = cls._resolve_model_invocation(cli_command, output_parser)
+        return await cls(success_marker)._run_async_with_model(command, parser, timeout)
+
+    @staticmethod
+    def _resolve_model_invocation(
+        cli_command: "str | list[str] | type[T]",
+        output_parser: Callable[[str], T] | None,
+    ) -> "tuple[str | list[str], Callable[[str], T]]":
+        """Resolve the (command, parser) pair for the ``*_with_model`` methods.
+
+        ``cli_command`` is either a plain command (paired with an explicit
+        ``output_parser``) or a ``DataModelHelper`` subclass, in which case the
+        command and parser are pulled from the model's own ``wire_invoke`` and
+        ``from_wire``. The CLI transport only supports a ``str``/``list[str]``
+        ``wire_invoke``; a ``type[DataModelHelper]`` arm (a request-model class,
+        meaningful for other transports, e.g. a request/response pair over a
+        socket transaction) has no defined meaning here — do not invent one
+        (e.g. no stdin piping).
+        """
+        if isinstance(cli_command, type):
+            model_cls = cli_command
+            invocation = model_cls.wire_invoke
+            if invocation is None:
+                raise ValueError(
+                    f"{model_cls.__name__}.wire_invoke is not set; either set it or call "
+                    "with an explicit (cli_command, output_parser) pair."
+                )
+            if isinstance(invocation, type):
+                raise ValueError(
+                    f"{model_cls.__name__}.wire_invoke is {invocation.__name__}; CLITransact "
+                    "only supports a str/list[str] wire_invoke — a type[DataModelHelper] "
+                    "request is not meaningful for the CLI transport."
+                )
+            parser = output_parser if output_parser is not None else model_cls.from_wire
+            return invocation, parser
+
+        if output_parser is None:
+            raise ValueError(
+                "output_parser is required when cli_command is not a DataModelHelper type"
+            )
+        return cli_command, output_parser
 
     # -----------------------------------------------------------------------
     # MARK: - Private — implementation
