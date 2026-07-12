@@ -42,4 +42,4 @@ jobs:
         run: make uv-bootstrap-pythons
 
       - name: Run compatibility matrix
-        run: make uv-test-matrix
+        run: make uv-test-all
