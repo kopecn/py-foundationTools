@@ -10,38 +10,50 @@ permissions:
 
 jobs:
   tag:
+    name: Tag Release
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Fetch tags
+        run: git fetch --tags
+
       - name: Detect version change
-        id: changed
+        id: version
+        shell: bash
         run: |
-          if git diff --quiet HEAD^ HEAD -- pyproject.toml; then
+          CURRENT=$(grep '^version =' pyproject.toml | cut -d'"' -f2)
+
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            PREVIOUS=$(git show HEAD^:pyproject.toml 2>/dev/null | grep '^version =' | cut -d'"' -f2)
+          else
+            PREVIOUS=""
+          fi
+
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+
+          if [ "$CURRENT" = "$PREVIOUS" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Get version from pyproject.toml
-        if: steps.changed.outputs.changed == 'true'
-        id: version
+      - name: Create release tag
+        if: steps.version.outputs.changed == 'true'
+        shell: bash
         run: |
-          VERSION=$(grep '^version =' pyproject.toml | cut -d'"' -f2)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          TAG="v${{ steps.version.outputs.current }}"
 
-      - name: Create tag if missing
-        if: steps.changed.outputs.changed == 'true'
-        run: |
-          TAG="v${{ steps.version.outputs.version }}"
-
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag already exists"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists."
             exit 0
           fi
 
           git tag "$TAG"
           git push origin "$TAG"
+
+          echo "Created $TAG"
