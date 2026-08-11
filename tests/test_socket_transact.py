@@ -20,6 +20,7 @@ from foundation_tools.socket_transaction import (
     SocketTransact,
 )
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
+from tests.asyncio_server import running_server
 
 
 def _inject(payload: bytes, tx_id: str) -> bytes:
@@ -353,10 +354,7 @@ class TestSocketByteTransportIntegration:
                 writer.write(line)
                 await writer.drain()
 
-        server = await asyncio.start_server(handler, host="127.0.0.1", port=0)
-        host, port = server.sockets[0].getsockname()[:2]
-
-        async with server:
+        async with running_server(handler) as (host, port):
             async with SocketTransact(
                 host,
                 port,

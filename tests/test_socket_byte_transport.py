@@ -4,25 +4,12 @@ foundation_abc.PeripheralByteTransport.
 """
 
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
 
 import pytest
 
 from foundation_abc.peripheralByteTransport import PeripheralByteTransport
 from foundation_tools.socket_transaction import SocketByteTransport
-
-ServerHandler = Callable[[asyncio.StreamReader, asyncio.StreamWriter], Awaitable[None]]
-
-
-@asynccontextmanager
-async def _running_server(handler: ServerHandler) -> AsyncIterator[tuple[str, int]]:
-    # asyncio.start_server begins accepting connections in the background as soon
-    # as it returns; no explicit serve_forever() task is needed here.
-    server = await asyncio.start_server(handler, host="127.0.0.1", port=0)
-    host, port = server.sockets[0].getsockname()[:2]
-    async with server:
-        yield host, port
+from tests.asyncio_server import running_server
 
 
 async def _echo_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -35,8 +22,8 @@ async def _echo_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 async def _silent_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
     # Never writes a reply; blocks reading until the client disconnects (EOF), so
     # the handler task completes naturally instead of leaving a server-side task
-    # hanging past the test (a fixed sleep would stall `async with server:` teardown,
-    # which awaits in-flight connection handlers).
+    # hanging past the test (a fixed sleep would stall teardown, which awaits
+    # in-flight connection handlers).
     await reader.read(-1)
 
 
@@ -71,7 +58,7 @@ class TestSocketByteTransportLifecycle:
 
     @pytest.mark.asyncio
     async def test_connect_and_disconnect(self) -> None:
-        async with _running_server(_silent_handler) as (host, port):
+        async with running_server(_silent_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             assert transport.is_connected
@@ -80,7 +67,7 @@ class TestSocketByteTransportLifecycle:
 
     @pytest.mark.asyncio
     async def test_double_disconnect_is_noop(self) -> None:
-        async with _running_server(_silent_handler) as (host, port):
+        async with running_server(_silent_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             await transport.disconnect()
@@ -95,7 +82,7 @@ class TestSocketByteTransportLifecycle:
 
     @pytest.mark.asyncio
     async def test_async_context_manager(self) -> None:
-        async with _running_server(_silent_handler) as (host, port):
+        async with running_server(_silent_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             async with transport as entered:
                 assert entered is transport
@@ -127,7 +114,7 @@ class TestSocketByteTransportLifecycle:
 class TestSocketByteTransportIO:
     @pytest.mark.asyncio
     async def test_send_receive_round_trip(self) -> None:
-        async with _running_server(_echo_handler) as (host, port):
+        async with running_server(_echo_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             try:
@@ -139,7 +126,7 @@ class TestSocketByteTransportIO:
 
     @pytest.mark.asyncio
     async def test_receive_timeout_raises(self) -> None:
-        async with _running_server(_silent_handler) as (host, port):
+        async with running_server(_silent_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             try:
@@ -150,7 +137,7 @@ class TestSocketByteTransportIO:
 
     @pytest.mark.asyncio
     async def test_receive_timeout_zero_non_blocking(self) -> None:
-        async with _running_server(_silent_handler) as (host, port):
+        async with running_server(_silent_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             try:
@@ -161,7 +148,7 @@ class TestSocketByteTransportIO:
 
     @pytest.mark.asyncio
     async def test_receive_timeout_zero_returns_buffered_data(self) -> None:
-        async with _running_server(_echo_handler) as (host, port):
+        async with running_server(_echo_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             try:
@@ -177,7 +164,7 @@ class TestSocketByteTransportIO:
 
     @pytest.mark.asyncio
     async def test_receive_timeout_zero_at_eof_returns_empty_bytes(self) -> None:
-        async with _running_server(_close_immediately_handler) as (host, port):
+        async with running_server(_close_immediately_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             try:
@@ -201,7 +188,7 @@ class TestSocketByteTransportIO:
 
     @pytest.mark.asyncio
     async def test_peer_closed_no_data_returns_empty_bytes(self) -> None:
-        async with _running_server(_close_immediately_handler) as (host, port):
+        async with running_server(_close_immediately_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             try:
@@ -212,7 +199,7 @@ class TestSocketByteTransportIO:
 
     @pytest.mark.asyncio
     async def test_short_read_at_eof(self) -> None:
-        async with _running_server(_partial_then_close_handler) as (host, port):
+        async with running_server(_partial_then_close_handler) as (host, port):
             transport = SocketByteTransport(host=host, port=port)
             await transport.connect()
             try:
