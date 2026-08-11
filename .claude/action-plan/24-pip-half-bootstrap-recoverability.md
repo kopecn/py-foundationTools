@@ -293,3 +293,41 @@ run's scope.
 
 **No git commits made** — left for the supervising session per the task
 brief.
+
+### Supervisor correction — the ensurepip boundary is 3.12, measured
+
+The executing agent's first draft of the `pip-bootstrap` comment claimed
+`ensurepip` stops bundling setuptools at Python **>= 3.11**. That is wrong, and
+it contradicted the `check-pip` comment ~30 lines below it, which says 3.12.
+Corrected to 3.12 before commit, then validated empirically rather than left as
+an inference — 3.11 is in `PYTHONS`, so the boundary is load-bearing for the
+support matrix, not trivia.
+
+Measured on this machine (`ensurepip._bundled/` contents, and a real `venv`
+built from each interpreter):
+
+| Python | ensurepip bundles | `setuptools.build_meta` in a fresh venv | `_should_suppress_build_backends()` | `nuke` safe pre-fix |
+|---|---|---|---|---|
+| 3.10 | pip + setuptools | importable | `True` | yes |
+| 3.11 | pip + setuptools | importable | `True` | yes |
+| 3.12 | pip only | **missing** | `False` | **no** |
+| 3.13 | pip only | **missing** | `False` | **no** |
+
+Both halves of the failure flip at the same release: 3.12 removed setuptools
+from the `ensurepip` bundle (E1) *and* pip correspondingly stopped suppressing
+build backends in `freeze` output (E2). They are two faces of one upstream
+change, which is why the 3.12 figure appears in both comments.
+
+**Root cause of the wrong figure.** Every version claim the plan supplied
+survived into the code correctly: track A says "the 3.12 behavior change" and
+track C says "since 3.12", and both landed as 3.12. Track B — which is what
+`pip-bootstrap`'s comment implements — contains **no version number anywhere**,
+so the agent had to supply one from its own priors, and produced 3.11. The one
+unsourced factual claim in the chunk is the one that came out wrong. The
+inconsistency was only detectable because a plan-sourced neighbour disagreed
+with it.
+
+**Carry-over for the mirror.** py-cookiecut's plan 16 has the identical
+track B with the identical gap. Executing it there will re-open the same
+opportunity to guess. Either pin "3.12" into track B's text before running it,
+or check that comment specifically afterwards.
