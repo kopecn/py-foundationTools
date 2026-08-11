@@ -12,7 +12,7 @@
 	uv-lifecycle-test \
 	dev setup \
 	installDev e refresh pip-bootstrap \
-	test check-pip testInEnvCleanup testInEnvInstallFromSetup testInEnvRunPytest testInEnv \
+	test check-pip cleanRoomCleanup cleanRoomBootstrap cleanRoomPytest testInEnv \
 	build validateBuild release-test release \
 	nuke list
 
@@ -399,7 +399,7 @@ refresh:  ## Refresh pip packages: reinstall from requirements + upgrade editabl
 # Deliberately NOT wired as a prereq of installDev/e/refresh/build (D1) — those
 # targets keep failing loudly on their own terms rather than growing a guard
 # layer; check-pip is scoped only to the clean-room target (D2, see C2 comment
-# on testInEnvInstallFromSetup below).
+# on cleanRoomBootstrap below).
 pip-bootstrap:  ## Rebuild the ambient build backend after `nuke` (NETWORK REQUIRED)
 	@echo "Bootstrapping ambient pip + build backend (setuptools, wheel)..."
 	$(PYTHON) -m ensurepip --upgrade
@@ -417,7 +417,7 @@ pip-bootstrap:  ## Rebuild the ambient build backend after `nuke` (NETWORK REQUI
 test:  ## Run tests using the current Python environment
 	pytest
 
-testInEnvCleanup:  ## Delete the temporary venv ($(VENV))
+cleanRoomCleanup:  ## Delete the clean-room venv ($(VENV))
 	rm -rf $(VENV) || true
 
 # check-pip guard. Assert ONLY what the clean room actually needs: that the
@@ -450,7 +450,7 @@ check-pip:  ## Check the ambient interpreter can create the clean-room venv
 # (`No matching distribution found`). Install the requirements file FIRST, then the
 # package. Keep ".[dev]" NON-editable here — validating the real packaging path is
 # this target's entire purpose.
-testInEnvInstallFromSetup: testInEnvCleanup check-pip  ## Create temp venv + install dev deps
+cleanRoomBootstrap: cleanRoomCleanup check-pip  ## Bootstrap the clean-room venv + deps (runs NO tests)
 	$(PYTHON) -m venv $(VENV)
 	. $(VENV)/bin/activate && \
 	which python3 && \
@@ -458,12 +458,12 @@ testInEnvInstallFromSetup: testInEnvCleanup check-pip  ## Create temp venv + ins
 	$(VENV)/bin/pip install ".[dev]"
 	@echo "Virtual env can be activated with 'source $(VENV)/bin/activate'"
 
-testInEnvRunPytest:  ## Run pytest inside the temporary venv
+cleanRoomPytest:  ## Run pytest inside the clean-room venv
 	. $(VENV)/bin/activate && \
 	which $(PYTHON) && \
 	$(PYTHON) -m pytest
 
-testInEnv: clean testInEnvInstallFromSetup testInEnvRunPytest testInEnvCleanup  ## Full clean-room test
+testInEnv: clean cleanRoomBootstrap cleanRoomPytest cleanRoomCleanup  ## Full clean-room test
 	@echo ">> testInEnv completed"
 
 # ============================================================================
