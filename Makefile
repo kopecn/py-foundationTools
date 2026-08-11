@@ -11,8 +11,8 @@
 	uv-flush-cache uv-flush-envs uv-flush-pythons uv-flush-everything uv-nuke \
 	uv-lifecycle-test \
 	dev setup \
-	installDev e refresh \
-	test testInEnvCleanup testInEnvInstallFromSetup testInEnvRunPytest testInEnv \
+	installDev e refresh pip-bootstrap \
+	test check-pip testInEnvCleanup testInEnvInstallFromSetup testInEnvRunPytest testInEnv \
 	build validateBuild release-test release \
 	nuke list
 
@@ -394,6 +394,21 @@ refresh:  ## Refresh pip packages: reinstall from requirements + upgrade editabl
 	$(PIP) install -r requirements.txt
 	$(PIP) install --upgrade -e ".[dev]"
 
+# nuke's inverse (see the comment on `nuke`). Rebuilds the build backend
+# (setuptools/wheel) that `ensurepip` never bundles on Python >= 3.12 (E1).
+# Deliberately NOT wired as a prereq of installDev/e/refresh/build (D1) — those
+# targets keep failing loudly on their own terms rather than growing a guard
+# layer; check-pip is scoped only to the clean-room target (D2, see C2 comment
+# on testInEnvInstallFromSetup below).
+pip-bootstrap:  ## Rebuild the ambient build backend after `nuke` (NETWORK REQUIRED)
+	@echo "Bootstrapping ambient pip + build backend (setuptools, wheel)..."
+	$(PYTHON) -m ensurepip --upgrade
+	$(PIP) install --upgrade setuptools wheel
+	@echo ""
+	@echo "If this fails with 'externally-managed-environment' (Homebrew/Debian"
+	@echo "Python), this interpreter refuses ambient installs by design — use"
+	@echo "'make uv-bootstrap' instead (offline-capable via uv's cache)."
+
 # ============================================================================
 # MARK: - PIP · TEST
 # ============================================================================
@@ -405,7 +420,22 @@ test:  ## Run tests using the current Python environment
 testInEnvCleanup:  ## Delete the temporary venv ($(VENV))
 	rm -rf $(VENV) || true
 
-testInEnvInstallFromSetup: testInEnvCleanup  ## Create temp venv + install dev deps
+# check-pip guard: NETWORK REQUIRED because ensurepip has seeded pip only since
+# Python 3.12 (E1) — a fresh `python3 -m venv` has no build backend, so PEP-517
+# build isolation for the editable install below must reach PyPI.
+check-pip:  ## Check the ambient interpreter has a usable pip + build backend
+	@$(PYTHON) -m pip --version >/dev/null 2>&1 || { \
+	  echo "ERROR: pip not usable on $(PYTHON)."; \
+	  echo "  Run: make pip-bootstrap"; \
+	  echo "  Or use the uv path: make uv-sync"; \
+	  exit 1; }
+	@$(PYTHON) -c "import setuptools.build_meta" >/dev/null 2>&1 || { \
+	  echo "ERROR: setuptools.build_meta not importable on $(PYTHON)."; \
+	  echo "  Run: make pip-bootstrap"; \
+	  echo "  Or use the uv path: make uv-sync"; \
+	  exit 1; }
+
+testInEnvInstallFromSetup: testInEnvCleanup check-pip  ## Create temp venv + install dev deps
 	$(PYTHON) -m venv $(VENV)
 	. $(VENV)/bin/activate && \
 	which python3 && \
@@ -424,17 +454,22 @@ testInEnv: clean testInEnvInstallFromSetup testInEnvRunPytest testInEnvCleanup  
 # MARK: - PIP · BUILD & RELEASE
 # ============================================================================
 ##@ PIP · Build & Release
-build: clean-build  ## Build sdist + wheel ($(PYTHON) -m build)
+# build/twine were previously invoked against ambient $(PYTHON), but both are
+# declared in [project.optional-dependencies].dev, which installs into .venv —
+# not the ambient interpreter (E4, a live bug independent of the FA this track
+# is fixing). Route them through `uv run --with` instead so they resolve
+# correctly on a checkout whose only setup was `make uv-sync`.
+build: check-uv clean-build  ## Build sdist + wheel (uv run --with build python -m build)
 	@echo "Building package..."
-	$(PYTHON) -m build
+	$(UV) --with build python -m build
 
-validateBuild: build  ## Validate build artifacts with twine
+validateBuild: check-uv build  ## Validate build artifacts with twine
 	@echo "Validating dist/ with twine..."
-	$(PYTHON) -m twine check dist/*
+	$(UV) --with twine twine check dist/*
 
 release-test: checkCleanGit validateBuild  ## Dry-run publish to TestPyPI (clean tree only)
 	@echo "Uploading $(REPO) v$$($(MAKE) -s version) to TestPyPI..."
-	@$(PYTHON) -m twine upload --repository testpypi dist/*
+	@$(UV) --with twine twine upload --repository testpypi dist/*
 
 # PyPI publishing is owned by CI, not this Makefile. Per the ci-cd spec, the
 # pipeline is the single authoritative path to production — no manual, out-of-band
@@ -460,14 +495,22 @@ release: validateBuild  ## Refuse local upload; print the CI-driven release proc
 # the AMBIENT interpreter ($(PIP)). Prefer `make uv-flush-envs` — deleting the
 # venv dir is the reliable flush primitive. Use this only when you're stuck in a
 # non-deletable (e.g. system) env. Non-editable URL/VCS installs are skipped.
+#
+# --exclude setuptools --exclude wheel: at Python >= 3.12, pip/_internal/commands/
+# freeze.py:12-20 stopped suppressing the build backend from `pip freeze`
+# (_should_suppress_build_backends() is version-gated below 3.12), so an
+# unqualified `freeze --exclude-editable | pip uninstall` now removes the very
+# build backend the interpreter needs to install anything afterward — including
+# itself. Keep these exclusions; do not "clean up" them in a later refactor.
 nuke: ## Per-package uninstall from ambient env (inferior — prefer uv-flush-envs)
 	@echo "Uninstalling regular packages (skipping system-managed)..."
-	$(call uninstall_package_list,$(PIP) freeze --exclude-editable | grep -v ' @ ')
+	$(call uninstall_package_list,$(PIP) freeze --exclude-editable --exclude setuptools --exclude wheel | grep -v ' @ ')
 
 	@echo "Uninstalling editable packages by name..."
 	$(call uninstall_package_list,$(PIP) list --editable --format=freeze | cut -d= -f1)
 
 	@echo "pip-nuke complete."
+	@echo "Run 'make pip-bootstrap' (network) or 'make uv-bootstrap' (offline-capable) to rebuild."
 
 list: ## List pip packages in available environments
 	$(call print_packages,SYSTEM PYTHON PACKAGES,$(PIP))

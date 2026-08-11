@@ -1,7 +1,8 @@
 ---
 title: pip editable install fails in clean Python.org macOS environment
 date: 2026-07-28
-status: open
+last_updated: 2026-08-10
+status: closed
 severity: high
 component: packaging / toolchain / python installation
 commit: 519a363
@@ -46,12 +47,40 @@ Without a virtualenv's bundled wheels, the Python.org macOS framework does not s
 
 ## Root Cause
 
-The Python.org macOS installer ships pip as a **metadata-only entry** without the actual distribution files on disk. There is no bundled wheel for setuptools, and the site-packages directory is effectively empty of importable packages. When pip encounters a local source tree that requires `[build-system]` support:
+Two compounding findings from plan 24's investigation (`.claude/action-plan/24-pip-half-bootstrap-recoverability.md`, E1–E2):
 
-1. `pip install .` (no `-e`) → attempts build isolation → fetches setuptools from PyPI → fails without network
-2. `pip install -e . --no-build-isolation` → checks if `setuptools.build_meta` is importable → import error → crash
+**E1 — `ensurepip` seeds pip only.** `ensurepip`'s bundled-wheel directory
+(`.../ensurepip/_bundled/`) contains exactly one wheel: pip itself. Every
+`python3 -m venv` — and, by extension, a bare Python.org macOS framework
+interpreter — therefore starts with **no build backend**. Any PEP-517 build in
+that environment must reach PyPI for `setuptools`, which is what makes a clean
+install network-bound.
 
-There is **no third option pip offers** for this scenario. The tool requires setuptools as an explicit import-time dependency before it can look at the project's own metadata or parse `pyproject.toml`.
+**E2 — `make nuke` became self-destructive at Python >= 3.12.** In
+`pip/_internal/commands/freeze.py:12-20`:
+
+```python
+def _should_suppress_build_backends() -> bool:
+    return sys.version_info < (3, 12)          # freeze.py:12-13
+
+def _dev_pkgs() -> AbstractSet[str]:
+    pkgs = {"pip"}
+    if _should_suppress_build_backends():
+        pkgs |= {"setuptools", "distribute", "wheel"}   # freeze.py:19-20
+
+    return pkgs
+```
+
+Below Python 3.12, `pip freeze` hid `setuptools`/`wheel` from its output. At
+>= 3.12 it lists them. The (former) `nuke` target piped `pip freeze
+--exclude-editable` straight into `pip uninstall`, so on 3.12+ `nuke` now
+uninstalled the build backend it used to implicitly preserve — turning a
+"clean" reset into an unrecoverable one. `pip` itself was never at risk (always
+in `_dev_pkgs()`); `setuptools`/`wheel` were the casualty. This — not the
+Python.org installer's packaging choices — is the mechanism that produced the
+`BackendUnavailable` crash: E1 explains why a bare interpreter starts with no
+build backend, and E2 explains why `nuke` actively stripped it rather than
+leaving it alone.
 
 ## Contributing Factors
 
@@ -64,7 +93,29 @@ There is **no third option pip offers** for this scenario. The tool requires set
 
 - Cannot perform editable development installs (`pip install -e .`) on this Python installation without either network access or pre-planted wheels
 - `nuke` was intended to reveal isolation gaps; it confirmed that the ambient Python environment has no internal recovery path for any kind of code installation (not just editable)
-- All project tooling (ruff, mypy, pytest) becomes unavailable until the bootstrapping gap is closed
+- All project tooling **on the pip/ambient-interpreter path** becomes unavailable until the bootstrapping gap is closed — see blast radius below for the corrected scope
+
+### Blast radius (E3)
+
+The original "all project tooling becomes unavailable" claim above is
+**overstated**. Verified offline against a scratch venv, the uv half is
+unaffected by this failure:
+
+```
+$ VIRTUAL_ENV=<scratch> uv pip install --offline -e .
+Resolved 1 package in 9ms
+   Building pyfoundationtools @ file:///…/py-foundationTools
+      Built pyfoundationtools @ file:///…/py-foundationTools
+Installed 1 package in 1ms
+```
+
+`uv cache dir` carries its own `setuptools` wheel independent of the ambient
+interpreter, and this repo's CI (`.github/workflows/ci.yml`, formerly
+`ci-cd.yml`) invokes only `uv-bootstrap-pythons` / `uv-bootstrap` /
+`uv-fullCheck` / `uv-test-all`. **CI was never at risk.** The blast radius of
+this failure is scoped to the pip/ambient-interpreter fallback path
+(`installDev`, `e`, `refresh`, `testInEnv`) — `make uv-fullCheck` kept working
+throughout.
 
 ## Architecture Gap Identified
 
@@ -84,11 +135,28 @@ Python's stdlib provides, for project-level code installation:
 
 That is it. Everything else the packaging ecosystem claims to be "Python's packaging interface" was implemented by separate software projects over decades and never converged into a single standardized tool in the distribution itself.
 
-## Remediation (Proposed)
+## Remediation
 
-- [ ] **Immediate** — for offline dev on this Python: point `python3` at homebrew's Python (`brew install python@3.13`) which ships with setuptools installed
-- [ ] **Near-term** — add a `bootstrap-setuptools` documentation artifact or script that handles the "first install" case without network (download wheels manually, store in a known location)
-- [ ] **Long-term** — document this as an explicit constraint: the project's dev requirement list includes a *bootable* Python installation with pip + setuptools at minimum; `nuke` does not account for re-bootstrapping
+- [x] **Immediate** — run `make pip-bootstrap`: it runs `python3 -m ensurepip
+      --upgrade` then `pip install --upgrade setuptools wheel` against the
+      ambient interpreter, restoring the build backend `nuke` (pre-fix) or a
+      bare Python.org install never had. Requires network (build isolation must
+      reach PyPI per E1); if the interpreter is externally-managed
+      (Homebrew/Debian) and refuses ambient installs, `pip-bootstrap` names
+      `make uv-bootstrap` as the offline-capable alternative instead of routing
+      around the interpreter via a Homebrew reinstall.
+- [x] **Near-term** — `nuke` itself now excludes `setuptools`/`wheel` from the
+      `pip freeze | pip uninstall` pipeline (see `Makefile`, `nuke` target), so
+      the failure mode E2 describes can no longer be triggered by `nuke` going
+      forward; `pip-bootstrap` remains the documented inverse for interpreters
+      that arrive pre-stripped (bare Python.org installs, or pre-fix history).
+- [x] **Long-term** — documented as an explicit constraint via `check-pip`
+      (wired only into the `testInEnv` clean-room target, per plan 24's D1/D2):
+      it asserts `pip --version` succeeds and `setuptools.build_meta` imports
+      before the clean-room proceeds, failing fast with a pointer to
+      `make pip-bootstrap` / `make uv-sync` instead of a raw
+      `BackendUnavailable` traceback. `installDev`/`e`/`refresh`/`build` remain
+      intentionally unguarded (D1) — see `.claude/action-plan/24-pip-half-bootstrap-recoverability.md`.
 
 ## Open Questions
 
