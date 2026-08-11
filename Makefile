@@ -420,17 +420,24 @@ test:  ## Run tests using the current Python environment
 testInEnvCleanup:  ## Delete the temporary venv ($(VENV))
 	rm -rf $(VENV) || true
 
-# check-pip guard: NETWORK REQUIRED because ensurepip has seeded pip only since
-# Python 3.12 (E1) — a fresh `python3 -m venv` has no build backend, so PEP-517
-# build isolation for the editable install below must reach PyPI.
-check-pip:  ## Check the ambient interpreter has a usable pip + build backend
-	@$(PYTHON) -m pip --version >/dev/null 2>&1 || { \
-	  echo "ERROR: pip not usable on $(PYTHON)."; \
-	  echo "  Run: make pip-bootstrap"; \
-	  echo "  Or use the uv path: make uv-sync"; \
-	  exit 1; }
-	@$(PYTHON) -c "import setuptools.build_meta" >/dev/null 2>&1 || { \
-	  echo "ERROR: setuptools.build_meta not importable on $(PYTHON)."; \
+# check-pip guard. Assert ONLY what the clean room actually needs: that the
+# ambient interpreter can build a working venv, i.e. `ensurepip` is present.
+#
+# It deliberately does NOT assert that `setuptools.build_meta` imports on the
+# ambient interpreter. The clean room installs into $(VENV) under PEP-517 build
+# isolation, which provisions its own setuptools from PyPI — the ambient
+# interpreter's build backend is never consulted. Guarding on it produced a
+# false negative that blocked a clean room which then succeeded when run by
+# hand. That assertion is only meaningful for --no-build-isolation ambient
+# installs (`e`, `installDev`), which D1 deliberately leaves ungated.
+#
+# NETWORK REQUIRED for the recipe below: since Python 3.12 ensurepip seeds pip
+# only (E1), so a fresh venv has no build backend and PEP-517 isolation must
+# reach PyPI. A backend-less ambient interpreter does not change that either
+# way, which is precisely why it is not worth guarding here.
+check-pip:  ## Check the ambient interpreter can create the clean-room venv
+	@$(PYTHON) -m ensurepip --version >/dev/null 2>&1 || { \
+	  echo "ERROR: ensurepip unavailable on $(PYTHON) — cannot create $(VENV)."; \
 	  echo "  Run: make pip-bootstrap"; \
 	  echo "  Or use the uv path: make uv-sync"; \
 	  exit 1; }

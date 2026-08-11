@@ -1,6 +1,6 @@
 ---
 last_updated: 2026-08-10
-semver: 0.0.2
+semver: 0.0.3
 author: Nicholas Bergantz
 status: active
 ---
@@ -99,6 +99,29 @@ release procedure is currently fiction.
 present in pip 25.1.1; the flag has existed since pip 21.2, comfortably below any
 interpreter in `PYTHONS`.
 
+**E8 — the boundary is 3.12, measured (not inferred).** E1/E2 were verified
+against 3.13 only; 3.11 is in `PYTHONS`, so the boundary is load-bearing.
+Measured `ensurepip._bundled/` contents plus a real `venv` from each:
+
+| Python | ensurepip bundles | `setuptools.build_meta` in fresh venv | `_should_suppress_build_backends()` | pre-fix `nuke` |
+|---|---|---|---|---|
+| 3.10 | pip + setuptools | importable | `True` | safe |
+| 3.11 | pip + setuptools | importable | `True` | safe |
+| 3.12 | pip only | **missing** | `False` | **destructive** |
+| 3.13 | pip only | **missing** | `False` | **destructive** |
+
+Both halves flip at 3.12: it removed setuptools from the `ensurepip` bundle
+(E1) *and* pip correspondingly stopped suppressing build backends in `freeze`
+(E2). One upstream change, two faces.
+
+**E9 — the ambient build backend is irrelevant to the clean room.** On a machine
+whose `python3` has no `setuptools` at all, the clean-room sequence run by hand
+(`python3 -m venv`, `pip install -r requirements.txt`, `pip install ".[dev]"`)
+**succeeds** — pip provisions setuptools into an isolated build env from PyPI.
+Offline it fails regardless of the ambient backend. There is therefore no
+true-positive case for guarding the clean room on `setuptools.build_meta`; see
+D5.
+
 ## Decisions
 
 | # | Decision | Rationale |
@@ -107,6 +130,8 @@ interpreter in `PYTHONS`.
 | **D2** | `check-pip` is still authored, but wired **only** to the clean-room. | Reconciles D1 with D3 — D3's fix needs the guard, D1 says the install targets don't get it. Scope it precisely; do not creep it onto `installDev`/`e`/`refresh`/`build`. |
 | **D3** | `testInEnv` stays on `python3 -m venv` + pip. | The target's entire purpose is validating the real pip packaging path. Swapping it to uv duplicates `uv-test-all` and deletes the only pip-install coverage. |
 | **D4** | Mirror this plan into both repos. | User call, accepting two sources of truth; mitigated by the cross-reference header. |
+| **D5** | **(2026-08-10, supersedes C1 as originally written.)** `check-pip` asserts `ensurepip` only; it does **not** assert `setuptools.build_meta` on the ambient interpreter. | Forced by E9. The original C1 shipped in py-foundationTools and blocked `make testInEnv` on a repo where the identical sequence succeeded by hand — a false negative. The `build_meta` assertion is only meaningful for `--no-build-isolation` ambient installs, which D1 deliberately leaves ungated. |
+| **D6** | The clean room installs `-r requirements.txt` before the package (track H). | The plan audited the clean room for *bootstrap* but never for *dependency resolution*. `pyproject.toml` is names-only by BKM, so `".[dev]"` alone cannot resolve a git-pointer sibling. Surfaced by a real py-MathTools failure, not by this plan. |
 
 ## Risks
 
@@ -134,20 +159,29 @@ interpreter in `PYTHONS`.
 - [ ] B1 — new target under `##@ PIP · Install`; add to `.PHONY` (Makefile:4-17).
 - [ ] B2 — recipe: `$(PYTHON) -m ensurepip --upgrade` then
       `$(PIP) install --upgrade setuptools wheel`. Help text carries
-      `(NETWORK REQUIRED)`.
+      `(NETWORK REQUIRED)`. Any comment stating the boundary MUST say **3.12**
+      — measured, see "Boundary is 3.12" below. This track originally supplied
+      no version and the executing agent guessed 3.11, wrongly.
 - [ ] B3 — recipe echoes the externally-managed-interpreter caveat and points at
       `make uv-bootstrap`. Does **not** install `build`/`twine` — the `[dev]` extra
       owns those, and track D moves them onto uv.
 
 ### C. `check-pip`, scoped to the clean-room (D2) — py-cookiecut, both halves
-- [ ] C1 — `check-pip` guard target modelled on `check-uv:177`: assert
-      `$(PYTHON) -m pip --version` succeeds **and** `setuptools.build_meta` imports;
-      on failure name `make pip-bootstrap` and `make uv-sync`.
+- [ ] C1 — **REVISED 2026-08-10, see D5.** `check-pip` guard target modelled on
+      `check-uv:177`, asserting **only** `$(PYTHON) -m ensurepip --version`
+      succeeds; on failure name `make pip-bootstrap` and `make uv-sync`.
+      It MUST NOT assert `setuptools.build_meta` imports on the ambient
+      interpreter — the clean room installs into `$(VENV)` under PEP-517 build
+      isolation, which provisions its own setuptools from PyPI, so the ambient
+      backend is never consulted. The original wording produced a false
+      negative that blocked a clean room which then succeeded when run by hand.
 - [ ] C2 — wire as a prereq of `testInEnvInstallFromSetup` (Makefile:408) **only**.
       Leave `installDev`/`e`/`refresh`/`build` ungated per D1 — add an inline
       comment recording that this is deliberate.
 - [ ] C3 — `NETWORK REQUIRED` comment on the clean-room recipe citing E1
       (ensurepip seeds pip only since 3.12 → build isolation must reach PyPI).
+      Note explicitly that a backend-less *ambient* interpreter does not change
+      this either way — which is why C1 does not guard on it.
 
 ### D. Fix the build/release interpreter (E4) — py-cookiecut, both halves
 - [ ] D1 — `build` (Makefile:429): `$(PYTHON) -m build` → `$(UV) --with build python -m build`.
@@ -162,6 +196,10 @@ interpreter in `PYTHONS`.
       output contains `--exclude setuptools`.
 - [ ] E2 — `testBakePipBootstrapExists`: `make -n pip-bootstrap` exits 0.
 - [ ] E3 — `testBakeCleanRoomGuarded`: `make -n testInEnv` resolves `check-pip`.
+      Assert the guard checks `ensurepip` and does **not** grep for
+      `setuptools.build_meta`, or the bake suite freezes the C1 defect in.
+- [ ] E5 — `testBakeCleanRoomInstallsRequirements`: `make -n testInEnv` shows
+      `pip install -r requirements.txt` **before** `pip install ".[dev]"` (track H).
 - [ ] E4 — re-green `testMakeHelp` (`tests/testBakeProject.py:150`) against the new
       help text.
 
@@ -173,6 +211,18 @@ interpreter in `PYTHONS`.
       documented-inferior fallback that cannot self-heal offline.
 - [ ] F2 — `.claude/GAPS.md` §7: extend the Flush/nuke item with the 3.12 caveat;
       correct the build/validateBuild "installer-agnostic" note per D5.
+
+### H. Clean room must obey the dependency BKM — py-cookiecut, both halves
+- [x] H1 — `testInEnvInstallFromSetup`: install `-r requirements.txt` **before**
+      `pip install ".[dev]"`. **DONE 2026-08-10** (both halves, `diff` empty).
+      `pyproject.toml` is names-only by BKM, so `".[dev]"` alone makes pip
+      resolve bare names against PyPI — fatal for any unpublished sibling
+      (`No matching distribution found`). Every other install path in the
+      Makefile already did this; the clean room was the sole violator of a rule
+      the file states in its own dependency-model comment. Keep `".[dev]"`
+      NON-editable — validating the real packaging path is the target's purpose.
+- [ ] H2 — back-port H1 to py-foundationTools and py-MathTools. **DONE
+      2026-08-10** for both, outside this plan's numbering.
 
 ### G. Back-port — py-foundationTools
 - [x] G1 — apply tracks A–D to `Makefile`, preserving the three local divergences
@@ -205,10 +255,15 @@ interpreter in `PYTHONS`.
 - [x] `make build` and `make validateBuild` succeed on a checkout whose only setup
       was `make uv-sync` (verified for real, py-foundationTools — see Resolution
       notes).
-- [x] `make testInEnv` fails fast with an actionable message on a backend-less
-      interpreter instead of a `BackendUnavailable` traceback (verified for
-      real, py-foundationTools — the ambient interpreter on this machine is
-      itself currently backend-less; see Resolution notes).
+- [x] ~~`make testInEnv` fails fast with an actionable message on a backend-less
+      interpreter instead of a `BackendUnavailable` traceback.~~ **WITHDRAWN
+      2026-08-10 — the criterion was false, and "verifying" it is what let the
+      C1 defect through review.** A backend-less ambient interpreter does not
+      break the clean room. Replaced by, and verified: `make testInEnv`
+      **succeeds** on this machine's backend-less ambient interpreter
+      (345 passed in the clean room), failing fast only if `ensurepip` is absent.
+- [x] `make testInEnv` resolves a git/path-pointer dependency carried in
+      `requirements.txt` (track H) — verified in py-MathTools, 1550 passed.
 - [ ] py-cookiecut's bake suite green, including E1–E4. *(py-cookiecut scope — not this run.)*
 - [ ] Both Makefile halves still byte-identical (`diff` → empty). *(py-cookiecut scope — not this run.)*
 - [~] `make uv-fullCheck` green in py-cookiecut and py-foundationTools. py-foundationTools
