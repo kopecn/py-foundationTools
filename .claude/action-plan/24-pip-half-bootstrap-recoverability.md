@@ -1,6 +1,6 @@
 ---
 last_updated: 2026-08-10
-semver: 0.0.3
+semver: 0.0.4
 author: Nicholas Bergantz
 status: active
 ---
@@ -121,6 +121,25 @@ whose `python3` has no `setuptools` at all, the clean-room sequence run by hand
 Offline it fails regardless of the ambient backend. There is therefore no
 true-positive case for guarding the clean room on `setuptools.build_meta`; see
 D5.
+
+**E10 — the A1 exclusion verified by round trip (2026-08-10, py-foundationTools).**
+Dry-run greps for `--exclude setuptools` prove nothing on a machine whose ambient
+interpreter has already lost its build backend: there is nothing for the
+exclusion to protect, so `nuke` passes vacuously. Measured properly by planting
+the backend first:
+
+| step | command | result |
+|---|---|---|
+| 0 | ambient state | `setuptools`, `wheel` both absent |
+| 1 | `make pip-bootstrap` | installs `setuptools 84.0.0`, `wheel 0.47.0`; `build_meta` importable |
+| 2 | `pip freeze --exclude-editable` | lists `setuptools==84.0.0`, `wheel==0.47.0` → **the unguarded pipeline would delete both** |
+| 3 | `… --exclude setuptools --exclude wheel` | 0 build-backend entries reach `pip uninstall` |
+| 4 | `make nuke` (real) | both **survive**; `build_meta` still importable |
+| 5 | `make testInEnv` | 345 passed in the clean room |
+
+Step 2 is the one that makes the test non-vacuous — it shows the exclusion is
+load-bearing rather than merely present. Any bake test for A1 (track E1) must
+plant the backend first or it asserts nothing.
 
 ## Decisions
 
@@ -247,11 +266,13 @@ D5.
 
 ## Acceptance
 
-- [~] `make -n nuke` shows `--exclude setuptools --exclude wheel` (verified,
-      py-foundationTools). A real `nuke` followed by `make pip-bootstrap`
-      restoring an installable interpreter was **not** exercised — deliberately,
-      per this run's instruction not to execute a real `nuke` against the
-      ambient interpreter. See Resolution notes.
+- [x] `make -n nuke` shows `--exclude setuptools --exclude wheel`, **and** a real
+      `nuke` preserves a planted build backend, **and** `make pip-bootstrap`
+      restores an installable interpreter. Fully exercised 2026-08-10 via the
+      E10 round trip (bootstrap → prove the exclusion load-bearing → real nuke →
+      backend survives → clean room 345 passed). The earlier dry-run-only
+      verification was vacuous: the ambient interpreter had no build backend to
+      protect at the time.
 - [x] `make build` and `make validateBuild` succeed on a checkout whose only setup
       was `make uv-sync` (verified for real, py-foundationTools — see Resolution
       notes).
