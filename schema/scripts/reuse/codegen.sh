@@ -15,6 +15,10 @@
 
 readonly _PYTHON_TYPES_BASE="src/foundationTypes"
 
+# Absolute path to this reuse dir, resolved at source time so the shared
+# normalizer can be located regardless of the caller's working directory.
+_CODEGEN_REUSE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 : "${OUTPUT_PYTHON_REL:?OUTPUT_PYTHON_REL must be set before sourcing codegen.sh}"
 OUTPUT_PYTHON_FILE="${_PYTHON_TYPES_BASE}/${OUTPUT_PYTHON_REL}"
 
@@ -96,17 +100,30 @@ fix_to_dict_return_type() {
     echo "Fixed to_dict return type in: $file"
 }
 
+# Rewrite quicktype's from_dict @staticmethod to the DataModelHelper @classmethod
+# contract. Delegates to the shared normalizer (single source of truth) so the
+# per-script path and the fleet-wide `make codegen-all` sweep apply the identical
+# rewrite. Idempotent.
+fix_from_dict_classmethod() {
+    local file="$1"
+    bash "${_CODEGEN_REUSE_DIR}/normalize_generated.sh" "$file"
+}
+
 run_ruff() {
     local file="${1:-$OUTPUT_PYTHON_FILE}"
     fix_to_dict_return_type "$file"
+    fix_from_dict_classmethod "$file"
     _ruff format "$file"
-    _ruff check --fix "$file"
+    # --unsafe-fixes mirrors the uv-format target (Makefile): the generated tree
+    # is held to the same autofix level as hand-written source. Do NOT drop it.
+    _ruff check --fix --unsafe-fixes "$file"
 }
 
 ensure_py_typed() {
-    local ref_file="${1:-$OUTPUT_PYTHON_FILE}"
-    local package_dir
-    package_dir="$(dirname "$(dirname "$ref_file")")"   # .../mathTypes/x.py -> foundationTypes
-    touch "${package_dir}/py.typed"
-    echo "Ensured py.typed: ${package_dir}/py.typed"
+    # Always the package root, regardless of how deeply OUTPUT_PYTHON_REL nests
+    # (e.g. "commonTypes/disk_usage/DiskUsage.py" is still under
+    # foundationTypes) -- a dirname/dirname walk from ref_file assumes exactly
+    # one level of nesting and breaks on a second.
+    touch "${_PYTHON_TYPES_BASE}/py.typed"
+    echo "Ensured py.typed: ${_PYTHON_TYPES_BASE}/py.typed"
 }

@@ -11,12 +11,12 @@
 #
 #   add_helper_imports <file>
 #       Remove quicktype's inline helper function definitions and import the
-#       equivalents from foundationTypes.dataModelHelper instead.
+#       equivalents from foundationTypes.data_model_helper instead.
 #
 # Typical call order:  add_base_class -> add_helper_imports -> run_ruff
 # =============================================================================
 
-readonly _DMH_IMPORT="from foundationTypes.dataModelHelper import DataModelHelper"
+readonly _DMH_IMPORT="from foundationTypes.data_model_helper import DataModelHelper"
 
 _dmh_sed_inplace() {
     if sed --version >/dev/null 2>&1; then
@@ -89,7 +89,7 @@ for helper in helpers:
 # Collapse the blank-line runs the removals leave behind.
 content = re.sub(r"\n{3,}", "\n\n", content)
 
-old_import = "from foundationTypes.dataModelHelper import DataModelHelper"
+old_import = "from foundationTypes.data_model_helper import DataModelHelper"
 if old_import not in content:
     raise SystemExit(
         f"expected import not found in {file_path}; "
@@ -98,7 +98,7 @@ if old_import not in content:
 
 items = ",\n    ".join(["DataModelHelper", *helpers])
 new_import = (
-    "from foundationTypes.dataModelHelper import (\n"
+    "from foundationTypes.data_model_helper import (\n"
     f"    {items},\n"
     ")"
 )

@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "DiskUsage",
+  "description": "Collection of disk usage entries parsed from df -h output",
+  "type": "object",
+  "required": ["entries"],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/DiskUsageEntry" }
+    }
+  },
+  "definitions": {
+    "DiskUsageEntry": {
+      "type": "object",
+      "description": "A single disk usage entry from df -h output",
+      "required": ["filesystem", "size", "used", "available", "use_percent", "mounted_on"],
+      "properties": {
+        "filesystem": {
+          "type": "string",
+          "description": "The mounted device or source (e.g. /dev/disk3s5, devfs, map auto_home) as reported in df's first column."
+        },
+        "size": {
+          "type": "string",
+          "description": "Total size of the filesystem, human-readable with df -h's unit suffix (e.g. 926Gi, 500G)."
+        },
+        "used": {
+          "type": "string",
+          "description": "Space currently used on the filesystem, human-readable with df -h's unit suffix."
+        },
+        "available": {
+          "type": "string",
+          "description": "Space still available on the filesystem, human-readable with df -h's unit suffix."
+        },
+        "use_percent": {
+          "type": "string",
+          "description": "Used space as a percentage of total capacity, including the trailing '%' (e.g. 70%)."
+        },
+        "mounted_on": {
+          "type": "string",
+          "description": "Filesystem mount point (e.g. /, /System/Volumes/Data)."
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 {
-  "id": "http://json-schema.org/geo",
+  "id": "http://json-schema.org/unit-spherical-small-circle",
   "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "UnitSphericalSmallCircleType",
   "description": "Represents a small circle on a unit sphere in spherical coordinates using physics convention.  A small circle is formed by intersecting the sphere with a plane that does notpass through the sphere's center, creating a circular path at a constantangular distance from a reference point.",
   "type": "object",
   "required": ["radiusAngle", "azimuth","polar"],

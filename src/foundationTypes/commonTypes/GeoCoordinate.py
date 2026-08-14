@@ -1,24 +1,21 @@
-from dataclasses import dataclass
-from typing import Any, TypeVar, cast
+# =============================================================================
+# AUTO-GENERATED FILE — DO NOT EDIT
+# Generated from JSON Schema via quicktype. Any manual edits will be
+# overwritten the next time codegen runs (make codegen-all).
+# To modify, update the source schema in schema/schemas/ and re-run codegen.
+# =============================================================================
 
-from foundationTypes.dataModelHelper import DataModelHelper
+from dataclasses import dataclass
+from typing import Any, TypeVar
+
+from foundationTypes.data_model_helper import (
+    DataModelHelper,
+    from_float,
+    to_class,
+    to_float,
+)
 
 T = TypeVar("T")
-
-
-def from_float(x: Any) -> float:
-    assert isinstance(x, (float, int)) and not isinstance(x, bool)
-    return float(x)
-
-
-def to_float(x: Any) -> float:
-    assert isinstance(x, (int, float))
-    return x
-
-
-def to_class(c: type[T], x: Any) -> dict:
-    assert isinstance(x, c)
-    return cast(Any, x).to_dict()
 
 
 @dataclass
@@ -29,14 +26,14 @@ class GeoCoordinate(DataModelHelper):
     longitude: float
 
     @classmethod
-    def from_dict(cls: type["GeoCoordinate"], obj: Any) -> "GeoCoordinate":
+    def from_dict(cls, obj: Any) -> "GeoCoordinate":
         assert isinstance(obj, dict)
         latitude = from_float(obj.get("latitude"))
         longitude = from_float(obj.get("longitude"))
         return GeoCoordinate(latitude, longitude)
 
-    def to_dict(self) -> dict:
-        result: dict = {}
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         result["latitude"] = to_float(self.latitude)
         result["longitude"] = to_float(self.longitude)
         return result
