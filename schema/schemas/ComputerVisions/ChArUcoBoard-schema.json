@@ -1,0 +1,74 @@
+{
+  "id": "http://json-schema.org/charuco-board",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "ChArUcoBoard",
+  "description": "Physical geometry of a ChArUco calibration board: a chessboard pattern with embedded ArUco markers used for camera calibration and pose estimation. Deliberately excludes rendering concerns so the same board can be reused across render targets.",
+  "type": "object",
+  "required": ["squares_x", "squares_y", "square_length", "marker_length"],
+  "properties": {
+    "squares_x": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "Number of chessboard squares across the board."
+    },
+
+    "squares_y": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "Number of chessboard squares down the board."
+    },
+
+    "square_length": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Physical side length of each chessboard square. All dimensions must use the same unit."
+    },
+
+    "marker_length": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Physical side length of each ArUco marker. Must be smaller than square_length; not enforced by this schema, validate at the application layer."
+    },
+
+    "dictionary": {
+      "$ref": "#/definitions/ArucoDictionary",
+      "default": "DICT_4X4_100"
+    }
+  },
+
+  "definitions": {
+    "ArucoDictionary": {
+      "title": "ArucoDictionary",
+      "description": "Predefined OpenCV marker dictionary used to generate and detect the board.",
+      "type": "string",
+      "enum": [
+        "DICT_4X4_50",
+        "DICT_4X4_100",
+        "DICT_4X4_250",
+        "DICT_4X4_1000",
+
+        "DICT_5X5_50",
+        "DICT_5X5_100",
+        "DICT_5X5_250",
+        "DICT_5X5_1000",
+
+        "DICT_6X6_50",
+        "DICT_6X6_100",
+        "DICT_6X6_250",
+        "DICT_6X6_1000",
+
+        "DICT_7X7_50",
+        "DICT_7X7_100",
+        "DICT_7X7_250",
+        "DICT_7X7_1000",
+
+        "DICT_ARUCO_ORIGINAL",
+
+        "DICT_APRILTAG_16H5",
+        "DICT_APRILTAG_25H9",
+        "DICT_APRILTAG_36H10",
+        "DICT_APRILTAG_36H11"
+      ]
+    }
+  }
+}

@@ -4,7 +4,7 @@ A comprehensive collection of Python foundation utilities designed to extend the
 
 ## Features
 
-### 🔧 CLI Transaction Management (`foundationCLIHelpers`)
+### 🔧 CLI Transaction Management (`foundation_tools.cli_transaction`)
 - **Synchronous & Asynchronous execution** - Run shell commands with both sync and async support
 - **Timeout handling** - Built-in timeout management for long-running commands
 - **Success validation** - Optional success string validation for command output
@@ -19,8 +19,12 @@ A comprehensive collection of Python foundation utilities designed to extend the
   - `GeoCoordinate` - Geographical coordinate handling
   - `DiskUsage` - Parse and structure `df` command output
   - `ModelContextProtocol` - Protocol for model context management
+- **Mathematical data types** (`mathTypes`):
+  - `UnitSphericalSmallCircle` - Small circles on unit spheres using spherical coordinates
+  - `UnitSphericalArc` - Arcs on unit spheres with orientation and arc length
+  - `QuaternionType` - Abstract base class for quaternion representations (3D rotations)
 
-### 🧮 Mathematical Utilities (`foundationMath`)
+### 🧮 Mathematical Utilities (`foundation_math`)
 - **Clamping functions** - Constrain values within specified bounds with validation
 - **Pure Python implementation** - No external mathematical dependencies
 
@@ -34,27 +38,27 @@ pip install pyFoundationTools
 
 ### CLI Operations
 ```python
-from foundationCLIHelpers.cliTransact import CLITransact
+from foundation_tools.cli_transaction.cliTransact import CLITransact
 
-# Basic command execution
-cli = CLITransact()
-result = cli.run_sync("ls -la")
+# Basic command execution (stateless classmethods)
+result = CLITransact.run_sync("ls -la")
 if result.success:
     print(result.stdout)
 
-# With success validation
-cli = CLITransact(success_string="deployment complete")
-result = cli.run_sync("./deploy.sh")
+# With success validation (per-call marker)
+result = CLITransact.run_sync("./deploy.sh", success_marker="deployment complete")
 
 # Async execution with timeout
 import asyncio
 async def main():
-    result = await cli.run_async(["python", "script.py"], timeout=30)
+    result = await CLITransact.run_async(["python", "script.py"], timeout=30)
     return result
 
-# Parse command output into structured data
-from foundationTypes.commonTypes.DiskUsage import DiskUsage
-result = cli.run_sync_with_model("df -h", DiskUsage.from_df_output)
+# Parse command output into structured data — DiskUsage declares its own
+# wire_invoke (["df", "-h"]), so the model class alone runs the command and
+# parses it via DiskUsage.from_wire
+from foundationTypes.commonTypes.disk_usage.DiskUsage import DiskUsage
+result = CLITransact.run_sync_with_model(DiskUsage)
 if result.success and result.model:
     for entry in result.model.entries:
         print(f"{entry.filesystem}: {entry.use_percent} used")
@@ -62,7 +66,7 @@ if result.success and result.model:
 
 ### Data Model Management
 ```python
-from foundationTypes.dataModelHelper import DataModelHelper
+from foundationTypes.data_model_helper import DataModelHelper
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 from pathlib import Path
 import json
@@ -78,11 +82,42 @@ print(f"Location: {loaded_coord.latitude}, {loaded_coord.longitude}")
 
 ### Mathematical Utilities
 ```python
-from foundationMath.math import clamp
+from foundation_math.math import clamp
 
 # Constrain values within bounds
 value = clamp(150, 0, 100)  # Returns 100
 safe_percentage = clamp(user_input, 0.0, 100.0)
+```
+
+### Mathematical Data Types
+```python
+import math
+from foundationTypes.mathTypes.UnitSphericalSmallCircle import UnitSphericalSmallCircle
+from foundationTypes.mathTypes.UnitSphericalArc import UnitSphericalArc
+from foundationTypes.mathTypes.QuaternionType import QuaternionType
+
+# Create a small circle on a unit sphere
+circle = UnitSphericalSmallCircle(
+    azimuth=0.0,              # Longitudinal position (0 to 2*pi)
+    polar=math.pi / 4,        # Latitudinal position (-pi/2 to pi/2)
+    radius_angle=math.pi / 6  # Angular radius
+)
+
+# Serialize to JSON
+circle_dict = circle.to_dict()
+# Save to file
+circle.saveToFile(Path("circle.json"))
+
+# Create an arc on a unit sphere
+arc = UnitSphericalArc(
+    arc_length=math.pi / 2,  # Arc length in radians
+    azimuth=math.pi / 4,     # Starting longitudinal position
+    orient=0.0,              # Rotational orientation
+    polar=0.0                # Starting latitudinal position
+)
+
+# Use QuaternionType as base for custom quaternion implementations
+# (Subclass and implement the abstract methods)
 ```
 
 ## Development Workflows
@@ -99,9 +134,9 @@ make e             # Install package in editable mode
 ```bash
 make test          # Run tests in current environment
 make testInEnv     # Run tests in isolated virtual environment
-make fullCheck     # Run complete quality checks (lint + typecheck + test)
+make uv-fullCheck  # Run complete quality checks (lint + typecheck + test)
 make lint          # Run pylint on source code
-make typecheck     # Run mypy type checking
+make uv-typecheck  # Run mypy type checking
 make format        # Format code with black
 ```
 

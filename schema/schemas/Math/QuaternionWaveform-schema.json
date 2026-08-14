@@ -1,0 +1,25 @@
+{
+  "id": "http://json-schema.org/quaternion-waveform",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "QuaternionWaveformType",
+  "description": "A uniformly-sampled time series of quaternion orientations, anchored at a start timestamp and sampled at a fixed interval.",
+  "type": "object",
+  "required": ["quaternions", "t0", "dt"],
+  "properties": {
+    "quaternions": {
+      "description": "The uniformly-sampled orientation values, in chronological order.",
+      "type": "array",
+      "items": {
+        "$ref": "Quaternion-schema.json"
+      }
+    },
+    "t0": {
+      "description": "The timestamp of the first sample.",
+      "$ref": "PrecisionTimestamp-schema.json"
+    },
+    "dt": {
+      "description": "The fixed interval between consecutive samples.",
+      "$ref": "PrecisionTimeInterval-schema.json"
+    }
+  }
+}

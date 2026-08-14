@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "StandardizedLoggerConfig",
+  "description": "Configuration object for initializing an AutomationLogger. Defines output destinations, formatting modes, and log level behavior.",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique logger identifier used as the logging namespace and tag across all outputs."
+    },
+
+    "log_level": {
+      "type": "string",
+      "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+      "default": "INFO",
+      "description": "Minimum severity level that will be emitted. Log events below this threshold are ignored."
+    },
+
+    "log_dir": {
+      "type": "string",
+      "description": "Base filesystem directory for writing persistent, date-rolling log files. Enables file logging when set."
+    },
+
+    "rotation_days": {
+      "type": "integer",
+      "default": 1,
+      "description": "Number of UTC calendar days before a new log file is created. Rotation occurs at day boundaries."
+    },
+
+    "console_pretty": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enables human-readable log output to standard error for interactive and development use."
+    },
+
+    "console_level_icons": {
+      "type": "boolean",
+      "default": false,
+      "description": "Adds visual severity indicators to console logs. Applies only to human-readable output."
+    }
+  }
+}

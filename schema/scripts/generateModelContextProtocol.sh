@@ -1,70 +1,250 @@
 #!/bin/bash
 
-# === Input Schemas ===
+set -euo pipefail
+
+# =============================================================================
+# Generate UnitSphericalArc Python types from JSON Schema.
+# =============================================================================
+
+# === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/ModelContextProtocolTypes-schema.json"
-  "schema/schemas/MCP/ModelContextProtocol-2025-06-18-schema.json"
+    "schema/schemas/ModelContextProtocolTypes-schema.json"
+    "schema/schemas/MCP/ModelContextProtocol-2025-06-18-schema.json"
 )
 
-# === Output Directory ===
-OUTPUT_PYTHON_FILE="src/foundationTypes/commonTypes/ModelContextProtocol.py"
+# === Classes that should inherit from DataModelHelper ===
+CLASSES_FOR_BASE_PARENT=(
+    "Action"
+    "AmbitiousMeta"
+    "Argument"
+    "Audiocontent"
+    "AudiocontentAnnotations"
+    "AudiocontentType"
+    "Basemetadata"
+    "Blobresourcecontents"
+    "BooleanschemaClass"
+    "BooleanschemaType"
+    "BraggadociousMeta"
+    "Calltoolrequest"
+    "CalltoolrequestMethod"
+    "CalltoolrequestParams"
+    "Calltoolresult"
+    "Cancellednotification"
+    "CancellednotificationMethod"
+    "CancellednotificationParams"
+    "Capabilities"
+    "Clientcapabilities"
+    "ClientcapabilitiesElicitation"
+    "ClientcapabilitiesSampling"
+    "ClientcapabilitiesTasks"
+    "ClientInfo"
+    "Clientnotification"
+    "ClientnotificationMethod"
+    "ClientnotificationParams"
+    "Clientrequest"
+    "ClientrequestMethod"
+    "ClientrequestParams"
+    "Clientresult"
+    "CompleterequestClass"
+    "CompleterequestMethod"
+    "CompleterequestParams"
+    "Completeresult"
+    "Completion"
+    "ContentblockElement"
+    "ContentblockType"
+    "ContentElement"
+    "Context"
+    "Createmessagerequest"
+    "CreatemessagerequestMethod"
+    "CreatemessagerequestParams"
+    "CreatemessageresultClass"
+    "CunningMeta"
+    "Elicitrequest"
+    "ElicitrequestMethod"
+    "ElicitrequestParams"
+    "ElicitresultClass"
+    "EmbeddedresourceClass"
+    "EmbeddedresourceType"
+    "EmptyresultClass"
+    "EnumschemaClass"
+    "EnumschemaType"
+    "Error"
+    "Execution"
+    "FluffyMeta"
+    "FluffyModelContextProtocol20250618_Schema"
+    "FluffyRequests"
+    "Format"
+    "FriskyMeta"
+    "GetpromptrequestClass"
+    "GetpromptrequestMethod"
+    "GetpromptrequestParams"
+    "Getpromptresult"
+    "HilariousMeta"
+    "IconElement"
+    "ImagecontentClass"
+    "ImagecontentType"
+    "IncludeContext"
+    "IndecentMeta"
+    "IndigoMeta"
+    "InitializednotificationClass"
+    "InitializednotificationMethod"
+    "InitializednotificationParams"
+    "InitializerequestClass"
+    "InitializerequestMethod"
+    "InitializerequestParams"
+    "Initializeresult"
+    "InputSchema"
+    "InputSchemaType"
+    "Items"
+    "ItemsType"
+    "Jsonrpc"
+    "Jsonrpcerror"
+    "Jsonrpcmessage"
+    "JsonrpcnotificationClass"
+    "JsonrpcrequestClass"
+    "Jsonrpcresponse"
+    "Level"
+    "ListpromptsrequestClass"
+    "ListpromptsrequestMethod"
+    "ListpromptsrequestParams"
+    "Listpromptsresult"
+    "ListresourcesrequestClass"
+    "ListresourcesrequestMethod"
+    "Listresourcesresult"
+    "ListresourcetemplatesrequestClass"
+    "ListresourcetemplatesrequestMethod"
+    "Listresourcetemplatesresult"
+    "Listrootsrequest"
+    "ListrootsrequestMethod"
+    "ListrootsrequestParams"
+    "ListrootsresultClass"
+    "ListtoolsrequestClass"
+    "ListtoolsrequestMethod"
+    "Listtoolsresult"
+    "Loggingmessagenotification"
+    "LoggingmessagenotificationMethod"
+    "LoggingmessagenotificationParams"
+    "MagentaMeta"
+    "Meta1"
+    "MischievousMeta"
+    "ModelContextProtocolTypesSchema"
+    "ModelhintElement"
+    "ModelpreferencesClass"
+    "Notification"
+    "NumberschemaClass"
+    "NumberschemaType"
+    "OneOf"
+    "OutputSchema"
+    "Paginatedrequest"
+    "Paginatedresult"
+    "ParamsMode"
+    "PingrequestClass"
+    "PingrequestMethod"
+    "PrimitiveschemadefinitionType"
+    "PrimitiveschemadefinitionValue"
+    "ProgressnotificationClass"
+    "ProgressnotificationMethod"
+    "ProgressnotificationParams"
+    "PromptargumentElement"
+    "PromptElement"
+    "Promptlistchangednotification"
+    "PromptlistchangednotificationMethod"
+    "PromptmessageElement"
+    "PromptreferenceClass"
+    "PromptreferenceType"
+    "Prompts"
+    "PurpleMeta"
+    "PurpleModelContextProtocol20250618_Schema"
+    "PurpleRequests"
+    "PurpleType"
+    "ReadresourcerequestClass"
+    "ReadresourcerequestMethod"
+    "ReadresourcerequestParams"
+    "Readresourceresult"
+    "Ref"
+    "RefType"
+    "Request"
+    "RequestedSchema"
+    "RequestsElicitation"
+    "RequestsSampling"
+    "RequestsTools"
+    "Resource"
+    "Resourcecontents"
+    "ResourceElement"
+    "ResourcelinkClass"
+    "ResourcelinkType"
+    "Resourcelistchangednotification"
+    "ResourcelistchangednotificationMethod"
+    "Resources"
+    "ResourcetemplateElement"
+    "ResourcetemplatereferenceClass"
+    "ResourcetemplatereferenceType"
+    "Resourceupdatednotification"
+    "ResourceupdatednotificationMethod"
+    "ResourceupdatednotificationParams"
+    "RoleElement"
+    "RootElement"
+    "Roots"
+    "RootslistchangednotificationClass"
+    "RootslistchangednotificationMethod"
+    "SamplingmessageElement"
+    "ServercapabilitiesTasks"
+    "ServercapabilitiesTools"
+    "Servernotification"
+    "ServernotificationMethod"
+    "ServernotificationParams"
+    "Serverrequest"
+    "ServerrequestMethod"
+    "ServerrequestParams"
+    "Serverresult"
+    "SetlevelrequestClass"
+    "SetlevelrequestMethod"
+    "SetlevelrequestParams"
+    "Status"
+    "StickyMeta"
+    "StringschemaClass"
+    "SubscriberequestClass"
+    "SubscriberequestMethod"
+    "SubscriberequestParams"
+    "Task"
+    "TaskElement"
+    "TaskSupport"
+    "TentacledMeta"
+    "TextcontentClass"
+    "TextcontentType"
+    "TextresourcecontentsClass"
+    "Theme"
+    "ToolannotationsClass"
+    "ToolChoice"
+    "ToolChoiceMode"
+    "ToolElement"
+    "ToollistchangednotificationClass"
+    "ToollistchangednotificationMethod"
+    "UnsubscriberequestClass"
+    "UnsubscriberequestMethod"
+    "UnsubscriberequestParams"
+    "AnyOf"
+)
 
-# === Quicktype Arguements ===
+# === Output (relative to src/foundationTypes) ===
+OUTPUT_PYTHON_REL="commonTypes/ModelContextProtocol.py"
+
+# === quicktype target. quicktype only emits up to 3.7; modern typing is
+#     restored afterwards by run_ruff (UP rules) + fix_to_dict_return_type. ===
 PYTHON_VERSION="3.7"
 
-echo "Attempting to generate python types: $OUTPUT_PYTHON_FILE"
-echo "    from schemas: $INPUT_SCHEMA_FILES"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-setup_and_run_quicktype() {
-  # === Setting up correct Directory for script to operate ===
-  # Get the directory where this script is located and CD to root of project
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  cd "$SCRIPT_DIR" || return 1
-  cd ../.. || return 1
-  echo "DataModel generation directory running from: $(pwd)"
-  
-  quicktype -v
-}
+source "$SCRIPT_DIR/reuse/codegen.sh"
+source "$SCRIPT_DIR/reuse/add_datamodelhelper.sh"
 
-run_quicktype() {
-    # Run quicktype
-    quicktype \
-    --lang py \
-    --src-lang schema \
-    --python-version "$PYTHON_VERSION" \
-    --out "$OUTPUT_PYTHON_FILE" \
-    --telemetry disable \
-    --no-pydantic-base-model \
-    "${INPUT_SCHEMA_FILES[@]}"
+echo "Generating Python types: $OUTPUT_PYTHON_FILE"
+echo "    from schemas: ${INPUT_SCHEMA_FILES[*]}"
 
-    echo "✅ Generated: $output_file"
-
-    echo "🎉 All specified schemas have been converted to Python classes."
-}
-
-add_base_class() {
-    local file="$1"
-    local base_class="DataModelHelper"
-
-    sed -i '' '/^from dataclasses import dataclass$/a\
-from foundationTypes.dataModelHelper import DataModelHelper
-    ' "$file"
-
-    if sed --version >/dev/null 2>&1; then
-        # GNU sed (Linux)
-        sed -i "s/^class \([A-Za-z0-9_]*\):$/class \1($base_class):/" "$file"
-    else
-        # BSD sed (macOS)
-        sed -i '' "s/^class \([A-Za-z0-9_]*\):$/class \1($base_class):/" "$file"
-    fi
-}
-
-run_black() {
-    black "$OUTPUT_PYTHON_FILE"
-}
-
-
-setup_and_run_quicktype
+setup_quicktype
 run_quicktype
-add_base_class "$OUTPUT_PYTHON_FILE"
-run_black
+add_base_class "$OUTPUT_PYTHON_FILE" "${CLASSES_FOR_BASE_PARENT[@]}"
+add_helper_imports "$OUTPUT_PYTHON_FILE"
+add_autogen_header "$OUTPUT_PYTHON_FILE"
+run_ruff "$OUTPUT_PYTHON_FILE"
+ensure_py_typed "$OUTPUT_PYTHON_FILE"

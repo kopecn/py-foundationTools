@@ -1,0 +1,25 @@
+{
+  "id": "http://json-schema.org/scalar-waveform",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "ScalarWaveformType",
+  "description": "A uniformly-sampled time series of a single scalar signal, anchored at a start timestamp and sampled at a fixed interval.",
+  "type": "object",
+  "required": ["waveform", "t0", "dt"],
+  "properties": {
+    "waveform": {
+      "description": "The uniformly-sampled scalar values, in chronological order.",
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "t0": {
+      "description": "The timestamp of the first sample.",
+      "$ref": "PrecisionTimestamp-schema.json"
+    },
+    "dt": {
+      "description": "The fixed interval between consecutive samples.",
+      "$ref": "PrecisionTimeInterval-schema.json"
+    }
+  }
+}

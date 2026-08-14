@@ -1,7 +1,8 @@
-import unittest
 import math
-from foundationTypes.mathTypes.UnitSphericalArc import (
-    UnitSphericalArc,
+import unittest
+
+from foundationTypes.mathTypes.MathTypes import (
+    UnitSphericalArcType as UnitSphericalArc,
 )
 
 
@@ -13,7 +14,7 @@ class TestUnitSphericalArc(unittest.TestCase):
     for the UnitSphericalArc class.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures before each test method."""
         # Test data with various coordinate values
         self.short_arc = UnitSphericalArc(
@@ -24,7 +25,7 @@ class TestUnitSphericalArc(unittest.TestCase):
         )
         self.arbitrary_arc = UnitSphericalArc(arc_length=1.5, azimuth=2.0, orient=0.5, polar=0.8)
 
-    def test_from_dict_creates_valid_instance(self):
+    def test_from_dict_creates_valid_instance(self) -> None:
         """Test that from_dict creates a valid UnitSphericalArc instance."""
         test_data = {"arcLength": 1.0, "azimuth": 0.5, "orient": 0.2, "polar": 0.3}
         arc = UnitSphericalArc.from_dict(test_data)
@@ -35,7 +36,7 @@ class TestUnitSphericalArc(unittest.TestCase):
         self.assertEqual(arc.orient, 0.2)
         self.assertEqual(arc.polar, 0.3)
 
-    def test_to_dict_produces_correct_structure(self):
+    def test_to_dict_produces_correct_structure(self) -> None:
         """Test that to_dict produces the correct dictionary structure."""
         result = self.short_arc.to_dict()
 
@@ -49,7 +50,7 @@ class TestUnitSphericalArc(unittest.TestCase):
         self.assertEqual(result["orient"], 0.0)
         self.assertEqual(result["polar"], math.pi / 6)
 
-    def test_roundtrip_data_integrity(self):
+    def test_roundtrip_data_integrity(self) -> None:
         """Test that to_dict followed by from_dict preserves data."""
         test_arcs = [
             self.short_arc,
@@ -59,7 +60,9 @@ class TestUnitSphericalArc(unittest.TestCase):
             UnitSphericalArc(
                 arc_length=2 * math.pi, azimuth=2 * math.pi, orient=math.pi, polar=math.pi
             ),
-            UnitSphericalArc(arc_length=-math.pi, azimuth=math.pi, orient=-math.pi / 2, polar=math.pi / 2),
+            UnitSphericalArc(
+                arc_length=-math.pi, azimuth=math.pi, orient=-math.pi / 2, polar=math.pi / 2
+            ),
         ]
 
         for i, arc in enumerate(test_arcs):
@@ -76,22 +79,22 @@ class TestUnitSphericalArc(unittest.TestCase):
                 self.assertEqual(arc.orient, restored_arc.orient)
                 self.assertEqual(arc.polar, restored_arc.polar)
 
-    def test_from_dict_requires_all_fields(self):
+    def test_from_dict_requires_all_fields(self) -> None:
         """Test that from_dict requires all four fields."""
         incomplete_data = {"arcLength": 1.0, "azimuth": 0.5, "polar": 0.3}
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             UnitSphericalArc.from_dict(incomplete_data)
 
-    def test_from_dict_validates_types(self):
+    def test_from_dict_validates_types(self) -> None:
         """Test that from_dict validates numeric types."""
         # Test with invalid type (string instead of number)
         invalid_data = {"arcLength": "not a number", "azimuth": 0.5, "orient": 0.2, "polar": 0.3}
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             UnitSphericalArc.from_dict(invalid_data)
 
-    def test_from_dict_accepts_integers(self):
+    def test_from_dict_accepts_integers(self) -> None:
         """Test that from_dict accepts integers and converts to float."""
         test_data = {"arcLength": 1, "azimuth": 2, "orient": 0, "polar": 3}
         arc = UnitSphericalArc.from_dict(test_data)
@@ -105,7 +108,7 @@ class TestUnitSphericalArc(unittest.TestCase):
         self.assertEqual(arc.orient, 0.0)
         self.assertEqual(arc.polar, 3.0)
 
-    def test_to_dict_preserves_numeric_types(self):
+    def test_to_dict_preserves_numeric_types(self) -> None:
         """Test that to_dict preserves numeric types correctly."""
         arc = UnitSphericalArc(arc_length=1.5, azimuth=2.5, orient=0.5, polar=3.5)
         result = arc.to_dict()

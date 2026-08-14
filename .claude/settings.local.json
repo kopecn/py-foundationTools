@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format *)",
+      "Bash(ty check *)",
+      "Bash(mypy src/*)",
+      "Bash(mypy tests/*)",
+      "Bash(mypy examples/*)",
+      "Bash(pylint src/*)",
+      "Bash(pylint tests/*)",
+      "Bash(pylint examples/*)",
+      "Bash(bash schema/scripts/*)",
+      "Bash(bash scripts/*)",
+      "Bash(grep * schema/*)",
+      "Bash(sed -i '' 's#/definitions/#/$defs/#g' schema/schemas/ModelContextProtocolTypes-schema.json)",
+      "Bash(grep -rn ': Any$' src/*)",
+      "Bash(make:*)",
+      "Read(//Users/nbergantz/__Workspaces__/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

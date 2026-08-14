@@ -1,0 +1,25 @@
+{
+  "id": "http://json-schema.org/precision-time-interval",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PrecisionTimeIntervalType",
+  "description": "A time interval with attosecond precision. Stores seconds and attoseconds as unsigned integers with an explicit sign, avoiding floating-point precision loss over large spans.",
+  "type": "object",
+  "required": ["seconds", "attoseconds", "sign"],
+  "properties": {
+    "seconds": {
+      "description": "The whole-seconds component of the interval (unsigned).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "attoseconds": {
+      "description": "The sub-second component in attoseconds (10^-18 s). Valid range: 0 to 999_999_999_999_999_999.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 999999999999999999
+    },
+    "sign": {
+      "description": "The sign of the time interval.",
+      "$ref": "NumericSign-schema.json"
+    }
+  }
+}

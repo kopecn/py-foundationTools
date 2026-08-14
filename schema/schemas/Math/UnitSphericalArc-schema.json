@@ -1,6 +1,7 @@
 {
-  "id": "http://json-schema.org/geo",
+  "id": "http://json-schema.org/unit-spherical-arc",
   "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "UnitSphericalArcType",
   "description": "Represents an arc on a unit sphere in spherical coordinates using physics convention.  This arc is formed by a spherical reference point and then projected from that start point along the unit circle for the length of the arc in radians.",
   "type": "object",
   "required": ["polar", "azimuth","arcLength","orient"],
@@ -18,7 +19,7 @@
       "type": "number"
     },
     "polar": {
-      "description": "Polar angle in radians (-pi/2 to pi/2).  Represents the latitudinal position, where 0 is the equator,  pi/2 is the north pole, and -pi/2 is the south pole.",
+      "description": "Polar angle (colatitude/zenith angle) in radians (0 to pi), measured from the positive z-axis following ISO 80000-2:2019 physics convention. 0 is the north pole (+z axis), pi/2 is the equator (xy-plane), and pi is the south pole (-z axis).",
       "type": "number"
     }
   }

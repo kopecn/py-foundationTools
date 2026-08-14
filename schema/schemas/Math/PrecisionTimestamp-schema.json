@@ -1,0 +1,38 @@
+{
+  "id": "http://json-schema.org/precision-timestamp",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PrecisionTimestampType",
+  "description": "An absolute timestamp with attosecond precision. Stores seconds and attoseconds as unsigned integers with an explicit sign. Optionally carries a timescale, reference frame, and measurement uncertainty (in attoseconds).",
+  "type": "object",
+  "required": ["seconds", "attoseconds", "sign"],
+  "properties": {
+    "seconds": {
+      "description": "The whole-seconds component of the timestamp (unsigned).",
+      "type": "integer",
+      "minimum": 0
+    },
+    "attoseconds": {
+      "description": "The sub-second component in attoseconds (10^-18 s). Valid range: 0 to 999_999_999_999_999_999.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 999999999999999999
+    },
+    "sign": {
+      "description": "The sign of the timestamp.",
+      "$ref": "NumericSign-schema.json"
+    },
+    "timescale": {
+      "description": "The timescale of the timestamp (e.g. 'TAI', 'UTC', 'GPS').",
+      "$ref": "Timescale-schema.json"
+    },
+    "referenceFrame": {
+      "description": "The reference frame for the timestamp (e.g. 'EarthCenter', 'SolarSystemBarycenter').",
+      "$ref": "ReferenceFrame-schema.json"
+    },
+    "uncertainty": {
+      "description": "The measurement uncertainty of the timestamp, expressed as a non-negative magnitude in attoseconds (10^-18 s).",
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

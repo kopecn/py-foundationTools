@@ -1,0 +1,25 @@
+{
+  "id": "http://json-schema.org/position-waveform",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PositionWaveformType",
+  "description": "A uniformly-sampled time series of 3D Cartesian positions, anchored at a start timestamp and sampled at a fixed interval.",
+  "type": "object",
+  "required": ["positions", "t0", "dt"],
+  "properties": {
+    "positions": {
+      "description": "The uniformly-sampled position values, in chronological order.",
+      "type": "array",
+      "items": {
+        "$ref": "Position-schema.json"
+      }
+    },
+    "t0": {
+      "description": "The timestamp of the first sample.",
+      "$ref": "PrecisionTimestamp-schema.json"
+    },
+    "dt": {
+      "description": "The fixed interval between consecutive samples.",
+      "$ref": "PrecisionTimeInterval-schema.json"
+    }
+  }
+}

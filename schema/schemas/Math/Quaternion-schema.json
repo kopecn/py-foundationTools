@@ -1,0 +1,26 @@
+{
+  "id": "http://json-schema.org/quaternion",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "QuaternionType",
+  "description": "A quaternion representation of a 3D rotation: a scalar (real) part w and a vector (imaginary) part x, y, z. The schema does not enforce unit length; normalization is the concern of the downstream math implementation.",
+  "type": "object",
+  "required": ["w", "x", "y", "z"],
+  "properties": {
+    "w": {
+      "description": "The scalar (real) component of the quaternion.",
+      "type": "number"
+    },
+    "x": {
+      "description": "The x component of the quaternion's vector (imaginary) part.",
+      "type": "number"
+    },
+    "y": {
+      "description": "The y component of the quaternion's vector (imaginary) part.",
+      "type": "number"
+    },
+    "z": {
+      "description": "The z component of the quaternion's vector (imaginary) part.",
+      "type": "number"
+    }
+  }
+}
