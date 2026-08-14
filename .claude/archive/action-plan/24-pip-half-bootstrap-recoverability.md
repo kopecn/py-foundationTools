@@ -1,8 +1,8 @@
 ---
-last_updated: 2026-08-10
-semver: 0.0.4
+last_updated: 2026-08-14
+semver: 0.1.0
 author: Nicholas Bergantz
-status: active
+status: complete
 ---
 
 # Plan 24 — pip-half bootstrap & recoverability
@@ -420,3 +420,36 @@ with it.
 track B with the identical gap. Executing it there will re-open the same
 opportunity to guess. Either pin "3.12" into track B's text before running it,
 or check that comment specifically afterwards.
+
+---
+
+## Closing note — 2026-08-14
+
+**Closed complete for py-foundationTools.** Verified firsthand at close: `nuke`
+exclusions + `freeze.py:12-20` citation + inverse echo (`Makefile:515-529`),
+`pip-bootstrap` (`:403-410`), `check-pip` asserting `ensurepip` only per D5
+(`:438-443`) wired solely into `cleanRoomBootstrap` (`:453`), uv-routed
+`build`/`validateBuild`/`release-test` with `check-uv` prereqs (`:478-488`),
+clean room installing `requirements.txt` before a non-editable `".[dev]"`
+(`:456-459`). All four version claims in the Makefile say 3.12. `make nuke;
+make testInEnv` runs clean. No out-of-scope additions found.
+
+It closes with unticked boxes on purpose:
+
+- **Tracks A–D landed here** via G1, but their headings still read
+  "py-cookiecut, both halves", so the boxes were never this repo's to tick.
+- **Tracks E, F and D4's mirror scope are descoped.** Carrying py-cookiecut and
+  py-MathTools in this plan was a mistake; this plan is py-foundationTools only.
+  The state of those repos is their own concern.
+
+**Known and deferred (documentation only):**
+`docs/FAs/2026-07-28-pip-install-editable-fails-clean-environment.md:153-156`
+still describes the pre-D5 `check-pip` (`pip --version` +
+`setuptools.build_meta`) rather than the shipped `ensurepip`-only guard. Left
+as-is; raise a new plan if it misleads someone.
+
+**Caveat on track A's proof:** the 2026-08-14 `make nuke` run was vacuous — the
+ambient interpreter (3.13.5) had no `setuptools`, so the exclusion had nothing
+to protect. A1 remains proven by the E10 round trip of 2026-08-10. To re-prove
+it, run `make pip-bootstrap` first, then `nuke`, then check
+`python3 -c "import setuptools.build_meta"` still succeeds.
