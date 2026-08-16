@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `foundation_tools` package — the transaction/transport stack: `CLITransact` kernel, `SSHTransact`, `RsyncTransact`, command builders (`ssh_builder`, `rsync_builder`), execution policies (`retry_policy`, `backoff_policy`), and the asyncio socket family (`socket_byte_transport`, `framing_codecs`, `transaction_router`, `socketTransact`, `socketTransactServer`).
 - `StandardizedLogger` (`foundation_tools/standardized_logger.py`) — JSON/pretty stderr handler plus optional date-rolling JSON file handler, built from the schema-generated `StandardizedLoggerConfig` model.
 - `foundation_abc` package — `PeripheralByteTransport` ABC for async byte-only device transports, and the stdlib-only Math-domain `XxxxLike` ABCs (`spatialABCs`, `sphericalABCs`, `waveformABCs`, `precisionTimeABC`) with their `mathEnums`.
-- `foundation_physics.constants.thermodynamics` — SI physical constants with explicit provenance notes.
+- `foundation_science.constants` — SI physical constants as `Constant` floats carrying unit, standard uncertainty (k=1), distribution, and provenance.
 - Wire-protocol layer on `DataModelHelper`: `to_wire`/`from_wire`, the `wire_encode`/`wire_decode`/`wire_invoke` ClassVars, `to_bytes`/`from_bytes`, and `from_env`/`_env_mapping` environment-backed construction.
 - Math type tier: `Position`, `Quaternion`, `SpatialTransform`, `ReferenceFrame`, `PrecisionTimestamp`, `PrecisionTimeInterval`, `Timescale`, `NumericSign`, and the waveform variants — all schema-generated into `foundationTypes/mathTypes/MathTypes.py`.
 - ChArUco computer-vision types (`foundationTypes/cvTypes/ChArUcoConfig.py`) from new `schema/schemas/ComputerVisions/` schemas.
