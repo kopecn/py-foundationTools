@@ -28,12 +28,13 @@ Linting/formatting is **ruff** (line-length 100, double quotes; rule set E/F/I/U
 
 ## Package Architecture
 
-Source uses a `src/` layout with **four independently-importable top-level packages** (not nested under one namespace, auto-discovered by setuptools under `package-dir = {"" = "src"}`). `pyFoundationTools` is the distribution name in `pyproject.toml`, not a package directory.
+Source uses a `src/` layout with **five independently-importable top-level packages** (not nested under one namespace, auto-discovered by setuptools under `package-dir = {"" = "src"}`). `pyFoundationTools` is the distribution name in `pyproject.toml`, not a package directory.
 
 - `foundationTypes` — data models + the serialization base class (the heart of the library)
 - `foundation_math` — pure-Python math utilities (e.g. `clamp`)
 - `foundation_abc` — abstract base interfaces shared across device/transport implementations; `foundation_abc/math/` holds the stdlib-only Math-domain `XxxxLike` ABCs (`spatialABCs.py`, `sphericalABCs.py`, `waveformABCs.py`, `precisionTimeABC.py`) plus their `mathEnums.py` enums — see [`.claude/specs/mathTypeTiers.md`](specs/mathTypeTiers.md)
-- `foundation_tools` — runtime utilities: the structured logger plus the full transaction/transport stack (`cli_transaction/`, `builders/`, `policies/`, `socket_transaction/`, all implemented) per [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md)
+- `foundation_tools` — runtime utilities: the structured logger, the filesystem/path helpers in `file_tools/` (`expand_glob_patterns` and its `DEFAULT_EXTENSIONS`/`ANY_EXTENSION`/`DEFAULT_EXCLUDED_PATTERNS` defaults — no dedicated spec), plus the full transaction/transport stack (`cli_transaction/`, `builders/`, `policies/`, `socket_transaction/`, all implemented) per [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md)
+- `foundation_physics` — SI physical constants with explicit provenance notes (`foundation_physics/constants/thermodynamics.py`: dry-air gas/specific-heat properties, ISA sea-level reference conditions, `G0`, `R_UNIVERSAL`, Jet-A fuel properties). Values only, no functions; no dedicated spec
 
 Import paths are the package name directly, e.g. `from foundationTypes.data_model_helper import DataModelHelper`, **not** `from pyFoundationTools.foundationTypes...`.
 
@@ -50,7 +51,7 @@ The full contract for this class is specified in [`.claude/specs/dataModelHelper
 
 ### Schema-driven model generation (do not hand-edit generated models)
 
-Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, and `foundationTypes/standardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
+Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, `foundationTypes/cvTypes/`, and `foundationTypes/standardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
 
 1. JSON Schema in `schema/schemas/`
 2. A per-model shell script in `schema/scripts/` (e.g. `generateGeoCoordinate.sh`) runs `quicktype` (`--lang py --src-lang schema --no-pydantic-base-model`), then `sed`-injects the `DataModelHelper` base class and import, then formats.
@@ -68,7 +69,7 @@ The full codegen contract — the golden script template (`generateDiskUsage.sh`
 
 The full behavioral contract — the stateless classmethod surface, execution-mode selection, semantic success evaluation, total exception containment, the corrected async timeout escalation (`terminate → kill`), the model-extension layer, and the formalized "learned behaviors" — is specified in [`.claude/specs/cliTransact.md`](specs/cliTransact.md). The CLITransact kernel and all sibling layers (`SSHTransact`, `RsyncTransact`, retry/backoff) are implemented. Consult the spec before extending the module.
 
-The kernel is Layer 1 of the umbrella [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md), which defines the full 4-layer stack (kernel → command builders → execution policies → transport transactions), the policy-ownership rule, the public-surface rule, and the `DataModelHelper` wire-serialization bridge. Sibling contracts, all implemented: [`.claude/specs/sshTransact.md`](specs/sshTransact.md), [`.claude/specs/rsyncTransact.md`](specs/rsyncTransact.md) (rsync command construction, SSH transport injection, option precedence, Windows/MSYS2 preset), and the asyncio socket family [`.claude/specs/socketTransact.md`](specs/socketTransact.md) (client `SocketTransact` and server `SocketTransactServer`). Consult the relevant spec before extending any of them; the step-by-step build is decomposed in `.claude/action-plan/`.
+The kernel is Layer 1 of the umbrella [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md), which defines the full 4-layer stack (kernel → command builders → execution policies → transport transactions), the policy-ownership rule, the public-surface rule, and the `DataModelHelper` wire-serialization bridge. Sibling contracts, all implemented: [`.claude/specs/sshTransact.md`](specs/sshTransact.md), [`.claude/specs/rsyncTransact.md`](specs/rsyncTransact.md) (rsync command construction, SSH transport injection, option precedence, Windows/MSYS2 preset), and the asyncio socket family [`.claude/specs/socketTransact.md`](specs/socketTransact.md) (client `SocketTransact` and server `SocketTransactServer`). Consult the relevant spec before extending any of them; the step-by-step build that produced it is archived in `.claude/archive/action-plan/`.
 
 ### PeripheralByteTransport ABC
 

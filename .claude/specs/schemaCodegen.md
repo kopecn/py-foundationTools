@@ -2,9 +2,9 @@
 spec: SchemaCodegen
 scope: project
 status: implemented
-applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/standardizedLoggerConfig/
-last_updated: 2026-07-09
-semver: 0.1.0
+applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/cvTypes/, src/foundationTypes/standardizedLoggerConfig/
+last_updated: 2026-08-15
+semver: 0.1.1
 author: Nicholas Bergantz
 ---
 
@@ -149,7 +149,9 @@ wire behavior stay flat (a single generated `.py`, no subfolder).
 ## Authoring Schemas
 
 - Place schemas under `schema/schemas/` (grouped by domain subfolder, e.g. `Math/`,
-  `MCP/`). The schema filename and `title`/class name drive the generated class name.
+  `MCP/`, `ComputerVisions/`), targeting the matching package under
+  `src/foundationTypes/` (`mathTypes/`, `commonTypes/`, `cvTypes/`,
+  `standardizedLoggerConfig/`). The schema filename and `title`/class name drive the generated class name.
 - Keep schemas **self-contained** — avoid cross-domain `$ref`; duplicate shared fields
   rather than coupling domains.
 - **Skip discriminated unions** — quicktype cannot represent them in its dataclass
@@ -158,7 +160,12 @@ wire behavior stay flat (a single generated `.py`, no subfolder).
 ## Running Codegen
 
 `make codegen-all` auto-discovers and runs every `schema/scripts/*.sh` in one pass.
-One schema → one script → one generated module. After all scripts run, it applies a
+One script → one generated module, fed by **one or more** schemas: `INPUT_SCHEMA_FILES`
+is an array, and a script SHALL list every schema its module needs
+(`generateChArUcoConfig.sh` takes the three `ComputerVisions/` schemas,
+`generateModelContextProtocol.sh` takes two, `generateMathTypes.sh` takes the whole
+`Math/` domain). Splitting one module's schemas across several scripts is not a
+supported shape — the module is the unit a script owns. After all scripts run, it applies a
 **fleet-wide normalization sweep** (`normalize_generated.sh` over `_PYTHON_TYPES_BASE`)
 so contract rewrites reach every generated model — including output from
 non-conforming or future scripts that bypass the shared `run_ruff` pipeline. This is a
