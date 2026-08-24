@@ -1,0 +1,62 @@
+{
+  "_note": "Parked coordinates for layouts whose content block types (metric, table) are not renderable in tier 1 (see R7 in presentationSchema.md). Not consumed by any tier-1 code path; kept so the geometry is not lost when tier 2 gives these block types typed payloads.",
+  "layouts": [
+    {
+      "id": "metric-and-body",
+      "name": "Metric + Body",
+      "description": "Large metric area with supporting narrative.",
+      "regions": [
+        {
+          "id": "title",
+          "type": "title",
+          "x": 80,
+          "y": 70,
+          "width": 1760,
+          "height": 70,
+          "fontSize": 40
+        },
+        {
+          "id": "metric",
+          "type": "metric",
+          "x": 100,
+          "y": 220,
+          "width": 520,
+          "height": 400,
+          "fontSize": 72
+        },
+        {
+          "id": "body",
+          "type": "body",
+          "x": 700,
+          "y": 200,
+          "width": 1120,
+          "height": 650
+        }
+      ]
+    },
+    {
+      "id": "table",
+      "name": "Table",
+      "description": "Title plus large table region.",
+      "regions": [
+        {
+          "id": "title",
+          "type": "title",
+          "x": 80,
+          "y": 70,
+          "width": 1760,
+          "height": 70,
+          "fontSize": 40
+        },
+        {
+          "id": "table",
+          "type": "table",
+          "x": 100,
+          "y": 180,
+          "width": 1720,
+          "height": 760
+        }
+      ]
+    }
+  ]
+}

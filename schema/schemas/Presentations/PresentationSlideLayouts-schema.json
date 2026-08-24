@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PresentationSlideLayouts",
+  "description": "Reusable slide layout definitions describing title, body, columns, metrics, and supporting regions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "defaults",
+    "layouts"
+  ],
+  "properties": {
+    "defaults": {
+      "$ref": "#/definitions/layoutDefaults",
+      "description": "Canvas geometry and per-region-type defaults shared by every layout."
+    },
+    "layouts": {
+      "type": "array",
+      "description": "The reusable slide layout library.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/slideLayout"
+      }
+    }
+  },
+  "definitions": {
+    "themeColorRef": {
+      "type": "string",
+      "description": "Address of a color in PresentationColorTheme. Scalars are named directly; accents are addressed as <accent>.<channel>.",
+      "enum": [
+        "background", "text", "mutedText",
+        "accentGrey.accent", "accentGrey.background", "accentGrey.text",
+        "accentRed.accent", "accentRed.background", "accentRed.text",
+        "accentGreen.accent", "accentGreen.background", "accentGreen.text",
+        "accentBlue.accent", "accentBlue.background", "accentBlue.text",
+        "accentAmber.accent", "accentAmber.background", "accentAmber.text",
+        "accentTeal.accent", "accentTeal.background", "accentTeal.text",
+        "accentYellow.accent", "accentYellow.background", "accentYellow.text",
+        "accentPurple.accent", "accentPurple.background", "accentPurple.text"
+      ]
+    },
+    "layoutDefaults": {
+      "type": "object",
+      "description": "Canvas geometry and per-region-type defaults. The single owner of canvas dimensions and outer margin.",
+      "additionalProperties": false,
+      "properties": {
+        "canvasWidth": {
+          "type": "integer",
+          "default": 1920,
+          "description": "Canvas width in pixels. Layout region coordinates are absolute against this."
+        },
+        "canvasHeight": {
+          "type": "integer",
+          "default": 1080,
+          "description": "Canvas height in pixels. Layout region coordinates are absolute against this."
+        },
+        "outerMargin": {
+          "type": "integer",
+          "default": 80,
+          "description": "Default outer margin in pixels."
+        },
+        "title": {
+          "$ref": "#/definitions/regionDefaults",
+          "description": "Default geometry and styling for title regions."
+        },
+        "body": {
+          "$ref": "#/definitions/regionDefaults",
+          "description": "Default geometry and styling for body regions."
+        },
+        "notes": {
+          "type": "object",
+          "description": "Speaker notes rendering defaults.",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether speaker notes are rendered."
+            }
+          }
+        }
+      }
+    },
+    "regionDefaults": {
+      "type": "object",
+      "description": "Default geometry, font size, and color for a region type.",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number",
+          "default": 80,
+          "description": "Default horizontal offset in pixels from the canvas origin."
+        },
+        "y": {
+          "type": "number",
+          "default": 80,
+          "description": "Default vertical offset in pixels from the canvas origin."
+        },
+        "width": {
+          "type": "number",
+          "default": 1760,
+          "description": "Default region width in pixels."
+        },
+        "height": {
+          "type": "number",
+          "default": 100,
+          "description": "Default region height in pixels."
+        },
+        "fontSize": {
+          "type": "number",
+          "default": 16,
+          "description": "Default font size in points."
+        },
+        "color": {
+          "$ref": "#/definitions/themeColorRef",
+          "default": "text",
+          "description": "Default semantic color resolved from PresentationColorTheme."
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "description": "A single addressable content area within a slide layout.",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Region identifier referenced by a slide's content blocks."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "title",
+            "subtitle",
+            "body",
+            "column",
+            "metric",
+            "table",
+            "chart",
+            "footer",
+            "notes"
+          ],
+          "default": "body",
+          "description": "Region kind, informing default styling."
+        },
+        "x": {
+          "type": "number",
+          "default": 80,
+          "description": "Horizontal offset in pixels from the canvas origin."
+        },
+        "y": {
+          "type": "number",
+          "default": 80,
+          "description": "Vertical offset in pixels from the canvas origin."
+        },
+        "width": {
+          "type": "number",
+          "default": 1760,
+          "description": "Region width in pixels."
+        },
+        "height": {
+          "type": "number",
+          "default": 100,
+          "description": "Region height in pixels."
+        },
+        "padding": {
+          "type": "number",
+          "default": 0,
+          "description": "Inner padding in pixels."
+        },
+        "fontSize": {
+          "type": "number",
+          "default": 16,
+          "description": "Font size in points."
+        },
+        "color": {
+          "$ref": "#/definitions/themeColorRef",
+          "default": "text",
+          "description": "Semantic color name resolved from PresentationColorTheme."
+        },
+        "align": {
+          "type": "string",
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ],
+          "default": "left",
+          "description": "Horizontal text alignment."
+        },
+        "verticalAlign": {
+          "type": "string",
+          "enum": [
+            "top",
+            "middle",
+            "bottom"
+          ],
+          "default": "top",
+          "description": "Vertical text alignment."
+        },
+        "overflow": {
+          "type": "string",
+          "enum": [
+            "wrap",
+            "clip"
+          ],
+          "default": "wrap",
+          "description": "Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip' truncates at the boundary."
+        }
+      }
+    },
+    "slideLayout": {
+      "type": "object",
+      "description": "A named, reusable arrangement of regions on the canvas.",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "regions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identifier referenced by slides."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable layout name."
+        },
+        "description": {
+          "type": "string",
+          "default": "",
+          "description": "Human-readable layout description."
+        },
+        "regions": {
+          "type": "array",
+          "description": "The regions making up this layout.",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/region"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "default": "",
+          "description": "Authoring guidance for agents or presentation generators."
+        }
+      }
+    }
+  }
+}

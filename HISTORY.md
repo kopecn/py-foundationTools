@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 -
 
+### Fixed
+- Generated `from_dict` methods now raise `TypeError` (via `normalize_generated.sh`'s new third normalization pass) instead of a bare `assert isinstance(obj, dict)` — the prior form escaped `from_union`'s catch tuple and was silently disabled under `python -O`. All 190 occurrences across every generated model were rewritten by re-running `make codegen-all`; `from_union` itself is unchanged.
+
 ## [0.0.4] - 2026-08-14
 
 ### Added

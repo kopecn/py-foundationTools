@@ -63,7 +63,8 @@ class StandardizedLoggerConfig(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "StandardizedLoggerConfig":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         console_level_icons = from_union([from_bool, from_none], obj.get("console_level_icons"))
         console_pretty = from_union([from_bool, from_none], obj.get("console_pretty"))

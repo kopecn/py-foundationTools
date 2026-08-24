@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PresentationMetadata",
+  "description": "Deck-level metadata and rendering defaults for a presentation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "file",
+    "title",
+    "author",
+    "company",
+    "date"
+  ],
+  "properties": {
+    "file": {
+      "type": "object",
+      "description": "Output file location and format.",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Output filename including extension."
+        },
+        "path": {
+          "type": "string",
+          "default": ".",
+          "description": "Output directory. Defaults to the current working directory."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "pptx"
+          ],
+          "default": "pptx",
+          "description": "Output file format."
+        }
+      }
+    },
+    "title": {
+      "type": "string",
+      "description": "Presentation title."
+    },
+    "subtitle": {
+      "type": "string",
+      "default": "",
+      "description": "Optional presentation subtitle."
+    },
+    "author": {
+      "type": "string",
+      "description": "Primary presentation author."
+    },
+    "company": {
+      "type": "string",
+      "description": "Organization or company associated with the presentation."
+    },
+    "date": {
+      "type": "string",
+      "description": "Presentation date. Prefer ISO-8601 format when known.",
+      "default": ""
+    },
+    "version": {
+      "type": "string",
+      "default": "1.0",
+      "description": "Optional presentation/content version."
+    },
+    "description": {
+      "type": "string",
+      "default": "",
+      "description": "Short description of the presentation purpose."
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Rendering defaults inherited by slides and layouts unless overridden.",
+      "properties": {
+        "fontFamily": {
+          "type": "string",
+          "default": "Aptos",
+          "description": "Default font family."
+        },
+        "titleFontSize": {
+          "type": "number",
+          "default": 32,
+          "description": "Default title font size in points."
+        },
+        "bodyFontSize": {
+          "type": "number",
+          "default": 16,
+          "description": "Default body font size in points."
+        },
+        "smallFontSize": {
+          "type": "number",
+          "default": 12,
+          "description": "Default small/footer font size in points."
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Free-form tags describing the presentation."
+    }
+  }
+}

@@ -61,7 +61,8 @@ class QuaternionType(QuaternionABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "QuaternionType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         w = from_float(obj.get("w"))
         x = from_float(obj.get("x"))
         y = from_float(obj.get("y"))
@@ -96,7 +97,8 @@ class PositionType(PositionABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PositionType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         x = from_float(obj.get("x"))
         y = from_float(obj.get("y"))
         z = from_float(obj.get("z"))
@@ -124,7 +126,8 @@ class SpatialTransformType(SpatialTransformABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SpatialTransformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         orientation = QuaternionType.from_dict(obj.get("orientation"))
         position = PositionType.from_dict(obj.get("position"))
         return SpatialTransformType(orientation, position)
@@ -156,7 +159,8 @@ class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PrecisionTimeIntervalType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         attoseconds = from_int(obj.get("attoseconds"))
         seconds = from_int(obj.get("seconds"))
         sign = NumericSign(obj.get("sign"))
@@ -202,7 +206,8 @@ class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PrecisionTimestampType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         attoseconds = from_int(obj.get("attoseconds"))
         seconds = from_int(obj.get("seconds"))
         sign = NumericSign(obj.get("sign"))
@@ -248,7 +253,8 @@ class PositionWaveformType(PositionWaveformABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PositionWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         positions = from_list(PositionType.from_dict, obj.get("positions"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
@@ -279,7 +285,8 @@ class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "QuaternionWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         quaternions = from_list(QuaternionType.from_dict, obj.get("quaternions"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
@@ -314,7 +321,8 @@ class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SpatialTransformWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         positions = from_list(PositionType.from_dict, obj.get("positions"))
         quaternions = from_list(QuaternionType.from_dict, obj.get("quaternions"))
@@ -347,7 +355,8 @@ class ScalarWaveformType(Waveform1dABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ScalarWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
         waveform = from_list(from_float, obj.get("waveform"))
@@ -387,7 +396,8 @@ class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnitSphericalArcType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         arc_length = from_float(obj.get("arcLength"))
         azimuth = from_float(obj.get("azimuth"))
         orient = from_float(obj.get("orient"))
@@ -420,7 +430,8 @@ class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC, DataModelHelper)
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnitSphericalArcWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         arcs = from_list(UnitSphericalArcType.from_dict, obj.get("arcs"))
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
@@ -458,7 +469,8 @@ class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper)
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnitSphericalSmallCircleType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         azimuth = from_float(obj.get("azimuth"))
         polar = from_float(obj.get("polar"))
         radius_angle = from_float(obj.get("radiusAngle"))
@@ -489,7 +501,8 @@ class UnitSphericalSmallCircleWaveformType(WaveformUnitSphericalSmallCircleABC, 
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnitSphericalSmallCircleWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         small_circles = from_list(UnitSphericalSmallCircleType.from_dict, obj.get("smallCircles"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))

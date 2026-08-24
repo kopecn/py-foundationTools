@@ -67,7 +67,8 @@ class AudiocontentAnnotations(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "AudiocontentAnnotations":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         audience = from_union([lambda x: from_list(RoleElement, x), from_none], obj.get("audience"))
         last_modified = from_union([from_str, from_none], obj.get("lastModified"))
         priority = from_union([from_float, from_none], obj.get("priority"))
@@ -111,7 +112,8 @@ class Audiocontent(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Audiocontent":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         data = from_str(obj.get("data"))
         mime_type = from_str(obj.get("mimeType"))
         type = AudiocontentType(obj.get("type"))
@@ -157,7 +159,8 @@ class Basemetadata(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Basemetadata":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         title = from_union([from_str, from_none], obj.get("title"))
         return Basemetadata(name, title)
@@ -187,7 +190,8 @@ class Blobresourcecontents(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Blobresourcecontents":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         blob = from_str(obj.get("blob"))
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -220,7 +224,8 @@ class BooleanschemaClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "BooleanschemaClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = BooleanschemaType(obj.get("type"))
         default = from_union([from_bool, from_none], obj.get("default"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -262,7 +267,8 @@ class PurpleMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PurpleMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return PurpleMeta(progress_token)
 
@@ -293,7 +299,8 @@ class Task(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Task":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         ttl = from_union([from_int, from_none], obj.get("ttl"))
         return Task(ttl)
 
@@ -329,7 +336,8 @@ class CalltoolrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CalltoolrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         meta = from_union([PurpleMeta.from_dict, from_none], obj.get("_meta"))
         arguments = from_union(
@@ -363,7 +371,8 @@ class Calltoolrequest(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Calltoolrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = CalltoolrequestMethod(obj.get("method"))
@@ -426,7 +435,8 @@ class IconElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "IconElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         src = from_str(obj.get("src"))
         mime_type = from_union([from_str, from_none], obj.get("mimeType"))
         sizes = from_union([lambda x: from_list(from_str, x), from_none], obj.get("sizes"))
@@ -466,7 +476,8 @@ class Resource(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resource":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         mime_type = from_union([from_str, from_none], obj.get("mimeType"))
@@ -584,7 +595,8 @@ class ContentblockElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ContentblockElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = ContentblockType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         annotations = from_union(
@@ -686,7 +698,8 @@ class Calltoolresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Calltoolresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         content = from_list(ContentblockElement.from_dict, obj.get("content"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         is_error = from_union([from_bool, from_none], obj.get("isError"))
@@ -737,7 +750,8 @@ class CancellednotificationParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CancellednotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         reason = from_union([from_str, from_none], obj.get("reason"))
         request_id = from_union([from_int, from_str, from_none], obj.get("requestId"))
@@ -778,7 +792,8 @@ class Cancellednotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Cancellednotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = CancellednotificationMethod(obj.get("method"))
         params = CancellednotificationParams.from_dict(obj.get("params"))
@@ -801,7 +816,8 @@ class ClientcapabilitiesElicitation(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientcapabilitiesElicitation":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         form = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("form"))
         url = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("url"))
         return ClientcapabilitiesElicitation(form, url)
@@ -824,7 +840,8 @@ class Roots(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Roots":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         list_changed = from_union([from_bool, from_none], obj.get("listChanged"))
         return Roots(list_changed)
 
@@ -848,7 +865,8 @@ class ClientcapabilitiesSampling(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientcapabilitiesSampling":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         context = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("context"))
         tools = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("tools"))
         return ClientcapabilitiesSampling(context, tools)
@@ -875,7 +893,8 @@ class RequestsElicitation(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestsElicitation":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         create = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("create"))
         return RequestsElicitation(create)
 
@@ -897,7 +916,8 @@ class RequestsSampling(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestsSampling":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         create_message = from_union(
             [lambda x: from_dict(lambda x: x, x), from_none], obj.get("createMessage")
         )
@@ -924,7 +944,8 @@ class PurpleRequests(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PurpleRequests":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         elicitation = from_union([RequestsElicitation.from_dict, from_none], obj.get("elicitation"))
         sampling = from_union([RequestsSampling.from_dict, from_none], obj.get("sampling"))
         return PurpleRequests(elicitation, sampling)
@@ -957,7 +978,8 @@ class ClientcapabilitiesTasks(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientcapabilitiesTasks":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         cancel = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("cancel"))
         list = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("list"))
         requests = from_union([PurpleRequests.from_dict, from_none], obj.get("requests"))
@@ -1001,7 +1023,8 @@ class Clientcapabilities(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientcapabilities":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         elicitation = from_union(
             [ClientcapabilitiesElicitation.from_dict, from_none], obj.get("elicitation")
         )
@@ -1128,7 +1151,8 @@ class ClientnotificationParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientnotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         reason = from_union([from_str, from_none], obj.get("reason"))
         request_id = from_union([from_int, from_str, from_none], obj.get("requestId"))
@@ -1233,7 +1257,8 @@ class Clientnotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientnotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ClientnotificationMethod(obj.get("method"))
         params = from_union([ClientnotificationParams.from_dict, from_none], obj.get("params"))
@@ -1282,7 +1307,8 @@ class Argument(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Argument":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         value = from_str(obj.get("value"))
         return Argument(name, value)
@@ -1335,7 +1361,8 @@ class ClientInfo(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientInfo":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         version = from_str(obj.get("version"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -1372,7 +1399,8 @@ class Context(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Context":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         arguments = from_union([lambda x: from_dict(from_str, x), from_none], obj.get("arguments"))
         return Context(arguments)
 
@@ -1423,7 +1451,8 @@ class FluffyMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "FluffyMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return FluffyMeta(progress_token)
 
@@ -1467,7 +1496,8 @@ class Ref(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Ref":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = RefType(obj.get("type"))
         name = from_union([from_str, from_none], obj.get("name"))
         title = from_union([from_str, from_none], obj.get("title"))
@@ -1567,7 +1597,8 @@ class ClientrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([FluffyMeta.from_dict, from_none], obj.get("_meta"))
         capabilities = from_union(
             [Clientcapabilities.from_dict, from_none], obj.get("capabilities")
@@ -1694,7 +1725,8 @@ class Clientrequest(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ClientrequestMethod(obj.get("method"))
@@ -1815,7 +1847,8 @@ class ContentElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ContentElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = PurpleType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         annotations = from_union(
@@ -1978,7 +2011,8 @@ class PurpleModelContextProtocol20250618_Schema(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PurpleModelContextProtocol20250618_Schema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union(
             [
                 lambda x: from_dict(lambda x: x, x),
@@ -2213,7 +2247,8 @@ class RootElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RootElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         name = from_union([from_str, from_none], obj.get("name"))
@@ -2262,7 +2297,8 @@ class TaskElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TaskElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         created_at = from_str(obj.get("createdAt"))
         last_updated_at = from_str(obj.get("lastUpdatedAt"))
         status = Status(obj.get("status"))
@@ -2378,7 +2414,8 @@ class Clientresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         created_at = from_union([from_str, from_none], obj.get("createdAt"))
         last_updated_at = from_union([from_str, from_none], obj.get("lastUpdatedAt"))
@@ -2494,7 +2531,8 @@ class TentacledMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TentacledMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return TentacledMeta(progress_token)
 
@@ -2524,7 +2562,8 @@ class CompleterequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CompleterequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         argument = Argument.from_dict(obj.get("argument"))
         ref = Ref.from_dict(obj.get("ref"))
         meta = from_union([TentacledMeta.from_dict, from_none], obj.get("_meta"))
@@ -2557,7 +2596,8 @@ class CompleterequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CompleterequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = CompleterequestMethod(obj.get("method"))
@@ -2589,7 +2629,8 @@ class Completion(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Completion":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         values = from_list(from_str, obj.get("values"))
         has_more = from_union([from_bool, from_none], obj.get("hasMore"))
         total = from_union([from_int, from_none], obj.get("total"))
@@ -2617,7 +2658,8 @@ class Completeresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Completeresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         completion = Completion.from_dict(obj.get("completion"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return Completeresult(completion, meta)
@@ -2734,7 +2776,8 @@ class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "FluffyModelContextProtocol20250618_Schema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = PurpleType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         annotations = from_union(
@@ -2824,7 +2867,8 @@ class SamplingmessageElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SamplingmessageElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         content = from_union(
             [
                 FluffyModelContextProtocol20250618_Schema.from_dict,
@@ -2868,7 +2912,8 @@ class StickyMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "StickyMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return StickyMeta(progress_token)
 
@@ -2904,7 +2949,8 @@ class ModelhintElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ModelhintElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_union([from_str, from_none], obj.get("name"))
         return ModelhintElement(name)
 
@@ -2960,7 +3006,8 @@ class ModelpreferencesClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ModelpreferencesClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         cost_priority = from_union([from_float, from_none], obj.get("costPriority"))
         hints = from_union(
             [lambda x: from_list(ModelhintElement.from_dict, x), from_none], obj.get("hints")
@@ -3018,7 +3065,8 @@ class ToolChoice(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToolChoice":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         mode = from_union([ToolChoiceMode, from_none], obj.get("mode"))
         return ToolChoice(mode)
 
@@ -3081,7 +3129,8 @@ class ToolannotationsClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToolannotationsClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         destructive_hint = from_union([from_bool, from_none], obj.get("destructiveHint"))
         idempotent_hint = from_union([from_bool, from_none], obj.get("idempotentHint"))
         open_world_hint = from_union([from_bool, from_none], obj.get("openWorldHint"))
@@ -3144,7 +3193,8 @@ class Execution(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Execution":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         task_support = from_union([TaskSupport, from_none], obj.get("taskSupport"))
         return Execution(task_support)
 
@@ -3172,7 +3222,8 @@ class InputSchema(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InputSchema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = InputSchemaType(obj.get("type"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
         properties = from_union(
@@ -3215,7 +3266,8 @@ class OutputSchema(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "OutputSchema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = InputSchemaType(obj.get("type"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
         properties = from_union(
@@ -3301,7 +3353,8 @@ class ToolElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToolElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         input_schema = InputSchema.from_dict(obj.get("inputSchema"))
         name = from_str(obj.get("name"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -3418,7 +3471,8 @@ class CreatemessagerequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CreatemessagerequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         max_tokens = from_int(obj.get("maxTokens"))
         messages = from_list(SamplingmessageElement.from_dict, obj.get("messages"))
         meta = from_union([StickyMeta.from_dict, from_none], obj.get("_meta"))
@@ -3506,7 +3560,8 @@ class Createmessagerequest(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Createmessagerequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = CreatemessagerequestMethod(obj.get("method"))
@@ -3553,7 +3608,8 @@ class CreatemessageresultClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CreatemessageresultClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         content = from_union(
             [
                 FluffyModelContextProtocol20250618_Schema.from_dict,
@@ -3606,7 +3662,8 @@ class IndigoMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "IndigoMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return IndigoMeta(progress_token)
 
@@ -3641,7 +3698,8 @@ class AnyOf(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "AnyOf":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         const = from_str(obj.get("const"))
         title = from_str(obj.get("title"))
         return AnyOf(const, title)
@@ -3673,7 +3731,8 @@ class Items(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Items":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         enum = from_union([lambda x: from_list(from_str, x), from_none], obj.get("enum"))
         type = from_union([ItemsType, from_none], obj.get("type"))
         any_of = from_union([lambda x: from_list(AnyOf.from_dict, x), from_none], obj.get("anyOf"))
@@ -3702,7 +3761,8 @@ class OneOf(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "OneOf":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         const = from_str(obj.get("const"))
         title = from_str(obj.get("title"))
         return OneOf(const, title)
@@ -3778,7 +3838,8 @@ class PrimitiveschemadefinitionValue(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PrimitiveschemadefinitionValue":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = PrimitiveschemadefinitionType(obj.get("type"))
         default = from_union(
             [lambda x: from_list(from_str, x), from_int, from_bool, from_str, from_none],
@@ -3869,7 +3930,8 @@ class RequestedSchema(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestedSchema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         properties = from_dict(PrimitiveschemadefinitionValue.from_dict, obj.get("properties"))
         type = InputSchemaType(obj.get("type"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
@@ -3937,7 +3999,8 @@ class ElicitrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ElicitrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         message = from_str(obj.get("message"))
         meta = from_union([IndigoMeta.from_dict, from_none], obj.get("_meta"))
         elicitation_id = from_union([from_str, from_none], obj.get("elicitationId"))
@@ -3980,7 +4043,8 @@ class Elicitrequest(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Elicitrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ElicitrequestMethod(obj.get("method"))
@@ -4018,7 +4082,8 @@ class ElicitresultClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ElicitresultClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         action = Action(obj.get("action"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         content = from_union(
@@ -4081,7 +4146,8 @@ class EmbeddedresourceClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "EmbeddedresourceClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         resource = Resource.from_dict(obj.get("resource"))
         type = EmbeddedresourceType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -4114,7 +4180,8 @@ class EmptyresultClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "EmptyresultClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return EmptyresultClass(meta)
 
@@ -4180,7 +4247,8 @@ class EnumschemaClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "EnumschemaClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = EnumschemaType(obj.get("type"))
         default = from_union(
             [from_str, lambda x: from_list(from_str, x), from_none], obj.get("default")
@@ -4246,7 +4314,8 @@ class IndecentMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "IndecentMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return IndecentMeta(progress_token)
 
@@ -4275,7 +4344,8 @@ class GetpromptrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "GetpromptrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         meta = from_union([IndecentMeta.from_dict, from_none], obj.get("_meta"))
         arguments = from_union([lambda x: from_dict(from_str, x), from_none], obj.get("arguments"))
@@ -4306,7 +4376,8 @@ class GetpromptrequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "GetpromptrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = GetpromptrequestMethod(obj.get("method"))
@@ -4335,7 +4406,8 @@ class PromptmessageElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PromptmessageElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         content = ContentblockElement.from_dict(obj.get("content"))
         role = RoleElement(obj.get("role"))
         return PromptmessageElement(content, role)
@@ -4361,7 +4433,8 @@ class Getpromptresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Getpromptresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         messages = from_list(PromptmessageElement.from_dict, obj.get("messages"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -4403,7 +4476,8 @@ class ImagecontentClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ImagecontentClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         data = from_str(obj.get("data"))
         mime_type = from_str(obj.get("mimeType"))
         type = ImagecontentType(obj.get("type"))
@@ -4442,7 +4516,8 @@ class InitializednotificationParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializednotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return InitializednotificationParams(meta)
 
@@ -4465,7 +4540,8 @@ class InitializednotificationClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializednotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = InitializednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -4501,7 +4577,8 @@ class HilariousMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "HilariousMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return HilariousMeta(progress_token)
 
@@ -4531,7 +4608,8 @@ class InitializerequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializerequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         capabilities = Clientcapabilities.from_dict(obj.get("capabilities"))
         client_info = ClientInfo.from_dict(obj.get("clientInfo"))
         protocol_version = from_str(obj.get("protocolVersion"))
@@ -4563,7 +4641,8 @@ class InitializerequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializerequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = InitializerequestMethod(obj.get("method"))
@@ -4588,7 +4667,8 @@ class Prompts(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Prompts":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         list_changed = from_union([from_bool, from_none], obj.get("listChanged"))
         return Prompts(list_changed)
 
@@ -4611,7 +4691,8 @@ class Resources(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resources":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         list_changed = from_union([from_bool, from_none], obj.get("listChanged"))
         subscribe = from_union([from_bool, from_none], obj.get("subscribe"))
         return Resources(list_changed, subscribe)
@@ -4634,7 +4715,8 @@ class RequestsTools(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestsTools":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         call = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("call"))
         return RequestsTools(call)
 
@@ -4654,7 +4736,8 @@ class FluffyRequests(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "FluffyRequests":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         tools = from_union([RequestsTools.from_dict, from_none], obj.get("tools"))
         return FluffyRequests(tools)
 
@@ -4682,7 +4765,8 @@ class ServercapabilitiesTasks(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ServercapabilitiesTasks":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         cancel = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("cancel"))
         list = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("list"))
         requests = from_union([FluffyRequests.from_dict, from_none], obj.get("requests"))
@@ -4712,7 +4796,8 @@ class ServercapabilitiesTools(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ServercapabilitiesTools":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         list_changed = from_union([from_bool, from_none], obj.get("listChanged"))
         return ServercapabilitiesTools(list_changed)
 
@@ -4753,7 +4838,8 @@ class Capabilities(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Capabilities":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         completions = from_union(
             [lambda x: from_dict(lambda x: x, x), from_none], obj.get("completions")
         )
@@ -4827,7 +4913,8 @@ class Initializeresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Initializeresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         capabilities = Capabilities.from_dict(obj.get("capabilities"))
         protocol_version = from_str(obj.get("protocolVersion"))
         server_info = ClientInfo.from_dict(obj.get("serverInfo"))
@@ -4865,7 +4952,8 @@ class Error(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Error":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         code = from_int(obj.get("code"))
         message = from_str(obj.get("message"))
         data = obj.get("data")
@@ -4890,7 +4978,8 @@ class Jsonrpcerror(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcerror":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         error = Error.from_dict(obj.get("error"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         id = from_union([from_int, from_str, from_none], obj.get("id"))
@@ -4928,7 +5017,8 @@ class Jsonrpcmessage(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcmessage":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         id = from_union([from_int, from_str, from_none], obj.get("id"))
         method = from_union([from_str, from_none], obj.get("method"))
@@ -4967,7 +5057,8 @@ class JsonrpcnotificationClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "JsonrpcnotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = from_str(obj.get("method"))
         params = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("params"))
@@ -4995,7 +5086,8 @@ class JsonrpcrequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "JsonrpcrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = from_str(obj.get("method"))
@@ -5030,7 +5122,8 @@ class Jsonrpcresponse(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcresponse":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         id = from_union([from_int, from_str, from_none], obj.get("id"))
         result = from_union([EmptyresultClass.from_dict, from_none], obj.get("result"))
@@ -5070,7 +5163,8 @@ class AmbitiousMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "AmbitiousMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return AmbitiousMeta(progress_token)
 
@@ -5098,7 +5192,8 @@ class ListpromptsrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListpromptsrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([AmbitiousMeta.from_dict, from_none], obj.get("_meta"))
         cursor = from_union([from_str, from_none], obj.get("cursor"))
         return ListpromptsrequestParams(meta, cursor)
@@ -5125,7 +5220,8 @@ class ListpromptsrequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListpromptsrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListpromptsrequestMethod(obj.get("method"))
@@ -5170,7 +5266,8 @@ class PromptargumentElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PromptargumentElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         description = from_union([from_str, from_none], obj.get("description"))
         required = from_union([from_bool, from_none], obj.get("required"))
@@ -5230,7 +5327,8 @@ class PromptElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PromptElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         arguments = from_union(
@@ -5283,7 +5381,8 @@ class Listpromptsresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listpromptsresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         prompts = from_list(PromptElement.from_dict, obj.get("prompts"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         next_cursor = from_union([from_str, from_none], obj.get("nextCursor"))
@@ -5316,7 +5415,8 @@ class ListresourcesrequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListresourcesrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListresourcesrequestMethod(obj.get("method"))
@@ -5391,7 +5491,8 @@ class ResourceElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourceElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -5452,7 +5553,8 @@ class Listresourcesresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listresourcesresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         resources = from_list(ResourceElement.from_dict, obj.get("resources"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         next_cursor = from_union([from_str, from_none], obj.get("nextCursor"))
@@ -5485,7 +5587,8 @@ class ListresourcetemplatesrequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListresourcetemplatesrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListresourcetemplatesrequestMethod(obj.get("method"))
@@ -5555,7 +5658,8 @@ class ResourcetemplateElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourcetemplateElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         uri_template = from_str(obj.get("uriTemplate"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -5613,7 +5717,8 @@ class Listresourcetemplatesresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listresourcetemplatesresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         resource_templates = from_list(
             ResourcetemplateElement.from_dict, obj.get("resourceTemplates")
         )
@@ -5654,7 +5759,8 @@ class CunningMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CunningMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return CunningMeta(progress_token)
 
@@ -5678,7 +5784,8 @@ class ListrootsrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListrootsrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([CunningMeta.from_dict, from_none], obj.get("_meta"))
         return ListrootsrequestParams(meta)
 
@@ -5707,7 +5814,8 @@ class Listrootsrequest(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listrootsrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListrootsrequestMethod(obj.get("method"))
@@ -5741,7 +5849,8 @@ class ListrootsresultClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListrootsresultClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         roots = from_list(RootElement.from_dict, obj.get("roots"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return ListrootsresultClass(roots, meta)
@@ -5771,7 +5880,8 @@ class ListtoolsrequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListtoolsrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListtoolsrequestMethod(obj.get("method"))
@@ -5806,7 +5916,8 @@ class Listtoolsresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listtoolsresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         tools = from_list(ToolElement.from_dict, obj.get("tools"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         next_cursor = from_union([from_str, from_none], obj.get("nextCursor"))
@@ -5848,7 +5959,8 @@ class LoggingmessagenotificationParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "LoggingmessagenotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         data = obj.get("data")
         level = Level(obj.get("level"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -5881,7 +5993,8 @@ class Loggingmessagenotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Loggingmessagenotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = LoggingmessagenotificationMethod(obj.get("method"))
         params = LoggingmessagenotificationParams.from_dict(obj.get("params"))
@@ -5902,7 +6015,8 @@ class Notification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Notification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         method = from_str(obj.get("method"))
         params = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("params"))
         return Notification(method, params)
@@ -5933,7 +6047,8 @@ class NumberschemaClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "NumberschemaClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = NumberschemaType(obj.get("type"))
         default = from_union([from_int, from_none], obj.get("default"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -5967,7 +6082,8 @@ class Paginatedrequest(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Paginatedrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = from_str(obj.get("method"))
@@ -5999,7 +6115,8 @@ class Paginatedresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Paginatedresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         next_cursor = from_union([from_str, from_none], obj.get("nextCursor"))
         return Paginatedresult(meta, next_cursor)
@@ -6032,7 +6149,8 @@ class PingrequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PingrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = PingrequestMethod(obj.get("method"))
@@ -6079,7 +6197,8 @@ class ProgressnotificationParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ProgressnotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress = from_float(obj.get("progress"))
         progress_token = from_union([from_int, from_str], obj.get("progressToken"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -6114,7 +6233,8 @@ class ProgressnotificationClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ProgressnotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ProgressnotificationMethod(obj.get("method"))
         params = ProgressnotificationParams.from_dict(obj.get("params"))
@@ -6145,7 +6265,8 @@ class Promptlistchangednotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Promptlistchangednotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = PromptlistchangednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -6187,7 +6308,8 @@ class PromptreferenceClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PromptreferenceClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         type = PromptreferenceType(obj.get("type"))
         title = from_union([from_str, from_none], obj.get("title"))
@@ -6221,7 +6343,8 @@ class MagentaMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "MagentaMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return MagentaMeta(progress_token)
 
@@ -6249,7 +6372,8 @@ class ReadresourcerequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ReadresourcerequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([MagentaMeta.from_dict, from_none], obj.get("_meta"))
         return ReadresourcerequestParams(uri, meta)
@@ -6273,7 +6397,8 @@ class ReadresourcerequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ReadresourcerequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ReadresourcerequestMethod(obj.get("method"))
@@ -6301,7 +6426,8 @@ class Readresourceresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Readresourceresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         contents = from_list(Resource.from_dict, obj.get("contents"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return Readresourceresult(contents, meta)
@@ -6323,7 +6449,8 @@ class Request(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Request":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         method = from_str(obj.get("method"))
         params = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("params"))
         return Request(method, params)
@@ -6354,7 +6481,8 @@ class Resourcecontents(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resourcecontents":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         mime_type = from_union([from_str, from_none], obj.get("mimeType"))
@@ -6438,7 +6566,8 @@ class ResourcelinkClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourcelinkClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         type = ResourcelinkType(obj.get("type"))
         uri = from_str(obj.get("uri"))
@@ -6502,7 +6631,8 @@ class Resourcelistchangednotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resourcelistchangednotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ResourcelistchangednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -6533,7 +6663,8 @@ class ResourcetemplatereferenceClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourcetemplatereferenceClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = ResourcetemplatereferenceType(obj.get("type"))
         uri = from_str(obj.get("uri"))
         return ResourcetemplatereferenceClass(type, uri)
@@ -6564,7 +6695,8 @@ class ResourceupdatednotificationParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourceupdatednotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return ResourceupdatednotificationParams(uri, meta)
@@ -6592,7 +6724,8 @@ class Resourceupdatednotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resourceupdatednotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ResourceupdatednotificationMethod(obj.get("method"))
         params = ResourceupdatednotificationParams.from_dict(obj.get("params"))
@@ -6624,7 +6757,8 @@ class RootslistchangednotificationClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RootslistchangednotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = RootslistchangednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -6741,7 +6875,8 @@ class ServernotificationParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ServernotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         reason = from_union([from_str, from_none], obj.get("reason"))
         request_id = from_union([from_int, from_str, from_none], obj.get("requestId"))
@@ -6881,7 +7016,8 @@ class Servernotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Servernotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ServernotificationMethod(obj.get("method"))
         params = from_union([ServernotificationParams.from_dict, from_none], obj.get("params"))
@@ -6924,7 +7060,8 @@ class FriskyMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "FriskyMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return FriskyMeta(progress_token)
 
@@ -7041,7 +7178,8 @@ class ServerrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ServerrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([FriskyMeta.from_dict, from_none], obj.get("_meta"))
         task_id = from_union([from_str, from_none], obj.get("taskId"))
         cursor = from_union([from_str, from_none], obj.get("cursor"))
@@ -7190,7 +7328,8 @@ class Serverrequest(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Serverrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ServerrequestMethod(obj.get("method"))
@@ -7323,7 +7462,8 @@ class Serverresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Serverresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         capabilities = from_union([Capabilities.from_dict, from_none], obj.get("capabilities"))
         instructions = from_union([from_str, from_none], obj.get("instructions"))
@@ -7501,7 +7641,8 @@ class MischievousMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "MischievousMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return MischievousMeta(progress_token)
 
@@ -7530,7 +7671,8 @@ class SetlevelrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SetlevelrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         level = Level(obj.get("level"))
         meta = from_union([MischievousMeta.from_dict, from_none], obj.get("_meta"))
         return SetlevelrequestParams(level, meta)
@@ -7556,7 +7698,8 @@ class SetlevelrequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SetlevelrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = SetlevelrequestMethod(obj.get("method"))
@@ -7584,7 +7727,8 @@ class StringschemaClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "StringschemaClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = ItemsType(obj.get("type"))
         default = from_union([from_str, from_none], obj.get("default"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -7631,7 +7775,8 @@ class BraggadociousMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "BraggadociousMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return BraggadociousMeta(progress_token)
 
@@ -7659,7 +7804,8 @@ class SubscriberequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SubscriberequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([BraggadociousMeta.from_dict, from_none], obj.get("_meta"))
         return SubscriberequestParams(uri, meta)
@@ -7687,7 +7833,8 @@ class SubscriberequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SubscriberequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = SubscriberequestMethod(obj.get("method"))
@@ -7724,7 +7871,8 @@ class TextcontentClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TextcontentClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         text = from_str(obj.get("text"))
         type = TextcontentType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -7766,7 +7914,8 @@ class TextresourcecontentsClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TextresourcecontentsClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         text = from_str(obj.get("text"))
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -7803,7 +7952,8 @@ class ToollistchangednotificationClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToollistchangednotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ToollistchangednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -7839,7 +7989,8 @@ class Meta1(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Meta1":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return Meta1(progress_token)
 
@@ -7867,7 +8018,8 @@ class UnsubscriberequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnsubscriberequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([Meta1.from_dict, from_none], obj.get("_meta"))
         return UnsubscriberequestParams(uri, meta)
@@ -7893,7 +8045,8 @@ class UnsubscriberequestClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnsubscriberequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = UnsubscriberequestMethod(obj.get("method"))
@@ -8005,7 +8158,8 @@ class ModelContextProtocolTypesSchema(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ModelContextProtocolTypesSchema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         annotations = AudiocontentAnnotations.from_dict(obj.get("annotations"))
         audiocontent = from_union([Audiocontent.from_dict, from_none], obj.get("audiocontent"))
         basemetadata = from_union([Basemetadata.from_dict, from_none], obj.get("basemetadata"))

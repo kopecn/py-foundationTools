@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PresentationDeck",
+  "description": "Presentation content consisting of ordered slides referencing reusable slide layouts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata",
+    "slides"
+  ],
+  "properties": {
+    "metadata": {
+      "$ref": "PresentationMetadata-schema.json"
+    },
+    "slides": {
+      "type": "array",
+      "description": "Ordered slides making up the deck.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/slide"
+      }
+    }
+  },
+  "definitions": {
+    "slide": {
+      "type": "object",
+      "description": "A single slide referencing a reusable layout and carrying its content blocks.",
+      "additionalProperties": false,
+      "required": [
+        "number",
+        "layout"
+      ],
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based slide position within the deck."
+        },
+        "id": {
+          "type": "string",
+          "description": "Optional stable identifier for the slide."
+        },
+        "layout": {
+          "type": "string",
+          "description": "ID of a reusable slide layout."
+        },
+        "title": {
+          "type": "string",
+          "description": "Slide title. Optional so a divider or full-bleed slide can omit one."
+        },
+        "subtitle": {
+          "type": "string",
+          "default": "",
+          "description": "Optional slide subtitle."
+        },
+        "content": {
+          "type": "array",
+          "description": "Content blocks placed into the slide's layout regions.",
+          "items": {
+            "$ref": "#/definitions/contentBlock"
+          },
+          "default": []
+        },
+        "notes": {
+          "type": "string",
+          "default": "",
+          "description": "Speaker notes or agent instructions specific to this slide."
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the slide is excluded from the rendered deck."
+        }
+      }
+    },
+
+    "contentBlock": {
+      "type": "object",
+      "description": "A single piece of slide content placed into a named layout region.",
+      "additionalProperties": false,
+      "required": [
+        "region",
+        "type"
+      ],
+      "properties": {
+        "region": {
+          "type": "string",
+          "description": "Layout region that receives this content."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "text",
+            "bullets"
+          ],
+          "default": "text",
+          "description": "Content block kind. Each arm has a payload capable of expressing it and a renderer capable of drawing it."
+        },
+        "text": {
+          "type": "string",
+          "default": "",
+          "description": "Body text for a 'text' block."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Bullet items for a 'bullets' block."
+        },
+        "style": {
+          "type": "object",
+          "description": "Optional style overrides for this content block.",
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+              "default": "text",
+              "description": "Semantic color resolved from PresentationColorTheme."
+            },
+            "fontSize": {
+              "type": "number",
+              "description": "Font size override in points."
+            },
+            "bold": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether the content renders bold."
+            },
+            "align": {
+              "type": "string",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ],
+              "default": "left",
+              "description": "Horizontal text alignment."
+            }
+          }
+        }
+      }
+    }
+  }
+}

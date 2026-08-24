@@ -27,7 +27,8 @@ class GeoCoordinate(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "GeoCoordinate":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         latitude = from_float(obj.get("latitude"))
         longitude = from_float(obj.get("longitude"))
         return GeoCoordinate(latitude, longitude)

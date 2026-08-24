@@ -43,7 +43,8 @@ class DiskUsageEntry(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "DiskUsageEntry":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         available = from_str(obj.get("available"))
         filesystem = from_str(obj.get("filesystem"))
         mounted_on = from_str(obj.get("mounted_on"))
@@ -71,7 +72,8 @@ class DiskUsage(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "DiskUsage":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         entries = from_list(DiskUsageEntry.from_dict, obj.get("entries"))
         return DiskUsage(entries)
 
