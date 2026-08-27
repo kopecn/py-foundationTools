@@ -838,8 +838,9 @@ class ContentBlock(DataModelHelper):
     """A single piece of slide content placed into a named layout region."""
 
     region: str
-    """Layout region that receives this content."""
-
+    """Layout region that receives this content. Must not be a reserved region id ('title',
+    'subtitle'), which are filled by the slide's own title and subtitle.
+    """
     type: ContentType
     """Content block kind. Each arm has a payload capable of expressing it and a renderer
     capable of drawing it.
@@ -900,10 +901,14 @@ class Slide(DataModelHelper):
     """Speaker notes or agent instructions specific to this slide."""
 
     subtitle: str | None = None
-    """Optional slide subtitle."""
-
+    """Optional slide subtitle. When present it binds to the reserved region id 'subtitle' on
+    the slide's layout; a missing region is an authoring error.
+    """
     title: str | None = None
-    """Slide title. Optional so a divider or full-bleed slide can omit one."""
+    """Slide title. Optional so a divider or full-bleed slide can omit one. When present it
+    binds to the reserved region id 'title' on the slide's layout; a missing region is an
+    authoring error.
+    """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Slide":

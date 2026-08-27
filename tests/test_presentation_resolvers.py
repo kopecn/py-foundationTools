@@ -3,16 +3,24 @@
 Contract: .claude/specs/presentationSchema.md, Resolution Layer section.
 """
 
-from foundation_tools.presentation.layout_resolver import resolve_layout, resolve_region
+from foundation_tools.presentation.layout_resolver import (
+    RESERVED_REGION_IDS,
+    resolve_layout,
+    resolve_region,
+    resolve_slide_text,
+)
 from foundation_tools.presentation.theme_resolver import resolve_color
 from foundation_tools.presentation.units import emu_to_px, px_to_emu
 from foundationTypes.presentationTypes.Presentations import (
+    ContentBlock,
+    ContentType,
     LayoutDefaults,
     PresentationAccent,
     PresentationColor,
     PresentationColorTheme,
     PresentationSlideLayouts,
     Region,
+    Slide,
     SlideLayout,
 )
 
@@ -152,3 +160,88 @@ class TestResolveRegion:
         assert result.error is not None
         assert "footer" in result.error
         assert "title" in result.error
+
+
+class TestResolveSlideText:
+    """R11: Slide.title / Slide.subtitle bind to reserved region ids."""
+
+    def _slide(
+        self,
+        *,
+        layout: str = "title",
+        title: str | None = None,
+        subtitle: str | None = None,
+        content: list[ContentBlock] | None = None,
+    ) -> Slide:
+        return Slide(
+            layout=layout, number=1, title=title, subtitle=subtitle, content=content
+        )
+
+    def _layout(self, layout_id: str) -> SlideLayout:
+        layout = resolve_layout(_layouts(), layout_id).layout
+        assert layout is not None
+        return layout
+
+    def test_binds_title_and_subtitle_to_reserved_regions(self) -> None:
+        result = resolve_slide_text(
+            self._layout("title"), self._slide(title="Deck", subtitle="Q3")
+        )
+        assert result.ok
+        assert [(b.field, b.region.id, b.text) for b in result.bindings] == [
+            ("title", "title", "Deck"),
+            ("subtitle", "subtitle", "Q3"),
+        ]
+
+    def test_reserved_ids_are_ordinary_regions(self) -> None:
+        layout = self._layout("title")
+        result = resolve_slide_text(layout, self._slide(title="Deck"))
+        assert result.bindings[0].region is resolve_region(layout, "title").region
+
+    def test_absent_fields_bind_nothing(self) -> None:
+        result = resolve_slide_text(self._layout("title"), self._slide())
+        assert result.ok
+        assert result.bindings == ()
+
+    def test_empty_subtitle_counts_as_absent(self) -> None:
+        result = resolve_slide_text(
+            self._layout("one-column"), self._slide(layout="one-column", subtitle="")
+        )
+        assert result.ok
+        assert result.bindings == ()
+
+    def test_missing_reserved_region_is_an_error_not_a_silent_drop(self) -> None:
+        result = resolve_slide_text(
+            self._layout("one-column"), self._slide(layout="one-column", subtitle="Q3")
+        )
+        assert not result.ok
+        assert result.bindings == ()
+        assert len(result.errors) == 1
+        assert "subtitle" in result.errors[0]
+        assert "one-column" in result.errors[0]
+
+    def test_unused_reserved_region_is_not_an_error(self) -> None:
+        result = resolve_slide_text(self._layout("title"), self._slide(title="Deck"))
+        assert result.ok
+        assert [b.field for b in result.bindings] == ["title"]
+
+    def test_content_block_targeting_reserved_region_is_an_error(self) -> None:
+        slide = self._slide(
+            title="Deck",
+            content=[ContentBlock(region="title", type=ContentType.TEXT, text="also a title")],
+        )
+        result = resolve_slide_text(self._layout("title"), slide)
+        assert not result.ok
+        assert len(result.errors) == 1
+        assert "reserved region 'title'" in result.errors[0]
+
+    def test_content_block_targeting_ordinary_region_is_fine(self) -> None:
+        slide = self._slide(
+            layout="one-column",
+            title="Deck",
+            content=[ContentBlock(region="body", type=ContentType.TEXT, text="body")],
+        )
+        result = resolve_slide_text(self._layout("one-column"), slide)
+        assert result.ok
+
+    def test_reserved_ids_are_defined_once(self) -> None:
+        assert RESERVED_REGION_IDS == {"title": "title", "subtitle": "subtitle"}

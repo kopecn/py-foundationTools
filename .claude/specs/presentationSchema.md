@@ -3,8 +3,8 @@ spec: PresentationSchema
 scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
-last_updated: 2026-08-23
-semver: 0.0.2
+last_updated: 2026-08-26
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -113,6 +113,37 @@ One script, `schema/scripts/generatePresentations.sh`, SHALL own the module, lis
 
 `OUTPUT_PYTHON_REL="presentationTypes/Presentations.py"`. No Makefile edit is required — `codegen-all` globs `schema/scripts/*.sh`.
 
+### R11 — `title` and `subtitle` bind to reserved region ids
+
+`Slide.title` and `Slide.subtitle` are slide-level text with no `region` field of their own, so their placement is a contract, not a renderer choice. They SHALL bind to reserved region ids on the slide's layout:
+
+| slide field | region id |
+|---|---|
+| `title` | `title` |
+| `subtitle` | `subtitle` |
+
+The reserved ids are ordinary regions: they carry the same geometry, color, font, and overflow properties as any other, and resolve through the same cascade. Nothing about them is special-cased except which text fills them.
+
+Both slide fields are optional (a divider or full-bleed slide omits them). Therefore:
+
+- A slide field present with **no matching region** on its layout is an **authoring error**, reported by the consumer at load time exactly as an unresolvable `contentBlock.region` is under Compliance 3. It SHALL NOT be silently dropped — text that vanishes without a diagnostic is the failure mode this domain exists to prevent.
+- A region present with **no matching slide field** renders nothing. An empty region is a layout affordance, not an error.
+- A `contentBlock` SHALL NOT target a reserved region id. One region, one source of text; allowing both would make precedence a renderer decision.
+
+Without this rule a consumer can resolve every `contentBlock` correctly and still emit a deck in which no slide has a title, which is what happened before it was written.
+
+
+### R12 — Schema-declared defaults are part of the contract
+
+Several optional properties carry a JSON Schema `default` — `metadata.defaults.fontFamily` (`Aptos`), `titleFontSize` (32), `bodyFontSize` (16), `smallFontSize` (12). A declared `default` is a value the domain asserts, not documentation. A consumer that omits the property and a consumer that supplies the declared value SHALL render identically.
+
+Consumers SHALL therefore treat the declared defaults as the terminal step of property resolution: an absent optional property with a declared `default` resolves to that default. This is not a consumer fallback — the value comes from the schema, which is why it does not violate "the renderer decides nothing."
+
+`region.color` and `contentBlock.style.color` declare **no** default, deliberately. Color is the property that carries corporate identity, and a domain-wide default color would be wrong for exactly the decks that matter. An unresolvable color reference therefore remains an authoring error under Compliance 4, never a substituted value.
+
+**Invariant:** adding a `default` to a schema property changes consumer behavior. Adding or removing one is a contract change and SHALL bump this spec's semver.
+
+
 ## Resolution Layer
 
 `src/foundation_tools/presentation/` — pure stdlib, no I/O, total functions.
@@ -153,7 +184,9 @@ A compliant Presentations domain MUST:
 1. Define each concept exactly once, with intra-domain `$ref` by bare filename and no re-declaration.
 2. Contain no instance data inside any schema file.
 3. Resolve every `contentBlock.region` to a `region.id` present in the referenced layout, checked by the consumer at load time.
+3a. Resolve `Slide.title` / `Slide.subtitle`, when present, to the reserved region ids of R11, reporting a missing region as an authoring error rather than dropping the text.
 4. Restrict every color reference to the enumerated theme addresses of R4.
+4a. Resolve an absent optional property to its schema-declared `default` where one exists (R12), and report an unresolvable color rather than substituting one.
 5. Define canvas geometry in exactly one schema (R5).
 6. Round-trip every model through `to_dict()` -> `from_dict()` without data loss, per [dataModelHelper.md](dataModelHelper.md).
 7. Generate cleanly under `make codegen-all` and pass `make uv-fullCheck` with `mypy --strict`.

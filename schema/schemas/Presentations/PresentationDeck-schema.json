@@ -46,12 +46,12 @@
         },
         "title": {
           "type": "string",
-          "description": "Slide title. Optional so a divider or full-bleed slide can omit one."
+          "description": "Slide title. Optional so a divider or full-bleed slide can omit one. When present it binds to the reserved region id 'title' on the slide's layout; a missing region is an authoring error."
         },
         "subtitle": {
           "type": "string",
           "default": "",
-          "description": "Optional slide subtitle."
+          "description": "Optional slide subtitle. When present it binds to the reserved region id 'subtitle' on the slide's layout; a missing region is an authoring error."
         },
         "content": {
           "type": "array",
@@ -85,7 +85,7 @@
       "properties": {
         "region": {
           "type": "string",
-          "description": "Layout region that receives this content."
+          "description": "Layout region that receives this content. Must not be a reserved region id ('title', 'subtitle'), which are filled by the slide's own title and subtitle."
         },
         "type": {
           "type": "string",
