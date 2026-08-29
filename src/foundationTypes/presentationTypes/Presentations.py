@@ -248,6 +248,8 @@ class ThemeColorRef(Enum):
 
     Semantic color name resolved from PresentationColorTheme.
 
+    Optional semantic series color resolved from PresentationColorTheme.
+
     Semantic color resolved from PresentationColorTheme.
     """
 
@@ -783,6 +785,80 @@ class PresentationMetadata(DataModelHelper):
         return result
 
 
+class ChartKind(Enum):
+    """Chart kind for a 'chart' block. Placeholder set; an arm is added only once it is
+    renderable downstream.
+    """
+
+    BAR = "bar"
+    LINE = "line"
+
+
+@dataclass
+class TextRun(DataModelHelper):
+    """A run of body text with uniform inline emphasis."""
+
+    text: str
+    """The run's literal text."""
+
+    bold: bool | None = None
+    """Whether the run renders bold."""
+
+    italic: bool | None = None
+    """Whether the run renders italic."""
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "TextRun":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        text = from_str(obj.get("text"))
+        bold = from_union([from_bool, from_none], obj.get("bold"))
+        italic = from_union([from_bool, from_none], obj.get("italic"))
+        return TextRun(text, bold, italic)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        result["text"] = from_str(self.text)
+        if self.bold is not None:
+            result["bold"] = from_union([from_bool, from_none], self.bold)
+        if self.italic is not None:
+            result["italic"] = from_union([from_bool, from_none], self.italic)
+        return result
+
+
+@dataclass
+class ChartSeries(DataModelHelper):
+    """A named series of numeric values aligned to the chart's categories."""
+
+    name: str
+    """Series label for the legend."""
+
+    values: list[float]
+    """Numeric values, one per category."""
+
+    color: ThemeColorRef | None = None
+    """Optional semantic series color resolved from PresentationColorTheme."""
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "ChartSeries":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        name = from_str(obj.get("name"))
+        values = from_list(from_float, obj.get("values"))
+        color = from_union([ThemeColorRef, from_none], obj.get("color"))
+        return ChartSeries(name, values, color)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        result["name"] = from_str(self.name)
+        result["values"] = from_list(to_float, self.values)
+        if self.color is not None:
+            result["color"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
+            )
+        return result
+
+
 @dataclass
 class Style(DataModelHelper):
     """Optional style overrides for this content block."""
@@ -830,6 +906,9 @@ class ContentType(Enum):
     """
 
     BULLETS = "bullets"
+    CHART = "chart"
+    METRIC = "metric"
+    TABLE = "table"
     TEXT = "text"
 
 
@@ -845,8 +924,40 @@ class ContentBlock(DataModelHelper):
     """Content block kind. Each arm has a payload capable of expressing it and a renderer
     capable of drawing it.
     """
+    bullet_levels: list[int] | None = None
+    """Optional indent level per entry in 'items', 0 (outermost) to 4. Shorter than 'items'
+    leaves the remaining bullets at level 0.
+    """
+    categories: list[str] | None = None
+    """Shared x-axis category labels for a 'chart' block."""
+
+    chart_kind: ChartKind | None = None
+    """Chart kind for a 'chart' block. Placeholder set; an arm is added only once it is
+    renderable downstream.
+    """
+    delta: str | None = None
+    """Optional change indicator for a 'metric' block, e.g. '+3.1pp QoQ'. Empty when the metric
+    shows no comparison.
+    """
+    headers: list[str] | None = None
+    """Optional column headers for a 'table' block. Empty for a headerless table."""
+
     items: list[str] | None = None
     """Bullet items for a 'bullets' block."""
+
+    label: str | None = None
+    """Caption naming what a 'metric' block measures."""
+
+    rows: list[list[str]] | None = None
+    """Row-major cells for a 'table' block. Every cell is a pre-formatted string; ragged rows
+    are an authoring error the consumer reports.
+    """
+    runs: list[TextRun] | None = None
+    """Inline emphasis runs for a 'text' block that needs mixed formatting. When present the
+    renderer uses these instead of the flat 'text' string.
+    """
+    series: list[ChartSeries] | None = None
+    """One or more named data series for a 'chart' block."""
 
     style: Style | None = None
     """Optional style overrides for this content block."""
@@ -854,27 +965,100 @@ class ContentBlock(DataModelHelper):
     text: str | None = None
     """Body text for a 'text' block."""
 
+    value: str | None = None
+    """Pre-formatted headline value for a 'metric' block, e.g. '$4.2M' or '+12%'. A string so
+    number formatting and locale stay a renderer concern.
+    """
+
     @classmethod
     def from_dict(cls, obj: Any) -> "ContentBlock":
         if not isinstance(obj, dict):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         region = from_str(obj.get("region"))
         type = ContentType(obj.get("type"))
+        bullet_levels = from_union(
+            [lambda x: from_list(from_int, x), from_none], obj.get("bulletLevels")
+        )
+        categories = from_union(
+            [lambda x: from_list(from_str, x), from_none], obj.get("categories")
+        )
+        chart_kind = from_union([ChartKind, from_none], obj.get("chartKind"))
+        delta = from_union([from_str, from_none], obj.get("delta"))
+        headers = from_union([lambda x: from_list(from_str, x), from_none], obj.get("headers"))
         items = from_union([lambda x: from_list(from_str, x), from_none], obj.get("items"))
+        label = from_union([from_str, from_none], obj.get("label"))
+        rows = from_union(
+            [lambda x: from_list(lambda x: from_list(from_str, x), x), from_none], obj.get("rows")
+        )
+        runs = from_union([lambda x: from_list(TextRun.from_dict, x), from_none], obj.get("runs"))
+        series = from_union(
+            [lambda x: from_list(ChartSeries.from_dict, x), from_none], obj.get("series")
+        )
         style = from_union([Style.from_dict, from_none], obj.get("style"))
         text = from_union([from_str, from_none], obj.get("text"))
-        return ContentBlock(region, type, items, style, text)
+        value = from_union([from_str, from_none], obj.get("value"))
+        return ContentBlock(
+            region,
+            type,
+            bullet_levels,
+            categories,
+            chart_kind,
+            delta,
+            headers,
+            items,
+            label,
+            rows,
+            runs,
+            series,
+            style,
+            text,
+            value,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         result["region"] = from_str(self.region)
         result["type"] = to_enum(ContentType, self.type)
+        if self.bullet_levels is not None:
+            result["bulletLevels"] = from_union(
+                [lambda x: from_list(from_int, x), from_none], self.bullet_levels
+            )
+        if self.categories is not None:
+            result["categories"] = from_union(
+                [lambda x: from_list(from_str, x), from_none], self.categories
+            )
+        if self.chart_kind is not None:
+            result["chartKind"] = from_union(
+                [lambda x: to_enum(ChartKind, x), from_none], self.chart_kind
+            )
+        if self.delta is not None:
+            result["delta"] = from_union([from_str, from_none], self.delta)
+        if self.headers is not None:
+            result["headers"] = from_union(
+                [lambda x: from_list(from_str, x), from_none], self.headers
+            )
         if self.items is not None:
             result["items"] = from_union([lambda x: from_list(from_str, x), from_none], self.items)
+        if self.label is not None:
+            result["label"] = from_union([from_str, from_none], self.label)
+        if self.rows is not None:
+            result["rows"] = from_union(
+                [lambda x: from_list(lambda x: from_list(from_str, x), x), from_none], self.rows
+            )
+        if self.runs is not None:
+            result["runs"] = from_union(
+                [lambda x: from_list(lambda x: to_class(TextRun, x), x), from_none], self.runs
+            )
+        if self.series is not None:
+            result["series"] = from_union(
+                [lambda x: from_list(lambda x: to_class(ChartSeries, x), x), from_none], self.series
+            )
         if self.style is not None:
             result["style"] = from_union([lambda x: to_class(Style, x), from_none], self.style)
         if self.text is not None:
             result["text"] = from_union([from_str, from_none], self.text)
+        if self.value is not None:
+            result["value"] = from_union([from_str, from_none], self.value)
         return result
 
 

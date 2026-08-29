@@ -32,6 +32,8 @@ CLASSES_FOR_BASE_PARENT=(
     "Defaults"
     "File"
     "Style"
+    "TextRun"
+    "ChartSeries"
     "ContentBlock"
     "Slide"
     "PresentationColorTheme"

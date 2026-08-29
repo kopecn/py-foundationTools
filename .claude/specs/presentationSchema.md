@@ -3,8 +3,8 @@ spec: PresentationSchema
 scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
-last_updated: 2026-08-26
-semver: 0.2.0
+last_updated: 2026-08-28
+semver: 0.4.0
 author: Nicholas Bergantz
 ---
 
@@ -89,13 +89,19 @@ This constant SHALL be defined once, in `src/foundation_tools/presentation/units
 
 ### R7 — Block types must be renderable
 
-`contentBlock.type` SHALL contain only arms with a payload sufficient to express them. Tier 1 therefore ships:
+`contentBlock.type` SHALL contain only arms with a payload sufficient to express them. Tier 1 shipped `text` and `bullets`; tier 2 adds `metric` + `table` (chunk 06) and `chart` (chunk 08) now that each has a flat payload:
 
 ```json
-"enum": ["text", "bullets"]
+"enum": ["text", "bullets", "metric", "table", "chart"]
 ```
 
-`metric`, `table`, `chart`, `image`, and `quote` are removed until the tier that gives each a typed payload. Adding an enum value later is a non-breaking schema change; shipping an arm that validates and then fails to render is not.
+- `metric`: `value` (pre-formatted string), `label` (string), optional `delta` (string).
+- `table`: `rows` (row-major `array` of `array` of string), optional `headers` (`array` of string). Every cell is a pre-formatted string so number formatting stays a renderer concern.
+- `chart`: `chartKind` (`bar` | `line` — placeholder set, widen only on downstream renderability), `series` (`array` of `chartSeries`: `name`, numeric `values`, optional `color` theme ref), optional `categories` (`array` of string).
+
+The `text` arm additionally accepts optional `runs` (`array` of `textRun`: `text`, optional `bold`/`italic`) for inline emphasis without literal formatting; the `bullets` arm accepts optional `bulletLevels` (`array` of integer 0–4) for bounded indent (chunk 07).
+
+`image` and `quote` remain removed until the tier that gives each a typed payload. Adding an enum value later is a non-breaking schema change; shipping an arm that validates and then fails to render is not.
 
 `contentBlock.data` (untyped `object`) SHALL be removed — it is the mechanism by which structure was being lost.
 

@@ -1,18 +1,86 @@
 import copy
-import json
 import unittest
-from pathlib import Path
 from typing import Any
 
-from foundationTypes.presentationTypes.Presentations import PresentationDeck
+from foundationTypes.presentationTypes.Presentations import (
+    ChartKind,
+    ContentType,
+    PresentationDeck,
+    ThemeColorRef,
+)
 
-EXAMPLE_DIR = Path(__file__).resolve().parents[2] / "schema" / "examples" / "Presentations"
 
+def _example_deck_dict() -> dict[str, Any]:
+    """A three-slide deck exercising ``text`` and ``bullets`` blocks, omitting
+    every optional nested object (metadata.defaults, every block's style).
 
-def _load(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as f:
-        result: dict[str, Any] = json.load(f)
-        return result
+    Inlined here so the test is self-contained under tests/ -- it carries no
+    dependency on a checked-in example file.
+    """
+    return {
+        "metadata": {
+            "file": {"name": "q3-review.pptx"},
+            "title": "Q3 Business Review",
+            "author": "Nicholas Bergantz",
+            "company": "Example Corp",
+            "date": "2026-08-23",
+        },
+        "slides": [
+            {
+                "number": 1,
+                "id": "cover",
+                "layout": "title",
+                "title": "Q3 Business Review",
+                "subtitle": "Engineering Organization",
+                "content": [
+                    {
+                        "region": "footer",
+                        "type": "text",
+                        "text": "Confidential - Internal Use Only",
+                    }
+                ],
+            },
+            {
+                "number": 2,
+                "id": "highlights",
+                "layout": "one-column",
+                "title": "Highlights",
+                "content": [
+                    {
+                        "region": "body",
+                        "type": "bullets",
+                        "items": [
+                            "Shipped presentation schema linking",
+                            "Closed the tier-1 gate",
+                            "Zero new runtime dependencies",
+                        ],
+                    }
+                ],
+            },
+            {
+                "number": 3,
+                "id": "roadmap",
+                "layout": "two-column",
+                "title": "Roadmap",
+                "content": [
+                    {
+                        "region": "left",
+                        "type": "text",
+                        "text": "Near term: typed content blocks, rich text, and bullet levels.",
+                    },
+                    {
+                        "region": "right",
+                        "type": "bullets",
+                        "items": [
+                            "Deck versioning",
+                            "Layout migration",
+                            "Mermaid nucleation",
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
 
 
 def _minimal_deck_dict() -> dict[str, Any]:
@@ -26,6 +94,122 @@ def _minimal_deck_dict() -> dict[str, Any]:
         },
         "slides": [
             {"layout": "solo", "number": 1},
+        ],
+    }
+
+
+def _metric_table_deck_dict() -> dict[str, Any]:
+    """A two-slide deck exercising the tier-2 ``metric`` and ``table`` blocks,
+    including a metric that omits the optional ``delta``.
+    """
+    return {
+        "metadata": {
+            "author": "Nicholas Bergantz",
+            "company": "Example Corp",
+            "date": "2026-08-28",
+            "file": {"name": "metrics.pptx"},
+            "title": "Metrics",
+        },
+        "slides": [
+            {
+                "number": 1,
+                "layout": "kpi-row",
+                "title": "Quarter at a glance",
+                "content": [
+                    {
+                        "region": "kpi-left",
+                        "type": "metric",
+                        "value": "$4.2M",
+                        "label": "Bookings",
+                        "delta": "+12% QoQ",
+                    },
+                    {
+                        "region": "kpi-right",
+                        "type": "metric",
+                        "value": "63",
+                        "label": "NPS",
+                    },
+                ],
+            },
+            {
+                "number": 2,
+                "layout": "one-column",
+                "title": "Pipeline by stage",
+                "content": [
+                    {
+                        "region": "body",
+                        "type": "table",
+                        "headers": ["Stage", "Count", "Value"],
+                        "rows": [
+                            ["Discovery", "12", "$1.1M"],
+                            ["Proposal", "5", "$0.8M"],
+                            ["Closing", "3", "$0.6M"],
+                        ],
+                    }
+                ],
+            },
+        ],
+    }
+
+
+def _rich_text_chart_deck_dict() -> dict[str, Any]:
+    """A two-slide deck exercising the tier-2 ``runs`` / ``bulletLevels`` (chunk 07)
+    and ``chart`` (chunk 08) placeholder payloads.
+    """
+    return {
+        "metadata": {
+            "author": "Nicholas Bergantz",
+            "company": "Example Corp",
+            "date": "2026-08-28",
+            "file": {"name": "narrative.pptx"},
+            "title": "Narrative",
+        },
+        "slides": [
+            {
+                "number": 1,
+                "layout": "one-column",
+                "title": "Where we are",
+                "content": [
+                    {
+                        "region": "body",
+                        "type": "text",
+                        "runs": [
+                            {"text": "Revenue is "},
+                            {"text": "up 12%", "bold": True},
+                            {"text": " and "},
+                            {"text": "ahead of plan", "italic": True},
+                            {"text": "."},
+                        ],
+                    },
+                    {
+                        "region": "aside",
+                        "type": "bullets",
+                        "items": ["Region EMEA", "  France", "  Germany", "Region APAC"],
+                        "bulletLevels": [0, 1, 1, 0],
+                    },
+                ],
+            },
+            {
+                "number": 2,
+                "layout": "one-column",
+                "title": "Bookings by quarter",
+                "content": [
+                    {
+                        "region": "body",
+                        "type": "chart",
+                        "chartKind": "bar",
+                        "categories": ["Q1", "Q2", "Q3"],
+                        "series": [
+                            {
+                                "name": "Bookings",
+                                "values": [3.1, 3.8, 4.2],
+                                "color": "accentBlue.accent",
+                            },
+                            {"name": "Target", "values": [3.0, 3.5, 4.0]},
+                        ],
+                    }
+                ],
+            },
         ],
     }
 
@@ -57,10 +241,12 @@ class TestPresentationDeck(unittest.TestCase):
     """Contract tests for the generated PresentationDeck model."""
 
     def setUp(self) -> None:
-        self.example_dict = _load(EXAMPLE_DIR / "deck.json")
+        self.example_dict = _example_deck_dict()
         self.example_deck = PresentationDeck.from_dict(self.example_dict)
         self.minimal_dict = _minimal_deck_dict()
         self.full_dict = _full_dict()
+        self.metric_table_dict = _metric_table_deck_dict()
+        self.rich_text_chart_dict = _rich_text_chart_deck_dict()
 
     def test_from_dict_builds_valid_instance_from_example(self) -> None:
         # The example deck omits every optional nested object (metadata.defaults,
@@ -77,6 +263,47 @@ class TestPresentationDeck(unittest.TestCase):
         deck = PresentationDeck.from_dict(self.minimal_dict)
         self.assertEqual(deck.metadata.author, "Author")
         self.assertEqual(deck.slides[0].layout, "solo")
+
+    def test_from_dict_builds_metric_and_table_blocks(self) -> None:
+        deck = PresentationDeck.from_dict(self.metric_table_dict)
+        assert deck.slides[0].content is not None
+        metric = deck.slides[0].content[0]
+        self.assertEqual(metric.type, ContentType.METRIC)
+        self.assertEqual(metric.value, "$4.2M")
+        self.assertEqual(metric.label, "Bookings")
+        self.assertEqual(metric.delta, "+12% QoQ")
+        bare_metric = deck.slides[0].content[1]
+        self.assertEqual(bare_metric.value, "63")
+        self.assertIsNone(bare_metric.delta)
+        assert deck.slides[1].content is not None
+        table = deck.slides[1].content[0]
+        self.assertEqual(table.type, ContentType.TABLE)
+        self.assertEqual(table.headers, ["Stage", "Count", "Value"])
+        assert table.rows is not None
+        self.assertEqual(len(table.rows), 3)
+        self.assertEqual(table.rows[0], ["Discovery", "12", "$1.1M"])
+
+    def test_from_dict_builds_rich_text_bullet_levels_and_chart(self) -> None:
+        deck = PresentationDeck.from_dict(self.rich_text_chart_dict)
+        assert deck.slides[0].content is not None
+        run_block = deck.slides[0].content[0]
+        assert run_block.runs is not None
+        self.assertEqual(len(run_block.runs), 5)
+        self.assertEqual(run_block.runs[1].text, "up 12%")
+        self.assertTrue(run_block.runs[1].bold)
+        self.assertTrue(run_block.runs[3].italic)
+        bullet_block = deck.slides[0].content[1]
+        self.assertEqual(bullet_block.bullet_levels, [0, 1, 1, 0])
+        assert deck.slides[1].content is not None
+        chart = deck.slides[1].content[0]
+        self.assertEqual(chart.type, ContentType.CHART)
+        self.assertEqual(chart.chart_kind, ChartKind.BAR)
+        self.assertEqual(chart.categories, ["Q1", "Q2", "Q3"])
+        assert chart.series is not None
+        self.assertEqual(chart.series[0].name, "Bookings")
+        self.assertEqual(chart.series[0].values, [3.1, 3.8, 4.2])
+        self.assertEqual(chart.series[0].color, ThemeColorRef.ACCENT_BLUE_ACCENT)
+        self.assertIsNone(chart.series[1].color)
 
     def test_to_dict_produces_camel_case_wire_keys(self) -> None:
         deck = PresentationDeck.from_dict(self.full_dict)
@@ -95,6 +322,8 @@ class TestPresentationDeck(unittest.TestCase):
             "example": self.example_dict,
             "minimal": self.minimal_dict,
             "full": self.full_dict,
+            "metric_table": self.metric_table_dict,
+            "rich_text_chart": self.rich_text_chart_dict,
         }
         for case_name, source_dict in cases.items():
             with self.subTest(case=case_name):

@@ -87,7 +87,10 @@
           "type": "string",
           "enum": [
             "text",
-            "bullets"
+            "bullets",
+            "metric",
+            "table",
+            "chart"
           ],
           "default": "text",
           "description": "Content block kind. Each arm has a payload capable of expressing it and a renderer capable of drawing it."
@@ -97,6 +100,14 @@
           "default": "",
           "description": "Body text for a 'text' block."
         },
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/textRun"
+          },
+          "default": [],
+          "description": "Inline emphasis runs for a 'text' block that needs mixed formatting. When present the renderer uses these instead of the flat 'text' string."
+        },
         "items": {
           "type": "array",
           "items": {
@@ -104,6 +115,74 @@
           },
           "default": [],
           "description": "Bullet items for a 'bullets' block."
+        },
+        "bulletLevels": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "default": [],
+          "description": "Optional indent level per entry in 'items', 0 (outermost) to 4. Shorter than 'items' leaves the remaining bullets at level 0."
+        },
+        "value": {
+          "type": "string",
+          "default": "",
+          "description": "Pre-formatted headline value for a 'metric' block, e.g. '$4.2M' or '+12%'. A string so number formatting and locale stay a renderer concern."
+        },
+        "label": {
+          "type": "string",
+          "default": "",
+          "description": "Caption naming what a 'metric' block measures."
+        },
+        "delta": {
+          "type": "string",
+          "default": "",
+          "description": "Optional change indicator for a 'metric' block, e.g. '+3.1pp QoQ'. Empty when the metric shows no comparison."
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Optional column headers for a 'table' block. Empty for a headerless table."
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default": [],
+          "description": "Row-major cells for a 'table' block. Every cell is a pre-formatted string; ragged rows are an authoring error the consumer reports."
+        },
+        "chartKind": {
+          "type": "string",
+          "enum": [
+            "bar",
+            "line"
+          ],
+          "description": "Chart kind for a 'chart' block. Placeholder set; an arm is added only once it is renderable downstream."
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Shared x-axis category labels for a 'chart' block."
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/chartSeries"
+          },
+          "default": [],
+          "description": "One or more named data series for a 'chart' block."
         },
         "style": {
           "type": "object",
@@ -134,6 +213,54 @@
               "description": "Horizontal text alignment."
             }
           }
+        }
+      }
+    },
+    "textRun": {
+      "type": "object",
+      "description": "A run of body text with uniform inline emphasis.",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The run's literal text."
+        },
+        "bold": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the run renders bold."
+        },
+        "italic": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the run renders italic."
+        }
+      }
+    },
+    "chartSeries": {
+      "type": "object",
+      "description": "A named series of numeric values aligned to the chart's categories.",
+      "required": [
+        "name",
+        "values"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Series label for the legend."
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "Numeric values, one per category."
+        },
+        "color": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Optional semantic series color resolved from PresentationColorTheme."
         }
       }
     }

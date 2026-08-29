@@ -34,17 +34,55 @@ def test_deck_has_no_layouts_field() -> None:
     assert "layouts" not in deck["properties"]
 
 
-def test_content_block_type_enum_is_text_and_bullets() -> None:
+def test_content_block_type_enum_includes_metric_table_chart() -> None:
+    # Tier 2 adds metric + table (chunk 06) and chart (chunk 08) now that each
+    # has a flat payload; text and bullets keep their tier-1 leading positions.
     deck = _load("PresentationDeck-schema.json")
     content_block = deck["definitions"]["contentBlock"]
-    assert content_block["properties"]["type"]["enum"] == ["text", "bullets"]
+    assert content_block["properties"]["type"]["enum"] == [
+        "text",
+        "bullets",
+        "metric",
+        "table",
+        "chart",
+    ]
 
 
-def test_content_block_has_no_removed_fields() -> None:
+def test_content_block_untyped_data_bag_stays_removed() -> None:
+    # R7: contentBlock.data (untyped object) SHALL stay gone, and image/quote
+    # stay out of the enum until a tier gives each a typed payload.
     deck = _load("PresentationDeck-schema.json")
     content_block = deck["definitions"]["contentBlock"]
-    for removed in ("value", "label", "data"):
-        assert removed not in content_block["properties"]
+    assert "data" not in content_block["properties"]
+    for unshipped in ("image", "quote"):
+        assert unshipped not in content_block["properties"]["type"]["enum"]
+
+
+def test_content_block_metric_and_table_payload_fields_present() -> None:
+    # R9: metric and table are flat sibling fields, not nested payload objects.
+    deck = _load("PresentationDeck-schema.json")
+    props = deck["definitions"]["contentBlock"]["properties"]
+    for field in ("value", "label", "delta", "headers", "rows"):
+        assert field in props, f"{field} missing from contentBlock properties"
+    assert props["headers"]["items"] == {"type": "string"}
+    assert props["rows"]["items"] == {"type": "array", "items": {"type": "string"}}
+
+
+def test_content_block_rich_text_and_chart_payload_fields_present() -> None:
+    # chunk 07: runs (typed emphasis) + bulletLevels (bounded 0-4).
+    # chunk 08: chartKind + categories + series, all flat siblings per R9.
+    deck = _load("PresentationDeck-schema.json")
+    definitions = deck["definitions"]
+    props = definitions["contentBlock"]["properties"]
+    for field in ("runs", "bulletLevels", "chartKind", "categories", "series"):
+        assert field in props, f"{field} missing from contentBlock properties"
+    assert props["bulletLevels"]["items"]["minimum"] == 0
+    assert props["bulletLevels"]["items"]["maximum"] == 4
+    assert props["chartKind"]["enum"] == ["bar", "line"]
+    assert props["runs"]["items"] == {"$ref": "#/definitions/textRun"}
+    assert props["series"]["items"] == {"$ref": "#/definitions/chartSeries"}
+    assert definitions["textRun"]["required"] == ["text"]
+    assert definitions["chartSeries"]["required"] == ["name", "values"]
 
 
 def test_theme_color_ref_enum_matches_theme_accent_count() -> None:

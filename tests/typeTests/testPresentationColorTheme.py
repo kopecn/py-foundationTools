@@ -7,7 +7,6 @@ from typing import Any
 from foundation_tools.presentation.theme_resolver import resolve_color
 from foundationTypes.presentationTypes.Presentations import PresentationColorTheme
 
-EXAMPLE_DIR = Path(__file__).resolve().parents[2] / "schema" / "examples" / "Presentations"
 SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schema" / "schemas" / "Presentations"
 
 _ACCENT_NAMES = (
@@ -26,6 +25,67 @@ def _load(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as f:
         result: dict[str, Any] = json.load(f)
         return result
+
+
+def _example_theme_dict() -> dict[str, Any]:
+    """A corporate theme instance exercising all 8 accents and the chart palette.
+
+    Inlined here so the test is self-contained under tests/ -- it carries no
+    dependency on a checked-in example file.
+    """
+    return {
+        "background": {"name": "White", "r": 255, "g": 255, "b": 255},
+        "text": {"name": "Ink", "r": 23, "g": 23, "b": 23},
+        "mutedText": {"name": "Slate", "r": 110, "g": 110, "b": 110},
+        "accentGrey": {
+            "accent": {"name": "Grey", "r": 140, "g": 140, "b": 140},
+            "background": {"name": "Grey Tint", "r": 235, "g": 235, "b": 235},
+            "text": {"name": "Grey Ink", "r": 40, "g": 40, "b": 40},
+        },
+        "accentRed": {
+            "accent": {"name": "Crimson", "r": 196, "g": 30, "b": 58},
+            "background": {"name": "Crimson Tint", "r": 253, "g": 226, "b": 226},
+            "text": {"name": "Crimson Ink", "r": 127, "g": 29, "b": 29},
+        },
+        "accentGreen": {
+            "accent": {"name": "Emerald", "r": 22, "g": 163, "b": 74},
+            "background": {"name": "Emerald Tint", "r": 220, "g": 252, "b": 231},
+            "text": {"name": "Emerald Ink", "r": 20, "g": 83, "b": 45},
+        },
+        "accentBlue": {
+            "accent": {"name": "Cobalt", "r": 37, "g": 99, "b": 235},
+            "background": {"name": "Cobalt Tint", "r": 219, "g": 234, "b": 254},
+            "text": {"name": "Cobalt Ink", "r": 30, "g": 58, "b": 138},
+        },
+        "accentAmber": {
+            "accent": {"name": "Amber", "r": 217, "g": 119, "b": 6},
+            "background": {"name": "Amber Tint", "r": 254, "g": 243, "b": 199},
+            "text": {"name": "Amber Ink", "r": 120, "g": 53, "b": 15},
+        },
+        "accentTeal": {
+            "accent": {"name": "Teal", "r": 13, "g": 148, "b": 136},
+            "background": {"name": "Teal Tint", "r": 204, "g": 251, "b": 241},
+            "text": {"name": "Teal Ink", "r": 19, "g": 78, "b": 74},
+        },
+        "accentYellow": {
+            "accent": {"name": "Gold", "r": 202, "g": 138, "b": 4},
+            "background": {"name": "Gold Tint", "r": 254, "g": 249, "b": 195},
+            "text": {"name": "Gold Ink", "r": 113, "g": 63, "b": 18},
+        },
+        "accentPurple": {
+            "accent": {"name": "Violet", "r": 124, "g": 58, "b": 237},
+            "background": {"name": "Violet Tint", "r": 237, "g": 233, "b": 254},
+            "text": {"name": "Violet Ink", "r": 76, "g": 29, "b": 149},
+        },
+        "chartColors": [
+            {"name": "Cobalt", "r": 37, "g": 99, "b": 235},
+            {"name": "Emerald", "r": 22, "g": 163, "b": 74},
+            {"name": "Amber", "r": 217, "g": 119, "b": 6},
+            {"name": "Crimson", "r": 196, "g": 30, "b": 58},
+            {"name": "Violet", "r": 124, "g": 58, "b": 237},
+            {"name": "Teal", "r": 13, "g": 148, "b": 136},
+        ],
+    }
 
 
 def _minimal_color(name: str = "c") -> dict[str, Any]:
@@ -56,7 +116,7 @@ class TestPresentationColorTheme(unittest.TestCase):
     """Contract tests for the generated PresentationColorTheme model."""
 
     def setUp(self) -> None:
-        self.example_dict = _load(EXAMPLE_DIR / "theme.json")
+        self.example_dict = _example_theme_dict()
         self.example_theme = PresentationColorTheme.from_dict(self.example_dict)
         self.minimal_dict = _minimal_theme_dict()
 
@@ -127,7 +187,7 @@ class TestThemeColorRefEnumCoverage(unittest.TestCase):
     """Every themeColorRef enum value must resolve against the example theme (R4)."""
 
     def test_every_enum_value_resolves_against_example_theme(self) -> None:
-        theme = PresentationColorTheme.from_dict(_load(EXAMPLE_DIR / "theme.json"))
+        theme = PresentationColorTheme.from_dict(_example_theme_dict())
         layouts_schema = _load(SCHEMA_DIR / "PresentationSlideLayouts-schema.json")
         enum_values = layouts_schema["definitions"]["themeColorRef"]["enum"]
         self.assertEqual(len(enum_values), 27)

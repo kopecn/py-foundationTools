@@ -1,18 +1,119 @@
 import copy
-import json
 import unittest
-from pathlib import Path
 from typing import Any
 
 from foundationTypes.presentationTypes.Presentations import PresentationSlideLayouts
 
-EXAMPLE_DIR = Path(__file__).resolve().parents[2] / "schema" / "examples" / "Presentations"
 
+def _example_layouts_dict() -> dict[str, Any]:
+    """The tier-1 three-layout library (title / one-column / two-column).
 
-def _load(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as f:
-        result: dict[str, Any] = json.load(f)
-        return result
+    Inlined here so the test is self-contained under tests/ -- it carries no
+    dependency on a checked-in example file.
+    """
+    return {
+        "defaults": {"canvasWidth": 1920, "canvasHeight": 1080, "outerMargin": 80},
+        "layouts": [
+            {
+                "id": "title",
+                "name": "Title",
+                "description": "Simple title slide.",
+                "regions": [
+                    {
+                        "id": "title",
+                        "type": "title",
+                        "x": 150,
+                        "y": 230,
+                        "width": 1620,
+                        "height": 110,
+                        "fontSize": 48,
+                        "color": "text",
+                    },
+                    {
+                        "id": "subtitle",
+                        "type": "subtitle",
+                        "x": 150,
+                        "y": 360,
+                        "width": 1620,
+                        "height": 60,
+                        "fontSize": 24,
+                        "color": "mutedText",
+                    },
+                    {
+                        "id": "footer",
+                        "type": "footer",
+                        "x": 150,
+                        "y": 900,
+                        "width": 1620,
+                        "height": 50,
+                        "fontSize": 16,
+                        "color": "mutedText",
+                    },
+                ],
+            },
+            {
+                "id": "one-column",
+                "name": "One Column",
+                "description": "Standard title plus full-width body.",
+                "regions": [
+                    {
+                        "id": "title",
+                        "type": "title",
+                        "x": 80,
+                        "y": 70,
+                        "width": 1760,
+                        "height": 70,
+                        "fontSize": 40,
+                        "color": "text",
+                    },
+                    {
+                        "id": "body",
+                        "type": "body",
+                        "x": 100,
+                        "y": 180,
+                        "width": 1720,
+                        "height": 780,
+                        "color": "text",
+                    },
+                ],
+            },
+            {
+                "id": "two-column",
+                "name": "Two Column",
+                "description": "Title plus two equal content columns.",
+                "regions": [
+                    {
+                        "id": "title",
+                        "type": "title",
+                        "x": 80,
+                        "y": 70,
+                        "width": 1760,
+                        "height": 70,
+                        "fontSize": 40,
+                        "color": "text",
+                    },
+                    {
+                        "id": "left",
+                        "type": "column",
+                        "x": 100,
+                        "y": 180,
+                        "width": 820,
+                        "height": 780,
+                        "color": "text",
+                    },
+                    {
+                        "id": "right",
+                        "type": "column",
+                        "x": 1000,
+                        "y": 180,
+                        "width": 820,
+                        "height": 780,
+                        "color": "text",
+                    },
+                ],
+            },
+        ],
+    }
 
 
 def _minimal_layouts_dict() -> dict[str, Any]:
@@ -32,7 +133,7 @@ class TestPresentationSlideLayouts(unittest.TestCase):
     """Contract tests for the generated PresentationSlideLayouts model."""
 
     def setUp(self) -> None:
-        self.example_dict = _load(EXAMPLE_DIR / "layouts.json")
+        self.example_dict = _example_layouts_dict()
         self.example_layouts = PresentationSlideLayouts.from_dict(self.example_dict)
         self.minimal_dict = _minimal_layouts_dict()
 
