@@ -3,7 +3,6 @@
   "title": "PresentationDeck",
   "description": "Presentation content consisting of ordered slides referencing reusable slide layouts.",
   "type": "object",
-  "additionalProperties": false,
   "required": [
     "metadata",
     "slides"
@@ -25,7 +24,6 @@
     "slide": {
       "type": "object",
       "description": "A single slide referencing a reusable layout and carrying its content blocks.",
-      "additionalProperties": false,
       "required": [
         "number",
         "layout"
@@ -73,11 +71,9 @@
         }
       }
     },
-
     "contentBlock": {
       "type": "object",
       "description": "A single piece of slide content placed into a named layout region.",
-      "additionalProperties": false,
       "required": [
         "region",
         "type"
@@ -112,7 +108,6 @@
         "style": {
           "type": "object",
           "description": "Optional style overrides for this content block.",
-          "additionalProperties": false,
           "properties": {
             "color": {
               "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",

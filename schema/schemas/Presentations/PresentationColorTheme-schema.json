@@ -4,7 +4,6 @@
   "title": "PresentationColorTheme",
   "description": "Presentation color theme defining the background, text, semantic accent colors, and chart palette. All colors use a reusable RGB color type with three integer channels from 0 to 255 and a human-readable color name.",
   "type": "object",
-  "additionalProperties": false,
   "required": [
     "background",
     "text",
@@ -77,7 +76,6 @@
     "presentationAccent": {
       "type": "object",
       "description": "Semantic presentation accent consisting of a primary accent color, a supporting background color, and a text color intended to remain legible when rendered over the accent background.",
-      "additionalProperties": false,
       "required": [
         "accent",
         "background",
@@ -101,7 +99,6 @@
     "presentationColor": {
       "type": "object",
       "description": "A presentation color represented by RGB channel values, an optional opacity, and a human-readable color name. RGB values are authoritative; the name is a descriptive label. Opacity defaults to fully opaque when omitted.",
-      "additionalProperties": false,
       "required": [
         "name",
         "r",

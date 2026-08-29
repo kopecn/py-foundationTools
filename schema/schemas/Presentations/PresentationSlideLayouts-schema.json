@@ -3,7 +3,6 @@
   "title": "PresentationSlideLayouts",
   "description": "Reusable slide layout definitions describing title, body, columns, metrics, and supporting regions.",
   "type": "object",
-  "additionalProperties": false,
   "required": [
     "defaults",
     "layouts"
@@ -27,21 +26,38 @@
       "type": "string",
       "description": "Address of a color in PresentationColorTheme. Scalars are named directly; accents are addressed as <accent>.<channel>.",
       "enum": [
-        "background", "text", "mutedText",
-        "accentGrey.accent", "accentGrey.background", "accentGrey.text",
-        "accentRed.accent", "accentRed.background", "accentRed.text",
-        "accentGreen.accent", "accentGreen.background", "accentGreen.text",
-        "accentBlue.accent", "accentBlue.background", "accentBlue.text",
-        "accentAmber.accent", "accentAmber.background", "accentAmber.text",
-        "accentTeal.accent", "accentTeal.background", "accentTeal.text",
-        "accentYellow.accent", "accentYellow.background", "accentYellow.text",
-        "accentPurple.accent", "accentPurple.background", "accentPurple.text"
+        "background",
+        "text",
+        "mutedText",
+        "accentGrey.accent",
+        "accentGrey.background",
+        "accentGrey.text",
+        "accentRed.accent",
+        "accentRed.background",
+        "accentRed.text",
+        "accentGreen.accent",
+        "accentGreen.background",
+        "accentGreen.text",
+        "accentBlue.accent",
+        "accentBlue.background",
+        "accentBlue.text",
+        "accentAmber.accent",
+        "accentAmber.background",
+        "accentAmber.text",
+        "accentTeal.accent",
+        "accentTeal.background",
+        "accentTeal.text",
+        "accentYellow.accent",
+        "accentYellow.background",
+        "accentYellow.text",
+        "accentPurple.accent",
+        "accentPurple.background",
+        "accentPurple.text"
       ]
     },
     "layoutDefaults": {
       "type": "object",
       "description": "Canvas geometry and per-region-type defaults. The single owner of canvas dimensions and outer margin.",
-      "additionalProperties": false,
       "properties": {
         "canvasWidth": {
           "type": "integer",
@@ -69,7 +85,6 @@
         "notes": {
           "type": "object",
           "description": "Speaker notes rendering defaults.",
-          "additionalProperties": false,
           "properties": {
             "enabled": {
               "type": "boolean",
@@ -83,7 +98,6 @@
     "regionDefaults": {
       "type": "object",
       "description": "Default geometry, font size, and color for a region type.",
-      "additionalProperties": false,
       "properties": {
         "x": {
           "type": "number",
@@ -120,7 +134,6 @@
     "region": {
       "type": "object",
       "description": "A single addressable content area within a slide layout.",
-      "additionalProperties": false,
       "required": [
         "id"
       ],
@@ -214,7 +227,6 @@
     "slideLayout": {
       "type": "object",
       "description": "A named, reusable arrangement of regions on the canvas.",
-      "additionalProperties": false,
       "required": [
         "id",
         "name",

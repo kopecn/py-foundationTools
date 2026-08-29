@@ -3,7 +3,6 @@
   "title": "PresentationMetadata",
   "description": "Deck-level metadata and rendering defaults for a presentation.",
   "type": "object",
-  "additionalProperties": false,
   "required": [
     "file",
     "title",
@@ -15,7 +14,6 @@
     "file": {
       "type": "object",
       "description": "Output file location and format.",
-      "additionalProperties": false,
       "required": [
         "name"
       ],
@@ -73,7 +71,6 @@
     },
     "defaults": {
       "type": "object",
-      "additionalProperties": false,
       "description": "Rendering defaults inherited by slides and layouts unless overridden.",
       "properties": {
         "fontFamily": {
