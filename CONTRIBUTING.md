@@ -117,7 +117,7 @@ Before submitting a pull request, make sure:
 To run a targeted test suite:
 
 ```sh
-pytest tests/test_py_foundation_tools.py
+pytest tests/testfoundationMath.py
 ```
 
 
