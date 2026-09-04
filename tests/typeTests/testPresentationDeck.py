@@ -245,6 +245,22 @@ def _versioned_deck_dict() -> dict[str, Any]:
     return deck
 
 
+def _mermaid_deck_dict() -> dict[str, Any]:
+    """A minimal deck exercising the tier-3 'mermaid' nucleation point (chunk 11):
+    a single content block carrying raw Mermaid source text only. No parsing,
+    layout, or rendering is exercised -- there is none to exercise.
+    """
+    deck = _minimal_deck_dict()
+    deck["slides"][0]["content"] = [
+        {
+            "region": "body",
+            "type": "mermaid",
+            "mermaidSource": "graph TD\n  A[Start] --> B[End]",
+        }
+    ]
+    return deck
+
+
 class TestPresentationDeck(unittest.TestCase):
     """Contract tests for the generated PresentationDeck model."""
 
@@ -256,6 +272,7 @@ class TestPresentationDeck(unittest.TestCase):
         self.metric_table_dict = _metric_table_deck_dict()
         self.rich_text_chart_dict = _rich_text_chart_deck_dict()
         self.versioned_dict = _versioned_deck_dict()
+        self.mermaid_dict = _mermaid_deck_dict()
 
     def test_from_dict_builds_valid_instance_from_example(self) -> None:
         # The example deck omits every optional nested object (metadata.defaults,
@@ -329,6 +346,15 @@ class TestPresentationDeck(unittest.TestCase):
         self.assertIsNone(deck.metadata.theme_version)
         self.assertIsNone(deck.metadata.layout_version)
 
+    def test_from_dict_builds_mermaid_block(self) -> None:
+        # chunk 11: the block round-trips its raw source text and nothing else --
+        # there is no parsing or rendering to assert on.
+        deck = PresentationDeck.from_dict(self.mermaid_dict)
+        assert deck.slides[0].content is not None
+        block = deck.slides[0].content[0]
+        self.assertEqual(block.type, ContentType.MERMAID)
+        self.assertEqual(block.mermaid_source, "graph TD\n  A[Start] --> B[End]")
+
     def test_to_dict_produces_camel_case_wire_keys(self) -> None:
         deck = PresentationDeck.from_dict(self.full_dict)
         result = deck.to_dict()
@@ -349,6 +375,7 @@ class TestPresentationDeck(unittest.TestCase):
             "metric_table": self.metric_table_dict,
             "rich_text_chart": self.rich_text_chart_dict,
             "versioned": self.versioned_dict,
+            "mermaid": self.mermaid_dict,
         }
         for case_name, source_dict in cases.items():
             with self.subTest(case=case_name):

@@ -997,11 +997,13 @@ class Style(DataModelHelper):
 
 class ContentType(Enum):
     """Content block kind. Each arm has a payload capable of expressing it and a renderer
-    capable of drawing it.
+    capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
+    diagram source with no renderer yet (see 'mermaidSource').
     """
 
     BULLETS = "bullets"
     CHART = "chart"
+    MERMAID = "mermaid"
     METRIC = "metric"
     TABLE = "table"
     TEXT = "text"
@@ -1017,7 +1019,8 @@ class ContentBlock(DataModelHelper):
     """
     type: ContentType
     """Content block kind. Each arm has a payload capable of expressing it and a renderer
-    capable of drawing it.
+    capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
+    diagram source with no renderer yet (see 'mermaidSource').
     """
     bullet_levels: list[int] | None = None
     """Optional indent level per entry in 'items', 0 (outermost) to 4. Shorter than 'items'
@@ -1043,6 +1046,11 @@ class ContentBlock(DataModelHelper):
     label: str | None = None
     """Caption naming what a 'metric' block measures."""
 
+    mermaid_source: str | None = None
+    """Raw Mermaid diagram source text for a 'mermaid' block. This repository stores the source
+    only; it does not parse, lay out, or render Mermaid diagrams. Rendering, if ever added,
+    is a downstream (clerical-tools) concern.
+    """
     rows: list[list[str]] | None = None
     """Row-major cells for a 'table' block. Every cell is a pre-formatted string; ragged rows
     are an authoring error the consumer reports.
@@ -1082,6 +1090,7 @@ class ContentBlock(DataModelHelper):
         headers = from_union([lambda x: from_list(from_str, x), from_none], obj.get("headers"))
         items = from_union([lambda x: from_list(from_str, x), from_none], obj.get("items"))
         label = from_union([from_str, from_none], obj.get("label"))
+        mermaid_source = from_union([from_str, from_none], obj.get("mermaidSource"))
         rows = from_union(
             [lambda x: from_list(lambda x: from_list(from_str, x), x), from_none], obj.get("rows")
         )
@@ -1102,6 +1111,7 @@ class ContentBlock(DataModelHelper):
             headers,
             items,
             label,
+            mermaid_source,
             rows,
             runs,
             series,
@@ -1136,6 +1146,8 @@ class ContentBlock(DataModelHelper):
             result["items"] = from_union([lambda x: from_list(from_str, x), from_none], self.items)
         if self.label is not None:
             result["label"] = from_union([from_str, from_none], self.label)
+        if self.mermaid_source is not None:
+            result["mermaidSource"] = from_union([from_str, from_none], self.mermaid_source)
         if self.rows is not None:
             result["rows"] = from_union(
                 [lambda x: from_list(lambda x: from_list(from_str, x), x), from_none], self.rows

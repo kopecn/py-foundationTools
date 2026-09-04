@@ -37,6 +37,8 @@ def test_deck_has_no_layouts_field() -> None:
 def test_content_block_type_enum_includes_metric_table_chart() -> None:
     # Tier 2 adds metric + table (chunk 06) and chart (chunk 08) now that each
     # has a flat payload; text and bullets keep their tier-1 leading positions.
+    # Tier 3 chunk 11 adds "mermaid" as a schema-only nucleation point (source
+    # stored, not rendered here) -- see test_content_block_mermaid_payload_field_present.
     deck = _load("PresentationDeck-schema.json")
     content_block = deck["definitions"]["contentBlock"]
     assert content_block["properties"]["type"]["enum"] == [
@@ -45,6 +47,7 @@ def test_content_block_type_enum_includes_metric_table_chart() -> None:
         "metric",
         "table",
         "chart",
+        "mermaid",
     ]
 
 
@@ -83,6 +86,19 @@ def test_content_block_rich_text_and_chart_payload_fields_present() -> None:
     assert props["series"]["items"] == {"$ref": "#/definitions/chartSeries"}
     assert definitions["textRun"]["required"] == ["text"]
     assert definitions["chartSeries"]["required"] == ["name", "values"]
+
+
+def test_content_block_mermaid_payload_field_present() -> None:
+    # chunk 11: smallest typed attachment point for Mermaid source. A single
+    # string field mirrors how 'text' serves a 'text' block. No parsing, layout,
+    # or rendering is added -- the description must say so plainly.
+    deck = _load("PresentationDeck-schema.json")
+    props = deck["definitions"]["contentBlock"]["properties"]
+    assert "mermaidSource" in props
+    assert props["mermaidSource"]["type"] == "string"
+    description = props["mermaidSource"]["description"].lower()
+    assert "does not" in description
+    assert "render" in description
 
 
 def test_theme_color_ref_enum_matches_theme_accent_count() -> None:

@@ -4,7 +4,7 @@ scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
 last_updated: 2026-09-04
-semver: 0.5.0
+semver: 0.6.0
 author: Nicholas Bergantz
 ---
 
@@ -163,6 +163,12 @@ This library SHALL NOT resolve, store, discover, or validate these identifiers a
 machinery, explicitly out of scope per the Presentations roadmap. The stamp exists solely so a
 separate migration tool (deferred; see chunk 10) can later decide whether a deck needs updating to
 a newer corporate standard.
+
+### R14 — Mermaid is a schema-only nucleation point (explicit R7 exception)
+
+`00-overview.md`'s tier-3 gate states "Mermaid has a bounded schema attachment point," and chunk 11 authorizes it as "the smallest typed attachment point for Mermaid source ... to reserve an agreed cross-repository shape for later growth," requiring only that "descriptions MUST clearly state whether rendering is available." This is a deliberate, narrow exception to R7's normal rule that an arm ships only once it has a renderer: `contentBlock.type` gains `"mermaid"` with a single sibling field, `mermaidSource` (string), carrying raw Mermaid diagram source text and nothing else.
+
+This repository SHALL NOT parse, lay out, generate an image from, or otherwise render Mermaid source; `mermaidSource`'s schema description SHALL state this plainly. Widening this arm (structured node/edge data, a `diagramKind` discriminator, rendering) is out of scope until real usage justifies it, per the roadmap's "smallest usable form" planning rule.
 
 ## Resolution Layer
 
