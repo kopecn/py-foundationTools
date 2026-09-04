@@ -159,7 +159,6 @@ class _DateRollingFileHandler(Handler):
 
         self._stream: IO[str] | None = None
         self._current_date: str | None = None
-        self._current_inode: int | None = None
 
         self._rollover(self._utc_date())
 
@@ -185,17 +184,11 @@ class _DateRollingFileHandler(Handler):
             pass
         finally:
             self._stream = None
-            self._current_inode = None
 
     def _open_stream(self, date_str: str) -> None:
-        """Open the log file for date_str and record its inode."""
+        """Open the log file for date_str."""
         path = self._path_for_date(date_str)
         self._stream = open(path, "a", encoding="utf-8")  # noqa: SIM115
-
-        try:
-            self._current_inode = os.fstat(self._stream.fileno()).st_ino
-        except OSError:
-            self._current_inode = None
 
         self._current_date = date_str
         self._write_count = 0
@@ -213,15 +206,30 @@ class _DateRollingFileHandler(Handler):
         return elapsed >= self._rotation_days
 
     def _needs_inode_rollover(self) -> bool:
-        """Return True if the stream is missing or points at an unexpected inode."""
+        """Return True if the configured path no longer refers to our open file.
+
+        Compares the currently open descriptor's (device, inode) against a fresh
+        `stat` of the configured path, so an external rename, replacement, or
+        removal of that path is detected. A missing path counts as rollover.
+        """
         if self._stream is None:
             return True
 
         try:
-            current_inode = os.fstat(self._stream.fileno()).st_ino
-            return self._current_inode is None or current_inode != self._current_inode
+            open_stat = os.fstat(self._stream.fileno())
         except OSError:
             return True
+
+        path = self._path_for_date(self._current_date) if self._current_date else None
+        if path is None:
+            return True
+
+        try:
+            path_stat = os.stat(path)
+        except OSError:
+            return True
+
+        return (open_stat.st_dev, open_stat.st_ino) != (path_stat.st_dev, path_stat.st_ino)
 
     def emit(self, record: LogRecord) -> None:
         """Write a formatted record to the current file, rolling over first if needed."""
