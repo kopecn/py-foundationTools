@@ -16,6 +16,7 @@ job of a propagation layer.
 See ``.claude/specs/physicalConstants.md`` for the full contract.
 """
 
+import math
 from enum import Enum
 from typing import Any
 
@@ -80,6 +81,10 @@ def _validate(distribution: Distribution, std_uncertainty: float | None) -> None
         raise ValueError(
             f"{distribution} requires a positive std_uncertainty, got None. "
             "None means 'unknown' and pairs only with Distribution.UNKNOWN."
+        )
+    if not math.isfinite(std_uncertainty):
+        raise ValueError(
+            f"{distribution} requires a finite std_uncertainty, got {std_uncertainty!r}."
         )
     if std_uncertainty <= 0.0:
         raise ValueError(f"{distribution} requires std_uncertainty > 0.0, got {std_uncertainty!r}.")

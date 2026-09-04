@@ -90,6 +90,17 @@ def test_unknown_accepts_none() -> None:
         (Distribution.RECTANGULAR, 0.0),
         (Distribution.TRIANGULAR, None),
         (Distribution.TRIANGULAR, 0.0),
+        # A bounded distribution must also reject non-finite uncertainty: NaN and
+        # +inf pass a bare `<= 0.0` check, and -inf is included for completeness.
+        (Distribution.NORMAL, math.nan),
+        (Distribution.NORMAL, math.inf),
+        (Distribution.NORMAL, -math.inf),
+        (Distribution.RECTANGULAR, math.nan),
+        (Distribution.RECTANGULAR, math.inf),
+        (Distribution.RECTANGULAR, -math.inf),
+        (Distribution.TRIANGULAR, math.nan),
+        (Distribution.TRIANGULAR, math.inf),
+        (Distribution.TRIANGULAR, -math.inf),
     ],
 )
 def test_incoherent_pairing_is_rejected(
@@ -103,6 +114,19 @@ def test_incoherent_pairing_is_rejected(
             distribution=distribution,
             source="test fixture",
         )
+
+
+def test_bounded_accepts_an_ordinary_positive_finite_value() -> None:
+    """The valid bounded state — a real, finite, positive uncertainty — still works."""
+    constant = Constant(
+        1.0,
+        unit="1",
+        std_uncertainty=0.05,
+        distribution=Distribution.NORMAL,
+        source="test fixture",
+    )
+
+    assert constant.std_uncertainty == 0.05
 
 
 # --- entry-time normalization to k=1 ----------------------------------------
@@ -144,6 +168,13 @@ def test_from_half_width_rejects_a_nonpositive_width() -> None:
         Constant.from_half_width(1.0, half_width=0.0, unit="1", source="test fixture")
 
 
+@pytest.mark.parametrize("half_width", [math.nan, math.inf, -math.inf])
+def test_from_half_width_rejects_a_non_finite_width(half_width: float) -> None:
+    """NaN/inf survive the `half_width <= 0.0` guard but must not reach a Constant."""
+    with pytest.raises(ValueError):
+        Constant.from_half_width(1.0, half_width=half_width, unit="1", source="test fixture")
+
+
 def test_from_expanded_divides_by_the_coverage_factor() -> None:
     constant = Constant.from_expanded(10.0, expanded=0.4, unit="m", source="test fixture")
 
@@ -155,6 +186,13 @@ def test_from_expanded_honours_a_non_default_k() -> None:
     constant = Constant.from_expanded(10.0, expanded=0.9, unit="m", source="test fixture", k=3.0)
 
     assert constant.std_uncertainty == pytest.approx(0.3)
+
+
+@pytest.mark.parametrize("expanded", [math.nan, math.inf, -math.inf])
+def test_from_expanded_rejects_a_non_finite_expanded_value(expanded: float) -> None:
+    """NaN/inf survive the `expanded <= 0.0` guard but must not reach a Constant."""
+    with pytest.raises(ValueError):
+        Constant.from_expanded(1.0, expanded=expanded, unit="1", source="test fixture")
 
 
 def test_relative_std_uncertainty() -> None:
