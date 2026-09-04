@@ -6,7 +6,7 @@ The runtime-utilities package. It holds the structured logger, filesystem helper
 graph TD
     subgraph ft["foundation_tools"]
         LOG["standardized_logger<br/>StandardizedLogger"]
-        FILES["file_tools<br/>expand_glob_patterns"]
+        FILES["file_tools<br/>find_matching_paths"]
         PRES["presentation<br/>units · layout · theme resolvers"]
         subgraph transport["transport / transaction stack"]
             CLI["cli_transaction<br/>CLITransact · SSHTransact · RsyncTransact"]
@@ -295,32 +295,31 @@ async with SocketTransact(
 
 ## file_tools
 
-`foundation_tools/file_tools/path_tools.py`. The public entry point is **`expand_glob_patterns`**, which expands one base filename glob across a set of extensions.
+`foundation_tools/file_tools/path_tools.py`. The public entry point is **`find_matching_paths`**, which expands one relative filename glob across a set of extensions and resolves it beneath a required absolute root.
 
 ```python
-from foundation_tools.file_tools.path_tools import expand_glob_patterns
+from pathlib import Path
 
-# Pure: no filesystem touched — returns unresolved relative patterns, one per extension.
-expand_glob_patterns("report.*", ["txt", ".csv"])
-# -> [Path("report.*.txt"), Path("report.*.csv")]
+from foundation_tools.file_tools import find_matching_paths
 
-# Anchored: resolves against root, sorts, de-dupes, and prunes excludes.
-expand_glob_patterns("data", None, root="/proj")   # None => match any extension ({pattern}.*)
+# Resolves beneath root, sorts, de-dupes, and removes excluded matches.
+find_matching_paths(Path("/proj"), "data", None)
+# extensions=None matches any extension ({pattern}.*)
 ```
 
-Two behaviors in one function, decided by `root`:
+The operation has one rooted control flow:
 
 ```mermaid
 flowchart TD
-    CALL["expand_glob_patterns(pattern, extensions, root, exclude_patterns)"] --> ROOT{"root given?"}
-    ROOT -->|"no (default)"| PURE["build {pattern}.{ext} per extension<br/>return relative Paths, unresolved<br/>(exclude_patterns ignored)"]
-    ROOT -->|yes| RESOLVE["glob under root"]
+    CALL["find_matching_paths(root, pattern, extensions, exclude_patterns)"] --> VALIDATE["require existing absolute root<br/>require contained relative pattern"]
+    VALIDATE --> BUILD["build {pattern}.{ext} variants privately"]
+    BUILD --> RESOLVE["glob under root"]
     RESOLVE --> PRUNE["prune exclude_patterns"]
     PRUNE --> SORT["sort within pattern, de-dupe across patterns"]
     SORT --> OUT["list of matching Paths on disk"]
 ```
 
-Key rules for `extensions`: `None` matches any extension (`{pattern}.*`); an empty sequence expands nothing and uses the pattern unchanged; leading dots are optional and blanks ignored. For `exclude_patterns` (only consulted when `root` is set): an entry with a leading/trailing `/` is a **directory** glob that prunes the whole subtree; an entry with no slash is a **file** glob matched against the final component only. Defaults come from `DEFAULT_EXTENSIONS`, `ANY_EXTENSION`, and `DEFAULT_EXCLUDED_PATTERNS`; pass `[]` to disable pruning.
+`root` must be an existing absolute `Path`; the function never infers the process working directory. Key rules for `extensions`: `None` matches any extension (`{pattern}.*`); an empty sequence uses the pattern unchanged; leading dots are optional and blanks ignored. For `exclude_patterns`, an entry with a leading/trailing `/` is a **directory** glob that removes the whole subtree from results; an entry with no slash is a **file** glob matched against the final component only. Defaults come from `DEFAULT_EXTENSIONS`, `ANY_EXTENSION`, and `DEFAULT_EXCLUDED_PATTERNS`; pass `[]` to disable filtering.
 
 ---
 

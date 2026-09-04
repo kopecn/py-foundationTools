@@ -1,11 +1,9 @@
 """
 Path and filename-pattern utilities.
 
-:func:`expand_glob_patterns` is the public entry point. Called without ``root`` it
-never touches the filesystem — it only builds the pattern strings that a caller
-passes to a glob, ``ls``, or transport layer. Called *with* ``root`` it resolves
-those patterns against disk and prunes matches that hit an exclusion pattern
-(``/.build/`` by default).
+:func:`find_matching_paths` expands a relative filename pattern across a set of
+extensions, resolves the resulting globs beneath an explicit absolute root, and
+prunes matches that hit an exclusion pattern (``/.build/`` by default).
 """
 
 from collections.abc import Iterable
@@ -17,7 +15,7 @@ __all__ = [
     "ANY_EXTENSION",
     "DEFAULT_EXCLUDED_PATTERNS",
     "DEFAULT_EXTENSIONS",
-    "expand_glob_patterns",
+    "find_matching_paths",
 ]
 
 #: Extensions applied when a caller does not specify any. Override per call site by
@@ -27,9 +25,9 @@ DEFAULT_EXTENSIONS: Final[tuple[str, ...]] = ("csv", "txt")
 #: Extension wildcard substituted when a caller passes ``extensions=None``.
 ANY_EXTENSION: Final[str] = "*"
 
-#: Name globs never returned when globbing against a ``root``. A leading and/or
+#: Name globs excluded from results. A leading and/or
 #: trailing ``/`` marks the entry as a *directory* glob (``/.build/``, ``/build*``,
-#: ``*cache/``), which prunes the whole subtree; an entry with no slash is a *file*
+#: ``*cache/``), which excludes the whole subtree; an entry with no slash is a *file*
 #: glob (``*.pyc``). Pass an explicit sequence to extend it or ``[]`` to disable
 #: pruning entirely.
 DEFAULT_EXCLUDED_PATTERNS: Final[tuple[str, ...]] = ("/.build/",)
@@ -45,17 +43,20 @@ class _Exclusions(NamedTuple):
         return bool(self.directories or self.files)
 
 
-def expand_glob_patterns(
+def find_matching_paths(
+    root: Path,
     pattern: str,
     extensions: Iterable[str] | None = DEFAULT_EXTENSIONS,
     *,
-    root: Path | str | None = None,
     exclude_patterns: Iterable[str] = DEFAULT_EXCLUDED_PATTERNS,
 ) -> list[Path]:
     """
-    Expand a base filename glob pattern across a set of extensions.
+    Find paths beneath ``root`` matching a pattern and set of extensions.
 
     Args:
+        root: Existing absolute directory against which to resolve the patterns.
+            Requiring an absolute path makes resolution independent of the process
+            working directory.
         pattern: Base filename glob pattern including any wildcard
             (e.g. ``xyz.*waveform.*``).
         extensions: Extensions to append, with or without a leading dot
@@ -63,54 +64,52 @@ def expand_glob_patterns(
             :data:`DEFAULT_EXTENSIONS`. ``None`` matches any extension
             (``{pattern}.*``); an empty sequence expands nothing and uses
             the pattern unchanged.
-        root: Directory to resolve the patterns against. ``None`` (the default)
-            keeps the call pure — the patterns are returned unresolved and
-            ``exclude_patterns`` is not consulted.
-        exclude_patterns: Name globs (never paths) to prune when ``root`` is
-            given. A leading and/or trailing ``/`` marks a **directory** glob —
+        exclude_patterns: Name globs (never paths) to prune. A leading and/or
+            trailing ``/`` marks a **directory** glob —
             ``/.build/``, ``/build*``, ``*cache/``, ``/xyz*xyz/`` are all
             equivalent in effect — which matches any directory between ``root``
-            and the match, so the whole subtree is pruned and never dug through.
+            and the match, so the whole subtree is excluded from the result.
             An entry with no slash is a **file** glob (``*.pyc``) and is matched
             only against the final component, and only when that component is
             not a directory. Defaults to :data:`DEFAULT_EXCLUDED_PATTERNS`; pass
             ``[]`` to disable pruning.
 
     Returns:
-        Without ``root``: one relative :class:`~pathlib.Path` pattern per
-        extension, in input order, built as ``{pattern}.{ext}``; a single
-        ``{pattern}.*`` when ``extensions`` is ``None``; or ``[Path(pattern)]``
-        when no extensions remain after normalization. The paths are relative
-        patterns — they name nothing on disk until a caller anchors them.
-
-        With ``root``: the paths under ``root`` that those patterns match,
-        sorted within each pattern and de-duplicated across patterns, with
-        every ``exclude_patterns`` hit pruned.
+        The paths under ``root`` that the expanded patterns match, sorted within
+        each pattern and de-duplicated across patterns, with every
+        ``exclude_patterns`` hit removed.
 
     Raises:
-        ValueError: If ``pattern`` is empty or whitespace-only, is absolute, or
-            contains a ``..`` component; or if an entry in ``exclude_patterns``
-            is a path rather than a bare name glob.
-        NotADirectoryError: If ``root`` is given and is not an existing directory.
+        TypeError: If ``root`` is not a :class:`~pathlib.Path`.
+        ValueError: If ``root`` is relative; if ``pattern`` is empty or
+            whitespace-only, is absolute, or contains a ``..`` component; or if
+            an entry in ``exclude_patterns`` is a path rather than a bare name glob.
+        NotADirectoryError: If ``root`` is not an existing directory.
     """
+    _validate_root(root)
+
     if not pattern.strip():
         raise ValueError("pattern must be a non-empty string")
 
     _reject_unsafe_pattern(pattern)
 
     patterns = _extension_patterns(pattern, extensions)
+    return _resolve_patterns(root, patterns, exclude_patterns)
 
-    if root is None:
-        return patterns
 
-    return _resolve_patterns(Path(root), patterns, exclude_patterns)
+def _validate_root(root: Path) -> None:
+    """Require an explicit absolute directory rather than consulting the CWD."""
+    if not isinstance(root, Path):
+        raise TypeError(f"root must be a pathlib.Path, not {type(root).__name__}")
+    if not root.is_absolute():
+        raise ValueError(f"root must be absolute: {root}")
+    if not root.is_dir():
+        raise NotADirectoryError(f"root must be an existing directory: {root}")
 
 
 def _reject_unsafe_pattern(pattern: str) -> None:
     """Reject a ``pattern`` that could lexically escape ``root``: an absolute
-    path, or one with a ``..`` component. Checked before expansion, in both
-    pure and rooted mode, since a returned pure-mode pattern is documented as
-    relative regardless of whether a caller ever anchors it to a root."""
+    path, or one with a ``..`` component."""
     candidate = Path(pattern)
 
     if candidate.is_absolute():
@@ -142,9 +141,6 @@ def _resolve_patterns(
     exclude_patterns: Iterable[str],
 ) -> list[Path]:
     """Glob ``patterns`` under ``root``, dropping every ``exclude_patterns`` hit."""
-    if not root.is_dir():
-        raise NotADirectoryError(f"root must be an existing directory: {root}")
-
     excluded = _normalize_exclusions(exclude_patterns)
     matches: dict[Path, None] = {}
 
