@@ -3,10 +3,11 @@ Presentation -- stdlib-only resolution layer for the Presentations domain.
 
 Everything a renderer needs and cannot compute for itself: pixel <-> EMU unit
 conversion, semantic color name -> RGB, layout id -> layout, region id ->
-region, slide title/subtitle -> reserved region. Pure functions, no I/O, no
-dependency on ``python-pptx``. Re-exports the public surface so callers import
-from the package rather than the module file:
-``from foundation_tools.presentation import resolve_layout``.
+region, slide title/subtitle -> reserved region, and an explicit-mapping
+migration of a deck's layout/region/color references to a newer corporate
+standard. Pure functions, no I/O, no dependency on ``python-pptx``. Re-exports
+the public surface so callers import from the package rather than the module
+file: ``from foundation_tools.presentation import resolve_layout``.
 """
 
 from foundation_tools.presentation.layout_resolver import (
@@ -18,6 +19,12 @@ from foundation_tools.presentation.layout_resolver import (
     resolve_layout,
     resolve_region,
     resolve_slide_text,
+)
+from foundation_tools.presentation.migration import (
+    MigrationMapping,
+    MigrationResult,
+    UnplacedContent,
+    migrate_deck,
 )
 from foundation_tools.presentation.theme_resolver import (
     ColorResult,
@@ -35,12 +42,16 @@ __all__ = [
     "ColorResult",
     "ContrastPairing",
     "LayoutResult",
+    "MigrationMapping",
+    "MigrationResult",
     "RegionResult",
     "SlideTextBinding",
     "SlideTextResult",
     "ThemeReport",
+    "UnplacedContent",
     "contrast_ratio",
     "emu_to_px",
+    "migrate_deck",
     "px_to_emu",
     "resolve_color",
     "resolve_layout",
