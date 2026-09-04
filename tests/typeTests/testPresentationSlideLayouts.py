@@ -192,6 +192,44 @@ class TestPresentationSlideLayouts(unittest.TestCase):
         with self.assertRaises(TypeError):
             PresentationSlideLayouts.from_dict(broken)
 
+    def test_region_and_region_defaults_font_family_override_roundtrips(self) -> None:
+        # chunk 13: region.fontFamily and regionDefaults.fontFamily are optional
+        # overrides that cascade like fontSize. A layout that sets one on a
+        # region, one on a regionDefaults entry, and omits it elsewhere must
+        # round-trip byte-identically for state.
+        with_override = copy.deepcopy(self.example_dict)
+        with_override["defaults"]["title"] = {"fontFamily": "Georgia"}
+        title_layout = next(
+            layer for layer in with_override["layouts"] if layer["id"] == "title"
+        )
+        title_region = next(r for r in title_layout["regions"] if r["id"] == "title")
+        title_region["fontFamily"] = "Calibri"
+
+        layouts = PresentationSlideLayouts.from_dict(with_override)
+        result = layouts.to_dict()
+
+        self.assertEqual(result["defaults"]["title"]["fontFamily"], "Georgia")
+        result_title_layout = next(
+            layer for layer in result["layouts"] if layer["id"] == "title"
+        )
+        result_title_region = next(
+            r for r in result_title_layout["regions"] if r["id"] == "title"
+        )
+        self.assertEqual(result_title_region["fontFamily"], "Calibri")
+
+        round_tripped = PresentationSlideLayouts.from_dict(result)
+        self.assertEqual(result, round_tripped.to_dict())
+
+    def test_region_font_family_omitted_still_validates_and_inherits(self) -> None:
+        # A region/regionDefaults that omits fontFamily is unaffected -- no key
+        # appears on the wire, so it inherits metadata.defaults.fontFamily at
+        # resolution time (out of scope here; this test only proves the schema
+        # half stays backward-compatible).
+        layouts = PresentationSlideLayouts.from_dict(self.minimal_dict)
+        result = layouts.to_dict()
+        solo_region = result["layouts"][0]["regions"][0]
+        self.assertNotIn("fontFamily", solo_region)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -294,6 +294,9 @@ class RegionDefaults(DataModelHelper):
     color: ThemeColorRef | None = None
     """Default semantic color resolved from PresentationColorTheme."""
 
+    font_family: str | None = None
+    """Font family override. When unset, inherits `metadata.defaults.fontFamily`."""
+
     font_size: float | None = None
     """Default font size in points."""
 
@@ -314,12 +317,13 @@ class RegionDefaults(DataModelHelper):
         if not isinstance(obj, dict):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         color = from_union([ThemeColorRef, from_none], obj.get("color"))
+        font_family = from_union([from_str, from_none], obj.get("fontFamily"))
         font_size = from_union([from_float, from_none], obj.get("fontSize"))
         height = from_union([from_float, from_none], obj.get("height"))
         width = from_union([from_float, from_none], obj.get("width"))
         x = from_union([from_float, from_none], obj.get("x"))
         y = from_union([from_float, from_none], obj.get("y"))
-        return RegionDefaults(color, font_size, height, width, x, y)
+        return RegionDefaults(color, font_family, font_size, height, width, x, y)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -327,6 +331,8 @@ class RegionDefaults(DataModelHelper):
             result["color"] = from_union(
                 [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
             )
+        if self.font_family is not None:
+            result["fontFamily"] = from_union([from_str, from_none], self.font_family)
         if self.font_size is not None:
             result["fontSize"] = from_union([to_float, from_none], self.font_size)
         if self.height is not None:
@@ -473,6 +479,9 @@ class Region(DataModelHelper):
     color: ThemeColorRef | None = None
     """Semantic color name resolved from PresentationColorTheme."""
 
+    font_family: str | None = None
+    """Font family override. When unset, inherits `metadata.defaults.fontFamily`."""
+
     font_size: float | None = None
     """Font size in points."""
 
@@ -508,6 +517,7 @@ class Region(DataModelHelper):
         id = from_str(obj.get("id"))
         align = from_union([Align, from_none], obj.get("align"))
         color = from_union([ThemeColorRef, from_none], obj.get("color"))
+        font_family = from_union([from_str, from_none], obj.get("fontFamily"))
         font_size = from_union([from_float, from_none], obj.get("fontSize"))
         height = from_union([from_float, from_none], obj.get("height"))
         overflow = from_union([Overflow, from_none], obj.get("overflow"))
@@ -521,6 +531,7 @@ class Region(DataModelHelper):
             id,
             align,
             color,
+            font_family,
             font_size,
             height,
             overflow,
@@ -541,6 +552,8 @@ class Region(DataModelHelper):
             result["color"] = from_union(
                 [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
             )
+        if self.font_family is not None:
+            result["fontFamily"] = from_union([from_str, from_none], self.font_family)
         if self.font_size is not None:
             result["fontSize"] = from_union([to_float, from_none], self.font_size)
         if self.height is not None:

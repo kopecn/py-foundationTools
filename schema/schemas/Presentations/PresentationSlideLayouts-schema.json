@@ -124,6 +124,10 @@
           "default": 16,
           "description": "Default font size in points."
         },
+        "fontFamily": {
+          "type": "string",
+          "description": "Font family override. When unset, inherits `metadata.defaults.fontFamily`."
+        },
         "color": {
           "$ref": "#/definitions/themeColorRef",
           "default": "text",
@@ -188,6 +192,10 @@
           "type": "number",
           "default": 16,
           "description": "Font size in points."
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Font family override. When unset, inherits `metadata.defaults.fontFamily`."
         },
         "color": {
           "$ref": "#/definitions/themeColorRef",

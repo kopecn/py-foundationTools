@@ -131,6 +131,29 @@ def test_deck_has_no_canvas_key() -> None:
         assert "canvas" not in schema.get("properties", {})
 
 
+def test_region_and_region_defaults_have_font_family_override() -> None:
+    # chunk 13: per-region font-family override. Global default stays
+    # metadata.defaults.fontFamily ("Aptos"); region and regionDefaults each
+    # gain an optional fontFamily string that cascades exactly like fontSize
+    # already does, so an unset region/regionDefaults still inherits the
+    # global default.
+    layouts = _load("PresentationSlideLayouts-schema.json")
+    definitions = layouts["definitions"]
+    for definition_name in ("region", "regionDefaults"):
+        properties = definitions[definition_name]["properties"]
+        assert "fontFamily" in properties, f"fontFamily missing from {definition_name}"
+        field = properties["fontFamily"]
+        assert field["type"] == "string"
+        assert definition_name not in definitions[definition_name].get("required", [])
+        assert "fontFamily" not in definitions[definition_name].get("required", [])
+        assert "default" not in field, (
+            "fontFamily must have no schema default (inherits, not defaults)"
+        )
+        description = field["description"]
+        assert "Font family override" in description
+        assert "metadata.defaults.fontFamily" in description
+
+
 def test_metadata_theme_and_layout_version_identity_present_and_optional() -> None:
     # chunk 09: identity/version stamp for which corporate theme and layout
     # standard a deck was authored against -- not a resolvable reference (R3
