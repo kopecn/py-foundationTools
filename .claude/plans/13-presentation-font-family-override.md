@@ -8,10 +8,10 @@ goal: >
   Keep the prescribed deck-global font family and add a per-region font-family override in
   the layouts schema, so a layout region can set its own font while unset regions inherit
   the global default.
-last_updated: 2026-08-28
+last_updated: 2026-09-04
 semver: 0.0.1
 author: Nicholas Bergantz
-status: active
+status: completed
 ---
 
 # Plan 13 — Per-region font-family override
@@ -87,8 +87,43 @@ with plan 12.
 
 ## Implementation Steps
 
-- [ ] Add optional `fontFamily` string to `region` and `regionDefaults` in
+- [x] Add optional `fontFamily` string to `region` and `regionDefaults` in
       `PresentationSlideLayouts-schema.json` with the inherit-from-global description.
-- [ ] Regenerate: `bash schema/scripts/generatePresentations.sh`; confirm
+- [x] Regenerate: `bash schema/scripts/generatePresentations.sh`; confirm
       `Region.font_family` and `RegionDefaults.font_family` appear.
-- [ ] `make uv-fullCheck`.
+- [x] `make uv-fullCheck`.
+
+## Ask ↔ result
+
+**human_ask / goal:** a global prescribed font default plus a means to override it per
+layout region, string-typed, applying to all text domains. The live `/execute-plan 9-13`
+request authorized building exactly this now; `human_ask` and `goal` agreed on the
+objective, so no stop was needed.
+
+**Delivered:** `PresentationSlideLayouts-schema.json` gained an optional `fontFamily`
+string on both `region` (per-region override) and `regionDefaults` (per-region-*type*
+default), each with the description "Font family override. When unset, inherits
+`metadata.defaults.fontFamily`." Neither field carries a schema `default` — absence is
+meaningful (inherit), not a substituted value, mirroring how `region.color` deliberately
+has no default. `metadata.defaults.fontFamily` ("Aptos") is untouched and remains the
+terminal fallback. Regeneration
+(`bash schema/scripts/generatePresentations.sh`) added exactly `Region.font_family: str
+| None` and `RegionDefaults.font_family: str | None` (plus their `from_dict`/`to_dict`
+wiring) to `src/foundationTypes/presentationTypes/Presentations.py` — confirmed via
+`git diff --stat` showing only that one file, 14 insertions/1 deletion, nothing else
+generated-side changed.
+
+Tests written first (red confirmed before regen): `test_region_and_region_defaults_have_font_family_override`
+in `tests/typeTests/test_presentation_schema_shape.py` (schema-shape: field present,
+`string`-typed, optional, no default, description content) and two tests in
+`tests/typeTests/testPresentationSlideLayouts.py` —
+`test_region_and_region_defaults_font_family_override_roundtrips` (a region and a
+regionDefaults entry each setting `fontFamily` round-trip byte-identically) and
+`test_region_font_family_omitted_still_validates_and_inherits` (an existing layout that
+omits `fontFamily` still validates and emits no key on the wire).
+
+**Gap:** none against this chunk's scope. Per the chunk's own Out-of-scope note, the
+resolution cascade (`region.fontFamily → regionDefaults.fontFamily →
+metadata.defaults.fontFamily → "Aptos"`) is not implemented here — that is clerical-tools
+plan 16, a separate repository. No block-level `style.fontFamily` was added (deferred,
+per the plan's Open Questions, matching the ask's "in layouts" scope).
