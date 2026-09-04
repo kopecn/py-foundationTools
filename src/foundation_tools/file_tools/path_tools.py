@@ -88,12 +88,15 @@ def expand_glob_patterns(
         every ``exclude_patterns`` hit pruned.
 
     Raises:
-        ValueError: If ``pattern`` is empty or whitespace-only, or if an entry in
-            ``exclude_patterns`` is a path rather than a bare name glob.
+        ValueError: If ``pattern`` is empty or whitespace-only, is absolute, or
+            contains a ``..`` component; or if an entry in ``exclude_patterns``
+            is a path rather than a bare name glob.
         NotADirectoryError: If ``root`` is given and is not an existing directory.
     """
     if not pattern.strip():
         raise ValueError("pattern must be a non-empty string")
+
+    _reject_unsafe_pattern(pattern)
 
     patterns = _extension_patterns(pattern, extensions)
 
@@ -101,6 +104,19 @@ def expand_glob_patterns(
         return patterns
 
     return _resolve_patterns(Path(root), patterns, exclude_patterns)
+
+
+def _reject_unsafe_pattern(pattern: str) -> None:
+    """Reject a ``pattern`` that could lexically escape ``root``: an absolute
+    path, or one with a ``..`` component. Checked before expansion, in both
+    pure and rooted mode, since a returned pure-mode pattern is documented as
+    relative regardless of whether a caller ever anchors it to a root."""
+    candidate = Path(pattern)
+
+    if candidate.is_absolute():
+        raise ValueError(f"pattern must be relative, not absolute: {pattern!r}")
+    if ".." in candidate.parts:
+        raise ValueError(f"pattern must not contain '..' components: {pattern!r}")
 
 
 def _extension_patterns(

@@ -65,6 +65,53 @@ def test_empty_pattern_raises(pattern: str) -> None:
         expand_glob_patterns(pattern)
 
 
+# --- lexical root containment --------------------------------------------------
+
+
+@pytest.mark.parametrize("pattern", ["/etc/passwd*", "/absolute/report*"])
+def test_absolute_pattern_rejected_pure_mode(pattern: str) -> None:
+    with pytest.raises(ValueError):
+        expand_glob_patterns(pattern, [])
+
+
+@pytest.mark.parametrize("pattern", ["/etc/passwd*", "/absolute/report*"])
+def test_absolute_pattern_rejected_rooted_mode(tmp_path: Path, pattern: str) -> None:
+    with pytest.raises(ValueError):
+        expand_glob_patterns(pattern, [], root=tmp_path)
+
+
+@pytest.mark.parametrize("pattern", ["../report*", "sub/../report*", "../../etc/passwd*"])
+def test_dotdot_pattern_rejected_pure_mode(pattern: str) -> None:
+    with pytest.raises(ValueError):
+        expand_glob_patterns(pattern, [])
+
+
+@pytest.mark.parametrize("pattern", ["../report*", "sub/../report*", "../../etc/passwd*"])
+def test_dotdot_pattern_rejected_rooted_mode(tmp_path: Path, pattern: str) -> None:
+    with pytest.raises(ValueError):
+        expand_glob_patterns(pattern, [], root=tmp_path)
+
+
+def test_nested_relative_pattern_still_accepted_pure_mode() -> None:
+    assert expand_glob_patterns("sub/report_*", ["csv"]) == [Path("sub/report_*.csv")]
+
+
+def test_nested_relative_pattern_still_accepted_rooted_mode(tmp_path: Path) -> None:
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "report_0001.csv").write_text("")
+    assert expand_glob_patterns("sub/report_*", ["csv"], root=tmp_path) == [
+        tmp_path / "sub" / "report_0001.csv"
+    ]
+
+
+def test_recursive_glob_pattern_still_accepted_pure_mode() -> None:
+    assert expand_glob_patterns("**/report*", ["csv"]) == [Path("**/report*.csv")]
+
+
+def test_recursive_glob_pattern_still_accepted_rooted_mode(tree: Path) -> None:
+    assert expand_glob_patterns("**/proj_d", [], root=tree) == []
+
+
 # --- root-anchored globbing + exclusion pruning -------------------------------
 
 
