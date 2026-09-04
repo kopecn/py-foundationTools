@@ -10,6 +10,7 @@ the public surface so callers import from the package rather than the module
 file: ``from foundation_tools.presentation import resolve_layout``.
 """
 
+from foundation_tools.presentation.image_fit import fit_into_box
 from foundation_tools.presentation.layout_resolver import (
     RESERVED_REGION_IDS,
     LayoutResult,
@@ -51,6 +52,7 @@ __all__ = [
     "UnplacedContent",
     "contrast_ratio",
     "emu_to_px",
+    "fit_into_box",
     "migrate_deck",
     "px_to_emu",
     "resolve_color",

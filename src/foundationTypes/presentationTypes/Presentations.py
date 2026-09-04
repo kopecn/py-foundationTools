@@ -444,6 +444,7 @@ class RegionType(Enum):
     CHART = "chart"
     COLUMN = "column"
     FOOTER = "footer"
+    IMAGE = "image"
     METRIC = "metric"
     NOTES = "notes"
     SUBTITLE = "subtitle"
@@ -1003,6 +1004,7 @@ class ContentType(Enum):
 
     BULLETS = "bullets"
     CHART = "chart"
+    IMAGE = "image"
     MERMAID = "mermaid"
     METRIC = "metric"
     TABLE = "table"
@@ -1062,6 +1064,9 @@ class ContentBlock(DataModelHelper):
     series: list[ChartSeries] | None = None
     """One or more named data series for a 'chart' block."""
 
+    source: str | None = None
+    """Filesystem path to the image file for an 'image' block."""
+
     style: Style | None = None
     """Optional style overrides for this content block."""
 
@@ -1098,6 +1103,7 @@ class ContentBlock(DataModelHelper):
         series = from_union(
             [lambda x: from_list(ChartSeries.from_dict, x), from_none], obj.get("series")
         )
+        source = from_union([from_str, from_none], obj.get("source"))
         style = from_union([Style.from_dict, from_none], obj.get("style"))
         text = from_union([from_str, from_none], obj.get("text"))
         value = from_union([from_str, from_none], obj.get("value"))
@@ -1115,6 +1121,7 @@ class ContentBlock(DataModelHelper):
             rows,
             runs,
             series,
+            source,
             style,
             text,
             value,
@@ -1160,6 +1167,8 @@ class ContentBlock(DataModelHelper):
             result["series"] = from_union(
                 [lambda x: from_list(lambda x: to_class(ChartSeries, x), x), from_none], self.series
             )
+        if self.source is not None:
+            result["source"] = from_union([from_str, from_none], self.source)
         if self.style is not None:
             result["style"] = from_union([lambda x: to_class(Style, x), from_none], self.style)
         if self.text is not None:

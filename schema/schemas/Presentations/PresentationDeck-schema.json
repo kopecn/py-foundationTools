@@ -91,7 +91,8 @@
             "metric",
             "table",
             "chart",
-            "mermaid"
+            "mermaid",
+            "image"
           ],
           "default": "text",
           "description": "Content block kind. Each arm has a payload capable of expressing it and a renderer capable of drawing it, except 'mermaid': a schema-only nucleation point that stores diagram source with no renderer yet (see 'mermaidSource')."
@@ -189,6 +190,11 @@
           "type": "string",
           "default": "",
           "description": "Raw Mermaid diagram source text for a 'mermaid' block. This repository stores the source only; it does not parse, lay out, or render Mermaid diagrams. Rendering, if ever added, is a downstream (clerical-tools) concern."
+        },
+        "source": {
+          "type": "string",
+          "default": "",
+          "description": "Filesystem path to the image file for an 'image' block."
         },
         "style": {
           "type": "object",

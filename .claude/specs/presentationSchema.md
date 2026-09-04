@@ -4,7 +4,7 @@ scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
 last_updated: 2026-09-04
-semver: 0.6.0
+semver: 0.7.0
 author: Nicholas Bergantz
 ---
 
@@ -101,7 +101,7 @@ This constant SHALL be defined once, in `src/foundation_tools/presentation/units
 
 The `text` arm additionally accepts optional `runs` (`array` of `textRun`: `text`, optional `bold`/`italic`) for inline emphasis without literal formatting; the `bullets` arm accepts optional `bulletLevels` (`array` of integer 0–4) for bounded indent (chunk 07).
 
-`image` and `quote` remain removed until the tier that gives each a typed payload. Adding an enum value later is a non-breaking schema change; shipping an arm that validates and then fails to render is not.
+`image` ships in chunk 12 with its typed payload — a `source` filesystem path plus the `image` region and the pure `fit_into_box` contain-geometry a renderer needs — so it is now a renderable arm. `quote` remains removed until the tier that gives it a typed payload. Adding an enum value later is a non-breaking schema change; shipping an arm that validates and then fails to render is not.
 
 `contentBlock.data` (untyped `object`) SHALL be removed — it is the mechanism by which structure was being lost.
 

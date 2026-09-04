@@ -152,6 +152,7 @@
             "metric",
             "table",
             "chart",
+            "image",
             "footer",
             "notes"
           ],

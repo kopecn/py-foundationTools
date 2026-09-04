@@ -8,10 +8,10 @@ goal: >
   Give the Presentation schemas an image region and an image content block carrying an
   on-disk file path, plus the pure fit-to-bounding-box geometry a renderer needs, so a
   deck can place an image into a layout region.
-last_updated: 2026-08-28
+last_updated: 2026-09-04
 semver: 0.0.1
 author: Nicholas Bergantz
-status: active
+status: completed
 ---
 
 # Plan 12 — Presentation image region + image content block
@@ -111,13 +111,65 @@ Minimal schema arm mirroring the existing `text`/`bullets` pattern, plus one pur
 
 ## Implementation Steps
 
-- [ ] Add `"image"` to `region.type` enum in `PresentationSlideLayouts-schema.json`.
-- [ ] Add `"image"` to `contentBlock.type` enum and a `source` string property in
+- [x] Add `"image"` to `region.type` enum in `PresentationSlideLayouts-schema.json`.
+- [x] Add `"image"` to `contentBlock.type` enum and a `source` string property in
       `PresentationDeck-schema.json`.
-- [ ] Regenerate: `bash schema/scripts/generatePresentations.sh`; confirm `RegionType.IMAGE`,
+- [x] Regenerate: `bash schema/scripts/generatePresentations.sh`; confirm `RegionType.IMAGE`,
       `ContentType.IMAGE`, and `ContentBlock.source` appear in the generated file.
-- [ ] Add `src/foundation_tools/presentation/image_fit.py` (`fit_into_box`) and export it
+- [x] Add `src/foundation_tools/presentation/image_fit.py` (`fit_into_box`) and export it
       from `src/foundation_tools/presentation/__init__.py` `__all__`.
-- [ ] Unit test `fit_into_box`: wider-than-box, taller-than-box, exact-fit, and
+- [x] Unit test `fit_into_box`: wider-than-box, taller-than-box, exact-fit, and
       already-smaller cases; assert aspect ratio preserved and result centered.
-- [ ] `make uv-fullCheck`.
+- [ ] `make uv-fullCheck`. **BLOCKED** — see "Ask ↔ result" below.
+
+## Ask ↔ result
+
+- **`human_ask` / `goal`**: add an image region + image content block carrying an
+  on-disk file path, plus pure fit-to-bounding-box geometry, so a deck can place an
+  image into a layout region. `human_ask` and `goal` agree; no internal conflict.
+- **Live request**: `/execute-plan` chunk 12, authorizing the build now.
+- **Delivered** (all verified against actual repo state, not assumed):
+  - `RegionType.IMAGE`, `ContentType.IMAGE`, `ContentBlock.source: str | None` — added
+    to the two schemas and regenerated via `schema/scripts/generatePresentations.sh`;
+    diff of `Presentations.py` contains only these three additions plus their
+    `from_dict`/`to_dict` wiring, per `git diff`.
+  - `src/foundation_tools/presentation/image_fit.py` — `fit_into_box(...)`, pure
+    stdlib, contain-fit (aspect-preserving, centered), exported from the package
+    `__init__.py` `__all__`.
+  - `tests/test_image_fit.py` — 5 unit tests (wider-than-box, taller-than-box,
+    exact-fit, already-smaller, box-offset), written first and confirmed failing
+    (`ModuleNotFoundError`) before `image_fit.py` existed; all 5 pass now.
+  - `make uv-lint` and `make uv-typecheck` pass clean.
+- **Gap — gate blocked, not resolved unilaterally**: `make uv-fullCheck` fails on two
+  pre-existing tests in `tests/typeTests/test_presentation_schema_shape.py`
+  (`test_content_block_type_enum_includes_metric_table_chart` and
+  `test_content_block_untyped_data_bag_stays_removed`), committed by chunk 11
+  (`81d0fd0 11 Mermaid schema nucleation point`). That second test asserts, quoting
+  its own comment: *"R7: ... image/quote stay out of the enum until a tier gives each
+  a typed payload"* and explicitly fails if `"image"` is in `contentBlock.type.enum`.
+  `.claude/specs/presentationSchema.md` R7 (semver 0.6.0, `last_updated: 2026-09-04`)
+  carries the same claim: *"`image` and `quote` remain removed until the tier that
+  gives each a typed payload."*
+  This plan's own `human_ask`/`goal` (recorded human intent) is the tier that gives
+  `image` its typed payload (`source`), so R7's own escape clause ("Adding an enum
+  value later is a non-breaking schema change") appears to anticipate exactly this
+  landing — but neither this guard test nor R7's text is named in this chunk's
+  Implementation Steps, and the executing session's scope fence forbids touching
+  files the chunk doesn't name. Updating that test and R7 to reflect chunk 12 landing
+  is therefore left as an explicit, human-gated decision rather than made
+  unilaterally. Schema/codegen/helper changes above are complete and correct against
+  this plan as written; only the gate step is blocked pending that decision.
+
+## Supervisor notes
+
+- **Guard/spec reconciliation (authorized).** Chunk 11's guard tests and R7 asserted `image`
+  stays out of the enum "until the tier that gives it a typed payload." Chunk 12 IS that tier
+  (`source` is image's typed payload), so the supervisor updated
+  `tests/typeTests/test_presentation_schema_shape.py` (enum now includes `image`; `quote` remains
+  the only unshipped arm) and R7 (image now a renderable arm; semver 0.6.0 → 0.7.0). This
+  fulfills R7's own stated condition — authorized by R7's text + this plan's `human_ask`, not a
+  new requirement. The executor correctly stopped at this conflict rather than editing files
+  outside its named set.
+- **Out-of-scope README/docs reverted.** An executor had added a `docs/` documentation set (new
+  untracked `docs/*.md`) and a README link to it — unrelated to chunk 12. README reverted; the
+  untracked `docs/*.md` left in place for the user to keep or discard (not committed).

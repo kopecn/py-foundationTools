@@ -39,6 +39,8 @@ def test_content_block_type_enum_includes_metric_table_chart() -> None:
     # has a flat payload; text and bullets keep their tier-1 leading positions.
     # Tier 3 chunk 11 adds "mermaid" as a schema-only nucleation point (source
     # stored, not rendered here) -- see test_content_block_mermaid_payload_field_present.
+    # Chunk 12 adds "image" now that it has a typed payload (the source path),
+    # the tier R7 named for admitting image -- see the image source field test.
     deck = _load("PresentationDeck-schema.json")
     content_block = deck["definitions"]["contentBlock"]
     assert content_block["properties"]["type"]["enum"] == [
@@ -48,16 +50,18 @@ def test_content_block_type_enum_includes_metric_table_chart() -> None:
         "table",
         "chart",
         "mermaid",
+        "image",
     ]
 
 
 def test_content_block_untyped_data_bag_stays_removed() -> None:
-    # R7: contentBlock.data (untyped object) SHALL stay gone, and image/quote
-    # stay out of the enum until a tier gives each a typed payload.
+    # R7: contentBlock.data (untyped object) SHALL stay gone, and an arm stays
+    # out of the enum until a tier gives it a typed payload. image shipped in
+    # chunk 12 (typed source payload); quote is still unshipped.
     deck = _load("PresentationDeck-schema.json")
     content_block = deck["definitions"]["contentBlock"]
     assert "data" not in content_block["properties"]
-    for unshipped in ("image", "quote"):
+    for unshipped in ("quote",):
         assert unshipped not in content_block["properties"]["type"]["enum"]
 
 
