@@ -318,6 +318,92 @@ class TestReaderLoopResilience:
         await router.stop()
 
 
+class _RaisingCodec:
+    """``feed`` raises to simulate a malformed inbound frame — codec-feeding
+    failures must not escape the reader task uncontained."""
+
+    def encode(self, payload: bytes) -> bytes:
+        return payload
+
+    def feed(self, data: bytes) -> list[bytes]:
+        if data == b"boom":
+            raise ValueError("malformed frame")
+        return [data] if data else []
+
+
+def _raising_extract(frame: bytes) -> str | None:
+    raise ValueError("simulated tx_id extraction failure")
+
+
+class TestReaderLoopFailureContainment:
+    """Fix candidate 03: codec-feeding or tx_id-extraction exceptions must be
+    routed through the router's existing teardown path, not escape the reader
+    task uncontained (which orphans pending requests and makes ``stop()``
+    re-raise)."""
+
+    @pytest.mark.asyncio
+    async def test_codec_feed_exception_fails_pending_and_closes_unsolicited(self) -> None:
+        transport = FakeTransport()
+        await transport.connect()
+        router = TransactionRouter(
+            transport,
+            _RaisingCodec(),
+            tx_id_injector=_inject,
+            tx_id_extractor=_extract,
+            poll_timeout=0.02,
+        )
+        router.start()
+        pending = asyncio.ensure_future(router.request(b"in-flight", timeout=1.0))
+        await asyncio.sleep(0.02)
+
+        transport.push_inbound(b"boom")
+
+        with pytest.raises(ConnectionClosedError):
+            await pending
+
+        stream = router.unsolicited()
+        with pytest.raises(StopAsyncIteration):
+            await asyncio.wait_for(stream.__anext__(), timeout=1.0)
+
+        await router.stop()  # must not re-raise the frame-processing exception
+
+    @pytest.mark.asyncio
+    async def test_tx_id_extraction_exception_fails_pending_request(self) -> None:
+        transport = FakeTransport()
+        await transport.connect()
+        router = _make_router(transport, tx_id_extractor=_raising_extract)
+        router.start()
+        pending = asyncio.ensure_future(router.request(b"in-flight", timeout=1.0))
+        await asyncio.sleep(0.02)
+
+        transport.push_inbound(b"any-frame")
+
+        with pytest.raises(ConnectionClosedError):
+            await pending
+
+        await router.stop()
+
+    @pytest.mark.asyncio
+    async def test_stop_after_frame_processing_exception_is_idempotent(self) -> None:
+        transport = FakeTransport()
+        await transport.connect()
+        router = TransactionRouter(
+            transport,
+            _RaisingCodec(),
+            tx_id_injector=_inject,
+            tx_id_extractor=_extract,
+            poll_timeout=0.02,
+        )
+        router.start()
+        transport.push_inbound(b"boom")
+        await asyncio.sleep(0.05)  # let the reader task hit the fault and tear down
+
+        assert not router.is_running
+
+        await router.stop()
+        await router.stop()  # must not raise
+
+
 class TestTeardownAndLifecycle:
     @pytest.mark.asyncio
     async def test_stop_cancels_pending_futures(self) -> None:

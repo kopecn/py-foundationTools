@@ -183,8 +183,17 @@ class TransactionRouter:
                 self._teardown(ConnectionClosedError("peer closed the connection"))
                 return
 
-            for frame in self._codec.feed(data):
-                self._dispatch(frame)
+            try:
+                for frame in self._codec.feed(data):
+                    self._dispatch(frame)
+            except Exception as error:
+                # Codec feeding or tx_id extraction failures (both invoked above)
+                # must not escape the reader task uncontained — route through the
+                # same teardown path as a transport-level connection loss. `Exception`
+                # (not `BaseException`) deliberately excludes `asyncio.CancelledError`
+                # so task cancellation still propagates instead of being swallowed.
+                self._teardown(ConnectionClosedError(f"frame processing error: {error}"))
+                return
 
     def _dispatch(self, frame: bytes) -> None:
         tx_id = self._extract(frame)
