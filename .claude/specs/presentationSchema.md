@@ -3,8 +3,8 @@ spec: PresentationSchema
 scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
-last_updated: 2026-08-28
-semver: 0.4.0
+last_updated: 2026-09-04
+semver: 0.5.0
 author: Nicholas Bergantz
 ---
 
@@ -59,7 +59,7 @@ mydeck/
 
 Consequently `PresentationDeck.layouts` and `PresentationMetadata.defaults.colorTheme` — today bare strings resolving to nothing — SHALL be removed. A field that names a thing nothing can resolve is worse than its absence.
 
-The semantic binding that matters is preserved by R4: content names theme *properties*, so swapping `theme.json` re-themes the deck. Identity and versioning (`theme.id`, `theme.version`, a registry of themes) are deferred to tier 3, where migration gives them meaning.
+The semantic binding that matters is preserved by R4: content names theme *properties*, so swapping `theme.json` re-themes the deck. Identity and versioning (`theme.id`, `theme.version`, a registry of themes) were deferred to tier 3; chunk 09 delivers the identity/version stamp only (see R13) -- a registry of themes remains out of scope.
 
 ### R4 — Color references are enumerated
 
@@ -149,6 +149,20 @@ Consumers SHALL therefore treat the declared defaults as the terminal step of pr
 
 **Invariant:** adding a `default` to a schema property changes consumer behavior. Adding or removing one is a contract change and SHALL bump this spec's semver.
 
+
+### R13 — Theme/layout version identity is recorded, not resolved
+
+`PresentationMetadata` SHALL carry two optional, fully-additive nested objects recording which
+corporate theme and layout standard a deck was authored against: `themeVersion` (`id`, `version`)
+and `layoutVersion` (`id`, `version`), both plain strings with no schema-level meaning beyond
+identity. Neither is in `PresentationMetadata`'s `required` list, so a deck predating chunk 09
+still validates and round-trips.
+
+This library SHALL NOT resolve, store, discover, or validate these identifiers against an actual
+`PresentationColorTheme` or `PresentationSlideLayouts` document -- that is registry/discovery
+machinery, explicitly out of scope per the Presentations roadmap. The stamp exists solely so a
+separate migration tool (deferred; see chunk 10) can later decide whether a deck needs updating to
+a newer corporate standard.
 
 ## Resolution Layer
 

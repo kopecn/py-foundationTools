@@ -102,6 +102,38 @@
       },
       "default": [],
       "description": "Free-form tags describing the presentation."
+    },
+    "themeVersion": {
+      "type": "object",
+      "description": "Identity of the corporate color theme (PresentationColorTheme) this deck was authored against, recorded so a separate migration tool can later decide whether the deck needs updating to a newer corporate theme. This library only records and round-trips this identity -- it does not resolve, store, or discover theme definitions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "default": "",
+          "description": "Identifier of the corporate theme, e.g. a theme name or slug."
+        },
+        "version": {
+          "type": "string",
+          "default": "",
+          "description": "Version of the corporate theme."
+        }
+      }
+    },
+    "layoutVersion": {
+      "type": "object",
+      "description": "Identity of the slide layout standard (PresentationSlideLayouts) this deck was authored against, recorded so a separate migration tool can later decide whether the deck needs updating to a newer layout standard. This library only records and round-trips this identity -- it does not resolve, store, or discover layout definitions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "default": "",
+          "description": "Identifier of the layout standard, e.g. a layout-set name or slug."
+        },
+        "version": {
+          "type": "string",
+          "default": "",
+          "description": "Version of the layout standard."
+        }
+      }
     }
   }
 }

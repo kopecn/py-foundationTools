@@ -111,5 +111,21 @@ def test_deck_has_no_canvas_key() -> None:
         assert "canvas" not in schema.get("properties", {})
 
 
+def test_metadata_theme_and_layout_version_identity_present_and_optional() -> None:
+    # chunk 09: identity/version stamp for which corporate theme and layout
+    # standard a deck was authored against -- not a resolvable reference (R3
+    # removed defaults.colorTheme), just recorded identity for later migration
+    # tooling. Both fields SHALL be optional so older decks stay valid.
+    metadata = _load("PresentationMetadata-schema.json")
+    assert "themeVersion" not in metadata["required"]
+    assert "layoutVersion" not in metadata["required"]
+    for field in ("themeVersion", "layoutVersion"):
+        block = metadata["properties"][field]
+        assert block["type"] == "object"
+        assert set(block["properties"]) == {"id", "version"}
+        assert block["properties"]["id"]["type"] == "string"
+        assert block["properties"]["version"]["type"] == "string"
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))

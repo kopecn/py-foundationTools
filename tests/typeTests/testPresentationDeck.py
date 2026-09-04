@@ -237,6 +237,14 @@ def _full_dict() -> dict[str, Any]:
     return deck
 
 
+def _versioned_deck_dict() -> dict[str, Any]:
+    """A minimal deck stamped with the theme/layout version identity (chunk 09)."""
+    deck = _minimal_deck_dict()
+    deck["metadata"]["themeVersion"] = {"id": "acme-corporate", "version": "2.1"}
+    deck["metadata"]["layoutVersion"] = {"id": "acme-standard-16x9", "version": "3"}
+    return deck
+
+
 class TestPresentationDeck(unittest.TestCase):
     """Contract tests for the generated PresentationDeck model."""
 
@@ -247,6 +255,7 @@ class TestPresentationDeck(unittest.TestCase):
         self.full_dict = _full_dict()
         self.metric_table_dict = _metric_table_deck_dict()
         self.rich_text_chart_dict = _rich_text_chart_deck_dict()
+        self.versioned_dict = _versioned_deck_dict()
 
     def test_from_dict_builds_valid_instance_from_example(self) -> None:
         # The example deck omits every optional nested object (metadata.defaults,
@@ -305,6 +314,21 @@ class TestPresentationDeck(unittest.TestCase):
         self.assertEqual(chart.series[0].color, ThemeColorRef.ACCENT_BLUE_ACCENT)
         self.assertIsNone(chart.series[1].color)
 
+    def test_from_dict_builds_theme_and_layout_version_identity(self) -> None:
+        deck = PresentationDeck.from_dict(self.versioned_dict)
+        assert deck.metadata.theme_version is not None
+        self.assertEqual(deck.metadata.theme_version.id, "acme-corporate")
+        self.assertEqual(deck.metadata.theme_version.version, "2.1")
+        assert deck.metadata.layout_version is not None
+        self.assertEqual(deck.metadata.layout_version.id, "acme-standard-16x9")
+        self.assertEqual(deck.metadata.layout_version.version, "3")
+
+    def test_theme_and_layout_version_identity_is_optional(self) -> None:
+        # Older decks with no version stamp at all must still parse.
+        deck = PresentationDeck.from_dict(self.minimal_dict)
+        self.assertIsNone(deck.metadata.theme_version)
+        self.assertIsNone(deck.metadata.layout_version)
+
     def test_to_dict_produces_camel_case_wire_keys(self) -> None:
         deck = PresentationDeck.from_dict(self.full_dict)
         result = deck.to_dict()
@@ -324,6 +348,7 @@ class TestPresentationDeck(unittest.TestCase):
             "full": self.full_dict,
             "metric_table": self.metric_table_dict,
             "rich_text_chart": self.rich_text_chart_dict,
+            "versioned": self.versioned_dict,
         }
         for case_name, source_dict in cases.items():
             with self.subTest(case=case_name):

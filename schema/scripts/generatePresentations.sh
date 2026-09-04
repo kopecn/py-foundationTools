@@ -31,6 +31,8 @@ CLASSES_FOR_BASE_PARENT=(
     "SlideLayout"
     "Defaults"
     "File"
+    "ThemeVersion"
+    "LayoutVersion"
     "Style"
     "TextRun"
     "ChartSeries"

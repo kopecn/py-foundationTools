@@ -712,6 +712,68 @@ class File(DataModelHelper):
 
 
 @dataclass
+class LayoutVersion(DataModelHelper):
+    """Identity of the slide layout standard (PresentationSlideLayouts) this deck was authored
+    against, recorded so a separate migration tool can later decide whether the deck needs
+    updating to a newer layout standard. This library only records and round-trips this
+    identity -- it does not resolve, store, or discover layout definitions.
+    """
+
+    id: str | None = None
+    """Identifier of the layout standard, e.g. a layout-set name or slug."""
+
+    version: str | None = None
+    """Version of the layout standard."""
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "LayoutVersion":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        id = from_union([from_str, from_none], obj.get("id"))
+        version = from_union([from_str, from_none], obj.get("version"))
+        return LayoutVersion(id, version)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.id is not None:
+            result["id"] = from_union([from_str, from_none], self.id)
+        if self.version is not None:
+            result["version"] = from_union([from_str, from_none], self.version)
+        return result
+
+
+@dataclass
+class ThemeVersion(DataModelHelper):
+    """Identity of the corporate color theme (PresentationColorTheme) this deck was authored
+    against, recorded so a separate migration tool can later decide whether the deck needs
+    updating to a newer corporate theme. This library only records and round-trips this
+    identity -- it does not resolve, store, or discover theme definitions.
+    """
+
+    id: str | None = None
+    """Identifier of the corporate theme, e.g. a theme name or slug."""
+
+    version: str | None = None
+    """Version of the corporate theme."""
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "ThemeVersion":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        id = from_union([from_str, from_none], obj.get("id"))
+        version = from_union([from_str, from_none], obj.get("version"))
+        return ThemeVersion(id, version)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.id is not None:
+            result["id"] = from_union([from_str, from_none], self.id)
+        if self.version is not None:
+            result["version"] = from_union([from_str, from_none], self.version)
+        return result
+
+
+@dataclass
 class PresentationMetadata(DataModelHelper):
     """Deck-level metadata and rendering defaults for a presentation."""
 
@@ -736,12 +798,24 @@ class PresentationMetadata(DataModelHelper):
     description: str | None = None
     """Short description of the presentation purpose."""
 
+    layout_version: LayoutVersion | None = None
+    """Identity of the slide layout standard (PresentationSlideLayouts) this deck was authored
+    against, recorded so a separate migration tool can later decide whether the deck needs
+    updating to a newer layout standard. This library only records and round-trips this
+    identity -- it does not resolve, store, or discover layout definitions.
+    """
     subtitle: str | None = None
     """Optional presentation subtitle."""
 
     tags: list[str] | None = None
     """Free-form tags describing the presentation."""
 
+    theme_version: ThemeVersion | None = None
+    """Identity of the corporate color theme (PresentationColorTheme) this deck was authored
+    against, recorded so a separate migration tool can later decide whether the deck needs
+    updating to a newer corporate theme. This library only records and round-trips this
+    identity -- it does not resolve, store, or discover theme definitions.
+    """
     version: str | None = None
     """Optional presentation/content version."""
 
@@ -756,11 +830,24 @@ class PresentationMetadata(DataModelHelper):
         title = from_str(obj.get("title"))
         defaults = from_union([Defaults.from_dict, from_none], obj.get("defaults"))
         description = from_union([from_str, from_none], obj.get("description"))
+        layout_version = from_union([LayoutVersion.from_dict, from_none], obj.get("layoutVersion"))
         subtitle = from_union([from_str, from_none], obj.get("subtitle"))
         tags = from_union([lambda x: from_list(from_str, x), from_none], obj.get("tags"))
+        theme_version = from_union([ThemeVersion.from_dict, from_none], obj.get("themeVersion"))
         version = from_union([from_str, from_none], obj.get("version"))
         return PresentationMetadata(
-            author, company, date, file, title, defaults, description, subtitle, tags, version
+            author,
+            company,
+            date,
+            file,
+            title,
+            defaults,
+            description,
+            layout_version,
+            subtitle,
+            tags,
+            theme_version,
+            version,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -776,10 +863,18 @@ class PresentationMetadata(DataModelHelper):
             )
         if self.description is not None:
             result["description"] = from_union([from_str, from_none], self.description)
+        if self.layout_version is not None:
+            result["layoutVersion"] = from_union(
+                [lambda x: to_class(LayoutVersion, x), from_none], self.layout_version
+            )
         if self.subtitle is not None:
             result["subtitle"] = from_union([from_str, from_none], self.subtitle)
         if self.tags is not None:
             result["tags"] = from_union([lambda x: from_list(from_str, x), from_none], self.tags)
+        if self.theme_version is not None:
+            result["themeVersion"] = from_union(
+                [lambda x: to_class(ThemeVersion, x), from_none], self.theme_version
+            )
         if self.version is not None:
             result["version"] = from_union([from_str, from_none], self.version)
         return result
