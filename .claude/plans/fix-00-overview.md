@@ -2,26 +2,31 @@
 plan: RepositoryHardeningOverview
 scope: project
 status: needs-approval
-last_updated: 2026-08-28
+last_updated: 2026-09-04
 semver: 1.0.0
 author: Nicholas Bergantz
 ---
 
 # Repository review findings
 
-Plans `fix-01`–`fix-07` are concrete findings from a repository review, but they were
-bundled into the presentation commit without being requested as presentation work.
-They are independent candidates, not a stack, and none blocks another.
+Plans `fix-01`–`fix-04` and `fix-06`–`fix-08` are completed records. The obsolete
+`fix-05` record was removed after its path-root work was superseded and completed.
 
-Each candidate may be approved separately:
+The 2026-09-04 trace-path review added these independent candidates:
 
-- `fix-01`: invalid JSON in one schema;
-- `fix-02`: framing-codec constructor permits non-progressing configuration;
-- `fix-03`: router can orphan requests after frame-processing failure;
-- `fix-04`: log rotation compares an open descriptor with itself;
-- `fix-05`: glob patterns can lexically escape their root;
-- `fix-06`: bounded uncertainty accepts non-finite values;
-- `fix-07`: public documentation contains stale commands/imports.
+- `fix-09`: make transaction-ID registration and frame preparation atomic;
+- `fix-10`: stop generated math types from weakening required ABC fields to `None`;
+- `fix-11`: prevent incomplete presentation migrations from claiming target versions;
+- `fix-12`: define and enforce socket client/router/server lifecycle ownership;
+- `fix-13`: terminate and reap asynchronous CLI children when callers cancel;
+- `fix-14`: replace the sync/async string-command shell mismatch with an explicit contract;
+- `fix-15`: make typed transaction results report decode failure truthfully;
+- `fix-16`: separate model serialization from files, environment, wire codecs, and invocation;
+- `fix-17`: align presentation schema defaults/constraints with Python construction;
+- `fix-18`: replace SSH/rsync parameter combinations with valid endpoint/transfer values;
+- `fix-19`: restore `logging.Logger` compatibility and make structured output safe.
 
-`fix-08` is already complete. Do not infer approval for the other findings from its
-completion or from their presence here.
+These candidates are not an implementation stack, although `fix-15` and `fix-16` need
+a coordinated API decision. Their presence records findings only; it does not authorize
+implementation, compatibility shims, adjacent cleanup, or preservation of accidental
+behavior as legacy support. Approve and scope each candidate explicitly before execution.

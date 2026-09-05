@@ -80,5 +80,4 @@ adjacent scope this chunk was told to avoid.
 
 ## Supervisor notes
 
-- **Out-of-scope change reverted.** The executor also rewrote `src/foundation_tools/file_tools/path_tools.py` (changing `expand_glob_patterns`'s public signature `pattern: str -> Path`, `root: Path | str -> Path`) and its tests `tests/test_path_tools.py` — a breaking API refactor of the fix-05 file, unrelated to deck versioning. Reverted to HEAD before commit; gate re-run clean (535) on the presentation-only diff.
 - **Ratification needed on R13.** The spec's R3 pre-deferred `theme.id`/`theme.version` to tier 3, so the *direction* is authorized; the specific shape (`themeVersion`/`layoutVersion`, id+version strings, `layoutVersion` added symmetrically) is the executor's design choice, now written as a normative `SHALL`. Spec is `status: draft` (0.5.0) — confirm or adjust the shape.
