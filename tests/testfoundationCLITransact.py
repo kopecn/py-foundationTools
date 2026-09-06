@@ -571,6 +571,57 @@ class TestCLITransactAsync:
         assert result.stderr is not None and "Command execution failed" in result.stderr
         assert result.success is False
 
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(
+        sys.platform == "win32", reason="Unix-specific (POSIX signals / os.kill)"
+    )
+    async def test_run_async_cancellation_reaps_child_and_reraises(self) -> None:
+        """Cancelling the awaiting task must propagate CancelledError unchanged AND
+        terminate + reap the real child process.
+
+        Proves, against a genuine long-lived subprocess:
+          (a) ``asyncio.CancelledError`` propagates out of ``run_async`` — it is not
+              swallowed and not converted into a ``CLITransactResult``;
+          (b) the child has actually exited and been reaped — ``process.returncode``
+              is set and the OS no longer knows the pid (no orphan, no zombie).
+        """
+        captured: dict[str, Any] = {}
+        real_create = asyncio.create_subprocess_exec
+
+        async def capturing_create(*args: Any, **kwargs: Any) -> Any:
+            proc = await real_create(*args, **kwargs)
+            captured["proc"] = proc
+            return proc
+
+        long_lived = [sys.executable, "-c", "import time; time.sleep(30)"]
+
+        with patch("asyncio.create_subprocess_exec", side_effect=capturing_create):
+            task = asyncio.create_task(CLITransact.run_async(long_lived))
+
+            # Wait until the child exists and the task is parked in communicate().
+            for _ in range(500):
+                if "proc" in captured:
+                    break
+                await asyncio.sleep(0.01)
+            assert "proc" in captured, "child subprocess was never created"
+            await asyncio.sleep(0.05)
+
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+
+        proc = captured["proc"]
+        pid = proc.pid
+
+        # The cleanup path must have waited on the child: returncode is now set
+        # (negative -> killed by signal), never left as None.
+        assert proc.returncode is not None, "child was not reaped (returncode is None)"
+
+        # A reaped process leaves no zombie: the pid is gone from the OS table, so
+        # os.kill(pid, 0) raises ProcessLookupError rather than succeeding.
+        with pytest.raises(ProcessLookupError):
+            os.kill(pid, 0)
+
 
 class TestCLITransactSyncWithModel:
     """Test cases for synchronous command execution with model serialization."""

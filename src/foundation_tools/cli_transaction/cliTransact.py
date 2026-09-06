@@ -37,9 +37,12 @@ import asyncio
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
+from logging import getLogger
 from typing import Generic, TypeVar, overload
 
 from foundationTypes.data_model_helper import DataModelHelper
+
+_log = getLogger(__name__)
 
 # Constants
 ERROR_RETURN_CODE = -1
@@ -446,6 +449,37 @@ class CLITransact:
             )
 
             return self._finalize_result(return_code, stdout_text, stderr_text)
+        except asyncio.CancelledError:
+            # Cooperative task cancellation is NOT an execution failure: it is a
+            # BaseException and must propagate unchanged (never swallowed, never
+            # turned into a CLITransactResult, timeout semantics untouched). But we
+            # still own the child we spawned — reap it here with the same
+            # graceful-then-forceful cascade the timeout path uses so a cancelled
+            # transaction never leaves an orphan or zombie.
+            if process is not None:
+                child_pid = process.pid
+                try:
+                    if process.returncode is None:
+                        process.terminate()
+                        grace_period = (
+                            min(GRACE_PERIOD_CAP_SECONDS, timeout)
+                            if timeout is not None
+                            else GRACE_PERIOD_CAP_SECONDS
+                        )
+                        try:
+                            await asyncio.wait_for(process.wait(), timeout=grace_period)
+                        except asyncio.TimeoutError:
+                            process.kill()
+                            await process.wait()
+                except Exception:  # pylint: disable=broad-exception-caught
+                    # Best-effort reaping; the child may already be gone.
+                    pass
+                _log.warning(
+                    "CLITransact async child pid=%s terminated and reaped after task "
+                    "cancellation",
+                    child_pid,
+                )
+            raise
         except Exception as exec_error:  # pylint: disable=broad-exception-caught
             # Total containment: no exception escapes the public API. BaseException
             # (KeyboardInterrupt / SystemExit) is intentionally allowed to propagate.
