@@ -1,11 +1,38 @@
-"""A standardized logger for shared API use."""
+"""A standardized logger for shared API use.
+
+Structured-field policy
+-----------------------
+``debug``/``info``/``warning``/``error``/``critical`` accept arbitrary keyword
+arguments that are emitted as structured JSON fields. The following rules keep
+that output compatible with :class:`logging.Logger` and safe:
+
+* Standard logging keywords -- ``exc_info``, ``stack_info``, ``stacklevel`` and
+  ``extra`` -- are consumed as logging controls and forwarded to the standard
+  logging machinery. They never appear as structured fields under their own
+  name, and ``stacklevel`` is honoured relative to the caller of the public
+  logging method.
+* Canonical metadata keys (``timestamp``, ``level``, ``message``, ``module``,
+  ``function``, ``line``, ``logger``, ``exception``, ``stack_info``) are
+  reserved. A caller-supplied field whose name collides with one of them is
+  re-emitted under a ``caller_`` prefix instead of overwriting the canonical
+  value.
+* Field values of type ``str``, ``int``, ``float``, ``bool``, ``None`` and
+  ``list``/``dict`` composed of those serialize natively. Any other value is
+  serialized as its :func:`repr`. If serialization still fails (for example a
+  self-referential container), the record is dropped through the handler's
+  standard error path (:meth:`logging.Handler.handleError`) rather than raised
+  to the caller.
+* Date-rolling log file names are derived from a sanitized logger name
+  (characters outside ``[A-Za-z0-9._-]`` become ``_``, leading dots are
+  stripped, length is capped) and are always confined to ``log_dir``.
+"""
 
 from __future__ import annotations
 
 import os
+import re
 import sys
 from datetime import date, datetime, timezone
-from errno import EACCES, ENOSPC, EPIPE
 from json import dumps
 from logging import (
     CRITICAL,
@@ -45,6 +72,35 @@ _COLORS: dict[int, str] = {
     ERROR: "🔴",
     CRITICAL: "🔴",
 }
+
+# Canonical structured keys a caller-supplied field must never overwrite.
+_RESERVED_FIELD_KEYS: frozenset[str] = frozenset(
+    {
+        "timestamp",
+        "level",
+        "message",
+        "module",
+        "function",
+        "line",
+        "logger",
+        "exception",
+        "stack_info",
+    }
+)
+
+# Frames between a public logging method's caller and the stdlib ``_log`` call
+# (``_structured_log`` -> ``_log_structured`` -> public method -> caller); a
+# caller ``stacklevel`` of 1 must resolve to the caller of the public method,
+# matching :class:`logging.Logger`.
+_BASE_STACKLEVEL = 4
+
+# Maximum characters kept from a sanitized logger name when building a file name.
+_MAX_NAME_LEN = 128
+
+
+def _json_fallback(value: object) -> str:
+    """Serialize an otherwise-unsupported structured field value as its ``repr``."""
+    return repr(value)
 
 
 def _timestamp_format(log: LogRecord) -> str:
@@ -112,6 +168,7 @@ class _StructuredFormatter(Formatter):
         }
 
         self._add_exception(entry, record)
+        self._add_stack_info(entry, record)
         self._add_extra_fields(entry, record)
 
         return entry
@@ -121,15 +178,24 @@ class _StructuredFormatter(Formatter):
         if record.exc_info and record.exc_info[0] is not None:
             entry["exception"] = self.formatException(record.exc_info)
 
+    def _add_stack_info(self, entry: dict[str, Any], record: LogRecord) -> None:
+        """Add the pre-formatted stack trace captured via ``stack_info=True``."""
+        if record.stack_info:
+            entry["stack_info"] = record.stack_info
+
     def _add_extra_fields(self, entry: dict[str, Any], record: LogRecord) -> None:
-        """Merge caller-supplied structured fields into the entry."""
+        """Merge caller-supplied structured fields, protecting canonical keys."""
         extra = getattr(record, "extra_fields", None)
-        if isinstance(extra, dict):
-            entry.update(extra)
+        if not isinstance(extra, dict):
+            return
+
+        for key, value in extra.items():
+            safe_key = f"caller_{key}" if key in _RESERVED_FIELD_KEYS else key
+            entry[safe_key] = value
 
     def _serialize(self, entry: dict[str, Any]) -> str:
-        """Serialize the entry dict to a JSON string."""
-        return dumps(entry)
+        """Serialize the entry dict to a JSON string, falling back to ``repr``."""
+        return dumps(entry, default=_json_fallback)
 
 
 class _DateRollingFileHandler(Handler):
@@ -151,7 +217,8 @@ class _DateRollingFileHandler(Handler):
         super().__init__(level)
 
         self._log_dir = log_dir
-        self._logger_name = logger_name
+        self._logger_name = self._safe_name(logger_name)
+        self._verify_within_log_dir(logger_name)
 
         self._flush_every = max(flush_every, 1)
         self._write_count = 0
@@ -161,6 +228,20 @@ class _DateRollingFileHandler(Handler):
         self._current_date: str | None = None
 
         self._rollover(self._utc_date())
+
+    @staticmethod
+    def _safe_name(name: str) -> str:
+        """Reduce a logger name to a single filename-safe path segment."""
+        cleaned = re.sub(r"[^A-Za-z0-9._-]", "_", name).lstrip(".")[:_MAX_NAME_LEN]
+        return cleaned or "logger"
+
+    def _verify_within_log_dir(self, original_name: str) -> None:
+        """Fail fast if the derived file name would resolve outside ``log_dir``."""
+        probe = (self._log_dir / f"{self._logger_name}_0000-00-00.log").resolve()
+        if not probe.is_relative_to(self._log_dir.resolve()):
+            raise ValueError(
+                f"logger name {original_name!r} escapes log_dir {self._log_dir}"
+            )
 
     @staticmethod
     def _utc_date() -> str:
@@ -232,7 +313,12 @@ class _DateRollingFileHandler(Handler):
         return (open_stat.st_dev, open_stat.st_ino) != (path_stat.st_dev, path_stat.st_ino)
 
     def emit(self, record: LogRecord) -> None:
-        """Write a formatted record to the current file, rolling over first if needed."""
+        """Write a formatted record to the current file, rolling over first if needed.
+
+        Any formatting or write failure is routed through :meth:`handleError`,
+        matching the standard library's stream handlers, rather than propagated
+        to the caller of the logging method.
+        """
         try:
             today = self._utc_date()
 
@@ -250,12 +336,10 @@ class _DateRollingFileHandler(Handler):
                 self._stream.flush()
                 self._write_count = 0
 
-        except OSError as e:
-            # Expected: broken pipe, disk full, permission issues, etc.
-            if e.errno in (EPIPE, ENOSPC, EACCES):
-                self.handleError(record)
-            else:
-                raise  # don't silently hide unexpected system errors
+        except RecursionError:
+            raise
+        except Exception:
+            self.handleError(record)
 
     def close(self) -> None:
         """Close the underlying stream and the handler."""
@@ -349,40 +433,45 @@ class StandardizedLogger(Logger):
 
     def debug(self, msg: object, *args: object, **kwargs: Any) -> None:
         """Log msg at DEBUG level with structured keyword fields."""
-        self._log_structured(DEBUG, msg, args, **kwargs)
+        self._log_structured(DEBUG, msg, args, kwargs)
 
     def info(self, msg: object, *args: object, **kwargs: Any) -> None:
         """Log msg at INFO level with structured keyword fields."""
-        self._log_structured(INFO, msg, args, **kwargs)
+        self._log_structured(INFO, msg, args, kwargs)
 
     def warning(self, msg: object, *args: object, **kwargs: Any) -> None:
         """Log msg at WARNING level with structured keyword fields."""
-        self._log_structured(WARNING, msg, args, **kwargs)
+        self._log_structured(WARNING, msg, args, kwargs)
 
     def error(self, msg: object, *args: object, **kwargs: Any) -> None:
         """Log msg at ERROR level with structured keyword fields."""
-        self._log_structured(ERROR, msg, args, **kwargs)
+        self._log_structured(ERROR, msg, args, kwargs)
 
     def critical(self, msg: object, *args: object, **kwargs: Any) -> None:
         """Log msg at CRITICAL level with structured keyword fields."""
-        self._log_structured(CRITICAL, msg, args, **kwargs)
+        self._log_structured(CRITICAL, msg, args, kwargs)
 
     def _log_structured(
         self,
         level: int,
         msg: object,
         args: tuple[object, ...],
-        **kwargs: Any,
+        fields: dict[str, Any],
     ) -> None:
-        """Split reserved kwargs (exc_info, extra) from structured fields and dispatch."""
+        """Forward the standard logging keywords; treat everything else as a field.
+
+        ``exc_info``, ``stack_info``, ``stacklevel`` and ``extra`` are consumed
+        as logging controls and passed through to the standard machinery. All
+        other keyword arguments become structured fields.
+        """
         if not self.isEnabledFor(level):
             return
 
-        exc_info = kwargs.pop("exc_info", None)
-        extra = kwargs.pop("extra", None)
-
-        # everything else becomes structured fields
-        structured_fields = dict(kwargs)
+        structured_fields = dict(fields)
+        exc_info = structured_fields.pop("exc_info", None)
+        stack_info = bool(structured_fields.pop("stack_info", False))
+        stacklevel = int(structured_fields.pop("stacklevel", 1))
+        extra = structured_fields.pop("extra", None)
 
         if isinstance(extra, dict):
             structured_fields.update(extra)
@@ -392,6 +481,8 @@ class StandardizedLogger(Logger):
             msg=str(msg),
             args=args,
             exc_info=exc_info,
+            stack_info=stack_info,
+            stacklevel=stacklevel,
             extra=structured_fields,
         )
 
@@ -405,6 +496,8 @@ class StandardizedLogger(Logger):
         | tuple[type[BaseException], BaseException, TracebackType | None]
         | BaseException
         | None = None,
+        stack_info: bool = False,
+        stacklevel: int = 1,
         **kwargs: Any,
     ) -> None:
         """Merge extra/kwargs fields and emit the record via the stdlib logging machinery."""
@@ -419,5 +512,6 @@ class StandardizedLogger(Logger):
             (),
             exc_info=exc_info,
             extra={"extra_fields": merged} if merged else None,
-            stacklevel=3,
+            stack_info=stack_info,
+            stacklevel=_BASE_STACKLEVEL + max(stacklevel, 1) - 1,
         )
