@@ -35,7 +35,7 @@ Example Usage:
 
 import asyncio
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from logging import getLogger
 from typing import Generic, TypeVar, overload
@@ -48,6 +48,13 @@ _log = getLogger(__name__)
 ERROR_RETURN_CODE = -1
 SUCCESS_RETURN_CODE = 0
 GRACE_PERIOD_CAP_SECONDS = 1.0
+
+# A `str` command is a shell command. It runs through this explicit, fixed shell
+# invocation on BOTH the sync and async paths — never `subprocess`'s implicit
+# `shell=True` / platform default shell, and never a shell read from the ambient
+# environment. Bash is an intentional supported dependency of this project. A
+# caller may pass an explicit `shell` override (e.g. `["zsh", "-c"]`).
+DEFAULT_SHELL: tuple[str, ...] = ("bash", "-c")
 
 # Type variable for generic serialization
 T = TypeVar("T", bound=DataModelHelper)
@@ -105,8 +112,15 @@ class CLITransact:
             print("Deployment successful")
     """
 
-    def __init__(self, success_marker: str | None = None):
+    def __init__(
+        self,
+        success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
+    ) -> None:
         self.success_marker = success_marker
+        # Shell invocation prefix for `str` commands. Explicit override or the
+        # fixed `bash -c` default — never derived from the ambient environment.
+        self._shell: tuple[str, ...] = tuple(shell) if shell is not None else DEFAULT_SHELL
 
     # -----------------------------------------------------------------------
     # MARK: - Public — stateless classmethod API
@@ -119,13 +133,20 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
     ) -> "CLITransactResult":
         """Execute a command synchronously.
 
-        String commands run via the shell (``shell=True``) and are vulnerable to
-        injection; list commands are executed directly and preferred.
+        A ``str`` command is a **shell command**: it runs through an explicit,
+        fixed shell invocation — ``bash -c`` by default, or ``shell`` when given
+        (e.g. ``["zsh", "-c"]``) — and is subject to shell interpretation
+        (injection risk; the caller owns quoting). A ``list[str]`` command is
+        executed directly as argv with no shell. The shell is never taken from
+        the ambient environment or platform default, and the two forms never
+        fall back to each other. Identical semantics to :meth:`run_async` for the
+        same ``str`` command.
         """
-        return cls(success_marker)._run_sync(cli_command, timeout)
+        return cls(success_marker, shell)._run_sync(cli_command, timeout)
 
     @classmethod
     async def run_async(
@@ -134,13 +155,19 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
     ) -> "CLITransactResult":
         """Execute a command asynchronously.
 
-        String commands run via ``bash -c``; list commands are executed directly via
-        ``create_subprocess_exec`` and preferred.
+        A ``str`` command is a **shell command**: it runs through an explicit,
+        fixed shell invocation — ``bash -c`` by default, or ``shell`` when given
+        (e.g. ``["zsh", "-c"]``). A ``list[str]`` command is executed directly
+        via ``create_subprocess_exec`` with no shell. The shell is never taken
+        from the ambient environment or platform default, and the two forms
+        never fall back to each other. Identical semantics to :meth:`run_sync`
+        for the same ``str`` command.
         """
-        return await cls(success_marker)._run_async(cli_command, timeout)
+        return await cls(success_marker, shell)._run_async(cli_command, timeout)
 
     @overload
     @classmethod
@@ -151,6 +178,7 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
     ) -> "CLITransactResultModel[T]": ...
 
     @overload
@@ -162,6 +190,7 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
     ) -> "CLITransactResultModel[T]": ...
 
     @classmethod
@@ -172,6 +201,7 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
     ) -> "CLITransactResultModel[T]":
         """Execute synchronously and parse stdout into a data model.
 
@@ -190,7 +220,7 @@ class CLITransact:
             result = CLITransact.run_sync_with_model(["cat", "coord.json"], GeoCoordinate.from_wire)
         """
         command, parser = cls._resolve_model_invocation(cli_command, output_parser)
-        return cls(success_marker)._run_sync_with_model(command, parser, timeout)
+        return cls(success_marker, shell)._run_sync_with_model(command, parser, timeout)
 
     @overload
     @classmethod
@@ -200,6 +230,7 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
     ) -> "CLITransactResultModel[T]": ...
 
     @overload
@@ -211,6 +242,7 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
     ) -> "CLITransactResultModel[T]": ...
 
     @classmethod
@@ -221,6 +253,7 @@ class CLITransact:
         *,
         timeout: int | None = None,
         success_marker: str | None = None,
+        shell: Sequence[str] | None = None,
     ) -> "CLITransactResultModel[T]":
         """Execute asynchronously and parse stdout into a data model.
 
@@ -232,7 +265,7 @@ class CLITransact:
         output_parser)`` pair — see ``run_sync_with_model`` for the two forms.
         """
         command, parser = cls._resolve_model_invocation(cli_command, output_parser)
-        return await cls(success_marker)._run_async_with_model(command, parser, timeout)
+        return await cls(success_marker, shell)._run_async_with_model(command, parser, timeout)
 
     @staticmethod
     def _resolve_model_invocation(
@@ -282,6 +315,19 @@ class CLITransact:
         if not cli_command:
             return self._framework_error("Empty command provided")
         return None
+
+    def _build_argv(self, cli_command: str | list[str]) -> list[str]:
+        """Resolve a command into a concrete argv list, identically for both paths.
+
+        ``str`` -> a shell command: wrapped in the explicit, fixed shell prefix
+        (``bash -c`` by default, or the caller's ``shell`` override) and then run
+        with no further shell processing. ``list[str]`` -> a direct argv, no
+        shell. The shell prefix is never derived from the ambient environment or
+        platform default, and neither input type falls back to the other's mode.
+        """
+        if isinstance(cli_command, str):
+            return [*self._shell, cli_command]
+        return list(cli_command)
 
     def _determine_success(self, return_code: int, stdout: str) -> bool:
         """Compute semantic success: exit code 0 plus optional marker presence."""
@@ -363,12 +409,12 @@ class CLITransact:
 
         try:
             process_result = subprocess.run(
-                cli_command,
+                self._build_argv(cli_command),
                 capture_output=True,
                 text=True,
                 errors="replace",
                 timeout=timeout,
-                shell=isinstance(cli_command, str),
+                shell=False,
                 check=False,
             )
 
@@ -411,7 +457,7 @@ class CLITransact:
         process = None
         try:
             process = await asyncio.create_subprocess_exec(
-                *cli_command if isinstance(cli_command, list) else ["bash", "-c", cli_command],
+                *self._build_argv(cli_command),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
