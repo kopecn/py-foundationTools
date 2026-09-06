@@ -119,16 +119,23 @@ class TransactionRouter:
         """
         if tx_id is not None:
             resolved_tx_id = tx_id
-            future = self._register(resolved_tx_id)
-            frame = payload
+            needs_injection = False
         else:
             resolved_tx_id = self._generate()
-            future = self._register(resolved_tx_id)
-            frame = self._inject(payload, resolved_tx_id)
+            needs_injection = True
 
+        # Order preserved from the contract: generate -> register future ->
+        # inject -> encode -> send. Frame preparation (inject + encode) and the
+        # pending registration are one rollback-safe unit: registration happens
+        # before the first awaited send so a fast reply cannot race ahead of
+        # correlation, and any failure before the reply-await (a raising
+        # injector/codec, a transport send failure, or cancellation) removes the
+        # pending entry completely rather than orphaning a future in ``_pending``.
+        future = self._register(resolved_tx_id)
         try:
+            frame = self._inject(payload, resolved_tx_id) if needs_injection else payload
             await self._transport.send(self._codec.encode(frame))
-        except Exception:
+        except BaseException:
             self._pending.pop(resolved_tx_id, None)
             raise
 
