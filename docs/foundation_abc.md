@@ -1,11 +1,11 @@
 # foundation_abc
 
-Abstract base interfaces shared across implementations. These define *contracts* — no concrete behavior, no I/O — so that device/transport code and the Math domain can depend on a stable shape rather than a particular class.
+Interfaces shared across implementations. These define *contracts* — no concrete behavior, no I/O — so that device/transport code and the Math domain can depend on a stable shape rather than a particular class.
 
 Two families live here:
 
 1. **`peripheralByteTransport`** — the async byte-transport interface for devices.
-2. **`foundation_abc/math/`** — stdlib-only `XxxxLike` ABCs for the Math domain (spatial, spherical, waveform, precision time) plus their enums.
+2. **`foundation_abc/math/`** — stdlib-only structural protocols for the Math domain (spatial, spherical, waveform, precision time) plus their enums.
 
 ```mermaid
 graph TD
@@ -72,11 +72,11 @@ async with MyTransport() as t:      # connect() / disconnect() run automatically
     reply = await t.receive(64)
 ```
 
-## The Math-domain ABCs (`foundation_abc/math/`)
+## The Math-domain protocols (`foundation_abc/math/`)
 
-These are the stdlib-only *tier-1* interfaces of the Math domain. They describe geometry and time-series shapes without importing anything heavy, so that both hand-written and schema-generated models can conform. See [`.claude/specs/mathTypeTiers.md`](../.claude/specs/mathTypeTiers.md) for the tiering rationale; the schema-generated concrete models live in `foundationTypes/mathTypes/` ([foundationTypes.md](foundationTypes.md)).
+These stdlib-only structural interfaces describe geometry and time-series shapes without importing anything heavy, so both hand-written and schema-generated models can conform. Generated models do not inherit them; compatible fields and methods satisfy the protocols through static structural typing. See [`.claude/specs/mathTypeTiers.md`](../.claude/specs/mathTypeTiers.md); the schema-generated concrete models live in `foundationTypes/mathTypes/` ([foundationTypes.md](foundationTypes.md)).
 
-Every ABC exposes read-only properties plus `to_dict()` / `from_dict()`, mirroring the `DataModelHelper` serialization contract so implementers slot cleanly into the rest of the library.
+Every protocol declares read-only properties plus `to_dict()` / `from_dict()` signatures. Wire mappings and IO behavior stay on concrete implementations; generated carriers receive them from their generated methods and direct `DataModelHelper` parent.
 
 ### Enums (`mathEnums.py`)
 
@@ -90,8 +90,8 @@ Every ABC exposes read-only properties plus `to_dict()` / `from_dict()`, mirrori
 
 Sub-nanosecond time modeled as integers to avoid float drift:
 
-- **`PrecisionTimeIntervalABC`** — a duration: `seconds` + `attoseconds`, with a `sign` and `is_zero` / `is_positive` / `is_negative` helpers.
-- **`PrecisionTimestampABC`** — an instant: `seconds` + `attoseconds`, plus `reference_frame`, `timescale`, `uncertainty`, and epoch comparisons (`is_epoch`, `is_after_epoch`, `is_before_epoch`).
+- **`PrecisionTimeIntervalABC`** — a duration: `seconds` + `attoseconds`, with a `sign`.
+- **`PrecisionTimestampABC`** — an instant: `seconds` + `attoseconds`, plus optional `reference_frame`, `timescale`, and `uncertainty` metadata.
 
 ### Spatial (`spatialABCs.py`)
 

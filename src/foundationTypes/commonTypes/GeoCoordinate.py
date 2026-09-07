@@ -6,14 +6,13 @@
 # =============================================================================
 
 from dataclasses import dataclass
-from typing import Any, TypeVar
-
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_float,
     to_class,
     to_float,
 )
+from typing import Any, TypeVar, Type, cast
 
 T = TypeVar("T")
 

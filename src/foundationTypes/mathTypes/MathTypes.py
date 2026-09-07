@@ -5,25 +5,10 @@
 # To modify, update the source schema in schema/schemas/ and re-run codegen.
 # =============================================================================
 
-from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any, Optional, List, TypeVar, Type, cast, Callable
 from enum import Enum
-from typing import Any, TypeVar
-
-from foundation_abc.math.mathEnums import NumericSign, ReferenceFrame, Timescale
-from foundation_abc.math.precisionTimeABC import PrecisionTimeIntervalABC, PrecisionTimestampABC
-from foundation_abc.math.spatialABCs import PositionABC, QuaternionABC, SpatialTransformABC
-from foundation_abc.math.sphericalABCs import UnitSphericalArcABC, UnitSphericalSmallCircleABC
-from foundation_abc.math.waveformABCs import (
-    PositionWaveformABC,
-    QuaternionWaveformABC,
-    Waveform1dABC,
-    WaveformSpatialABC,
-    WaveformUnitSphericalArcABC,
-    WaveformUnitSphericalSmallCircleABC,
-)
 from foundationTypes.data_model_helper import (
-    DataModelHelper,
     from_float,
     from_int,
     from_list,
@@ -33,13 +18,15 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
+from foundationTypes.data_model_helper import DataModelHelper
+from foundation_abc.math.mathEnums import NumericSign, ReferenceFrame, Timescale
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
 
 
-@dataclass(slots=True)
-class QuaternionType(QuaternionABC, DataModelHelper):
+@dataclass
+class QuaternionType(DataModelHelper):
     """A quaternion representation of a 3D rotation: a scalar (real) part w and a vector
     (imaginary) part x, y, z. The schema does not enforce unit length; normalization is the
     concern of the downstream math implementation.
@@ -78,8 +65,8 @@ class QuaternionType(QuaternionABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class PositionType(PositionABC, DataModelHelper):
+@dataclass
+class PositionType(DataModelHelper):
     """A 3D Cartesian position vector using right-handed (x, y, z) coordinates, in a
     caller-defined consistent length unit.
 
@@ -112,8 +99,8 @@ class PositionType(PositionABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class SpatialTransformType(SpatialTransformABC, DataModelHelper):
+@dataclass
+class SpatialTransformType(DataModelHelper):
     """A full 6-degree-of-freedom rigid body state: a Cartesian position composed with a
     quaternion orientation.
     """
@@ -139,8 +126,8 @@ class SpatialTransformType(SpatialTransformABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
+@dataclass
+class PrecisionTimeIntervalType(DataModelHelper):
     """A time interval with attosecond precision. Stores seconds and attoseconds as unsigned
     integers with an explicit sign, avoiding floating-point precision loss over large spans.
 
@@ -174,8 +161,8 @@ class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
+@dataclass
+class PrecisionTimestampType(DataModelHelper):
     """An absolute timestamp with attosecond precision. Stores seconds and attoseconds as
     unsigned integers with an explicit sign. Optionally carries a timescale, reference frame,
     and measurement uncertainty (in attoseconds).
@@ -193,13 +180,13 @@ class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
     sign: NumericSign
     """The sign of the timestamp."""
 
-    reference_frame: ReferenceFrame | None = None
+    reference_frame: Optional[ReferenceFrame] = None
     """The reference frame for the timestamp (e.g. 'EarthCenter', 'SolarSystemBarycenter')."""
 
-    timescale: Timescale | None = None
+    timescale: Optional[Timescale] = None
     """The timescale of the timestamp (e.g. 'TAI', 'UTC', 'GPS')."""
 
-    uncertainty: int | None = None
+    uncertainty: Optional[int] = None
     """The measurement uncertainty of the timestamp, expressed as a non-negative magnitude in
     attoseconds (10^-18 s).
     """
@@ -236,8 +223,8 @@ class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class PositionWaveformType(PositionWaveformABC, DataModelHelper):
+@dataclass
+class PositionWaveformType(DataModelHelper):
     """A uniformly-sampled time series of 3D Cartesian positions, anchored at a start timestamp
     and sampled at a fixed interval.
     """
@@ -245,7 +232,7 @@ class PositionWaveformType(PositionWaveformABC, DataModelHelper):
     dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    positions: Sequence[PositionType]
+    positions: List[PositionType]
     """The uniformly-sampled position values, in chronological order."""
 
     t0: PrecisionTimestampType
@@ -268,8 +255,8 @@ class PositionWaveformType(PositionWaveformABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
+@dataclass
+class QuaternionWaveformType(DataModelHelper):
     """A uniformly-sampled time series of quaternion orientations, anchored at a start timestamp
     and sampled at a fixed interval.
     """
@@ -277,7 +264,7 @@ class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
     dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    quaternions: Sequence[QuaternionType]
+    quaternions: List[QuaternionType]
     """The uniformly-sampled orientation values, in chronological order."""
 
     t0: PrecisionTimestampType
@@ -300,8 +287,8 @@ class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
+@dataclass
+class SpatialTransformWaveformType(DataModelHelper):
     """A uniformly-sampled time series of 6-DOF poses, represented as parallel position and
     quaternion arrays (not an array of SpatialTransform), anchored at a start timestamp and
     sampled at a fixed interval.
@@ -310,10 +297,10 @@ class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
     dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    positions: Sequence[PositionType]
+    positions: List[PositionType]
     """The uniformly-sampled position values, in chronological order, parallel to quaternions."""
 
-    quaternions: Sequence[QuaternionType]
+    quaternions: List[QuaternionType]
     """The uniformly-sampled orientation values, in chronological order, parallel to positions."""
 
     t0: PrecisionTimestampType
@@ -338,8 +325,8 @@ class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class ScalarWaveformType(Waveform1dABC, DataModelHelper):
+@dataclass
+class ScalarWaveformType(DataModelHelper):
     """A uniformly-sampled time series of a single scalar signal, anchored at a start timestamp
     and sampled at a fixed interval.
     """
@@ -350,7 +337,7 @@ class ScalarWaveformType(Waveform1dABC, DataModelHelper):
     t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
-    waveform: Sequence[float]
+    waveform: List[float]
     """The uniformly-sampled scalar values, in chronological order."""
 
     @classmethod
@@ -370,8 +357,8 @@ class ScalarWaveformType(Waveform1dABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
+@dataclass
+class UnitSphericalArcType(DataModelHelper):
     """Represents an arc on a unit sphere in spherical coordinates using physics convention.
     This arc is formed by a spherical reference point and then projected from that start
     point along the unit circle for the length of the arc in radians.
@@ -413,13 +400,13 @@ class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
         return result
 
 
-@dataclass(slots=True)
-class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC, DataModelHelper):
+@dataclass
+class UnitSphericalArcWaveformType(DataModelHelper):
     """A uniformly-sampled time series of UnitSphericalArc samples, anchored at a start
     timestamp and sampled at a fixed interval.
     """
 
-    arcs: Sequence[UnitSphericalArcType]
+    arcs: List[UnitSphericalArcType]
     """The uniformly-sampled arc values, in chronological order."""
 
     dt: PrecisionTimeIntervalType
@@ -445,8 +432,8 @@ class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC, DataModelHelper)
         return result
 
 
-@dataclass(slots=True)
-class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper):
+@dataclass
+class UnitSphericalSmallCircleType(DataModelHelper):
     """Represents a small circle on a unit sphere in spherical coordinates using physics
     convention.  A small circle is formed by intersecting the sphere with a plane that does
     notpass through the sphere's center, creating a circular path at a constantangular
@@ -484,8 +471,8 @@ class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper)
         return result
 
 
-@dataclass(slots=True)
-class UnitSphericalSmallCircleWaveformType(WaveformUnitSphericalSmallCircleABC, DataModelHelper):
+@dataclass
+class UnitSphericalSmallCircleWaveformType(DataModelHelper):
     """A uniformly-sampled time series of UnitSphericalSmallCircle samples, anchored at a start
     timestamp and sampled at a fixed interval.
     """
@@ -493,7 +480,7 @@ class UnitSphericalSmallCircleWaveformType(WaveformUnitSphericalSmallCircleABC, 
     dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    small_circles: Sequence[UnitSphericalSmallCircleType]
+    small_circles: List[UnitSphericalSmallCircleType]
     """The uniformly-sampled small-circle values, in chronological order."""
 
     t0: PrecisionTimestampType

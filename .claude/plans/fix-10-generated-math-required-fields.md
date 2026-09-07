@@ -1,59 +1,55 @@
 ---
 plan: Fix10GeneratedMathRequiredFields
 scope: project
-status: needs-approval
-last_updated: 2026-09-05
-semver: 1.1.0
+status: complete
+last_updated: 2026-09-07
+semver: 2.0.0
 author: Nicholas Bergantz
 ---
 
-# Fix candidate 10 — generated math required-field contracts
+# Fix candidate 10 — restore schema-faithful Math carriers
 
-Evidence: Math schemas require nested fields such as `position`, `orientation`, `t0`,
-and `dt`, and their Tier-2 ABC accessors are non-optional. The generated dataclasses make
-those fields optional with `None` defaults. `postprocess_mathtypes.py` acknowledges the
-incompatible override and emits `# type: ignore[assignment]`, allowing direct constructors
-to create schema-invalid objects that violate their base-class contract.
+## Corrected diagnosis
 
-Minimum fix: change the schema/codegen/postprocessing strategy so required nested fields
-remain required and non-optional in generated constructors. Remove the corresponding type
-suppression and add contract tests for direct construction, `from_dict`, and regeneration.
+The generated `None` annotations were a symptom, not the root defect. Raw quicktype
+output already represented every schema-required Math field as a non-optional,
+default-free dataclass field.
 
-Do not hand-edit `MathTypes.py`, weaken the ABC return types, make required schema fields
-optional, or retain a `None` compatibility constructor unless separately approved.
+The defect was introduced by postprocessing: generated storage classes were made
+nominal subclasses of interfaces whose fields were abstract read-only properties.
+Python property descriptors conflict with dataclass field assignment, so a later
+workaround added class-level defaults merely to make the generated subclasses
+instantiable. Nested objects had no plausible literal default, producing the
+schema-invalid `XxxxType | None = None` annotations and type suppressions. Required
+scalars and collections were also incorrectly made optional at construction, even
+though the original finding called out only nested objects.
 
-## Session note — 2026-09-05 (BLOCKED; not executed)
+The prior conclusion that literal defaults were a foundational invariant was
+therefore backwards: it documented the workaround as architecture.
 
-An execution attempt this session (user approved fix-10 on 2026-09-05) stopped without
-changing any code. The "Minimum fix" directly contradicts
-[`mathTypeTiers.md`](../specs/mathTypeTiers.md) **Invariant 2**, which lives under a
-heading explicitly marked *"Invariants (empirically forced — do not 'fix')"* and mandates
-the opposite: nested single-object carrier fields **must** be `... | None = None` with
-`# type: ignore[assignment]`, `field(default_factory=...)` is forbidden.
+## Resolution
 
-Verified empirically: a generated `@dataclass XxxxType(XxxxLike, DataModelHelper)` inherits
-an abstract `@property` per field. To be instantiable each field needs a *literal,
-hashable, class-level default* — to clear `__abstractmethods__` and to shadow the
-setter-less property. Scalars (`0.0`/`0`/enum) and lists (`Sequence[...] = ()`) have such
-literals; nested carriers have no literal except `None`. Options tried, all fail:
-required-no-default → `TypeError: Can't instantiate abstract class`; `default_factory` →
-same; real instance default → `ValueError: mutable default not allowed`.
+- Generated `XxxxType` carriers inherit `DataModelHelper` directly and retain all
+  common IO extensions.
+- Math shape interfaces use `typing.Protocol`; carriers satisfy them structurally
+  without inheriting their property descriptors.
+- Protocols declare serialization signatures but no longer duplicate schema-owned
+  wire mappings.
+- The Math postprocessor no longer injects interface parents, `Sequence` field
+  rewrites, fabricated defaults, or assignment suppressions.
+- Regeneration restores quicktype's required constructor fields unchanged.
+- Contract tests cover direct construction, missing `from_dict` fields, legitimate
+  schema optionals, structural protocol compatibility, and generated source shape.
 
-Every route to the chunk's goal needs a separately-forbidden action (weaken the ABC
-accessors, amend a do-not-fix invariant, or a `default_factory`/virtual-subclass strategy
-that breaks other pinned invariants and tests). `quicktype` is installed — tooling is not
-the blocker.
+This supersedes the blocked 2026-09-05 analysis. Obsolete archived plans 21–23,
+which preserved the nominal-inheritance/MRO workaround and its tests, were removed.
 
-**Decision required from the human — pick one before re-scoping:**
+## Verification
 
-1. Amend `mathTypeTiers.md` Invariant 2 to authorize a new Tier-2 strategy (e.g. concrete
-   `@property` overrides on `XxxxType`, or a validating `__post_init__`), then re-scope
-   fix-10 against the amended spec.
-2. Narrow fix-10: keep the `| None` codegen tax but add a `from_dict` / `__post_init__`
-   guard that rejects missing required nested fields at runtime — closes the
-   schema-invalid-object hole without changing the constructor signature or removing the
-   `# type: ignore`.
-3. Close fix-10 as won't-fix: accept `# type: ignore[assignment]` + `| None` as
-   load-bearing per Invariant 2.
-
-Status stays `needs-approval` (blocked).
+- Focused Black and Flake8 checks pass for the Math implementation and tests.
+- Strict mypy passes for all 62 source files and all 36 test files; the test
+  module includes a compile-time proof for all 13 carrier/protocol pairs.
+- The full suite passes: 589 tests and 75 subtests.
+- Two consecutive Math generations produced the same SHA-256 for `MathTypes.py`.
+- The repository-wide `make uv-fullCheck` currently stops in Flake8 on unrelated
+  formatter-migration findings outside this change; Math-scoped Flake8 is clean.

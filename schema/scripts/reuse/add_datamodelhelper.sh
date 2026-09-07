@@ -13,7 +13,7 @@
 #       Remove quicktype's inline helper function definitions and import the
 #       equivalents from foundationTypes.data_model_helper instead.
 #
-# Typical call order:  add_base_class -> add_helper_imports -> run_ruff
+# Typical call order:  add_base_class -> add_helper_imports -> run_black
 # =============================================================================
 
 readonly _DMH_IMPORT="from foundationTypes.data_model_helper import DataModelHelper"

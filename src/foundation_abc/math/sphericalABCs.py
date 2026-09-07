@@ -3,10 +3,8 @@
 See ``.claude/specs/mathTypeTiers.md``. :class:`UnitSphericalArcABC` and
 :class:`UnitSphericalSmallCircleABC` are structural accessor + serialization
 protocols. Code-generated carriers satisfy them without inheritance. Angles
-follow ISO 80000-2:2019 physics
-convention. The math contracts are in
-:mod:`foundationTypes.mathTypes.unitSphericalArcMathLike` and
-:mod:`foundationTypes.mathTypes.unitSphericalSmallCircleMathLike`.
+follow ISO 80000-2:2019 physics convention. Spherical operations belong in
+higher-level implementations, not here.
 """
 
 from abc import abstractmethod

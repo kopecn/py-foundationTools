@@ -3,8 +3,8 @@ spec: SchemaCodegen
 scope: project
 status: implemented
 applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/cvTypes/, src/foundationTypes/standardizedLoggerConfig/
-last_updated: 2026-08-23
-semver: 0.2.0
+last_updated: 2026-09-07
+semver: 0.3.0
 author: Nicholas Bergantz
 ---
 
@@ -38,9 +38,10 @@ logic inline.
 **Conformance rule (Increase Quality Through Conformance / Chamber Match):** per-model
 scripts SHALL be structurally identical apart from their model-specific variables — a
 diff of any two conforming scripts with model names filtered out SHALL be empty. The
-**only** sanctioned deviation from the stock pipeline is a family that requires a
-foundational ABC tier, per the Math pattern (`generateMathTypes.sh` +
-`reuse/postprocess_mathtypes.py`, governed by [`mathTypeTiers.md`](mathTypeTiers.md)).
+**only** sanctioned deviation from the stock pipeline is a family that shares
+schema enums with an independent protocol package, per the Math pattern
+(`generateMathTypes.sh` + `reuse/postprocess_mathtypes.py`, governed by
+[`mathTypeTiers.md`](mathTypeTiers.md)).
 Any other need for per-model behavior goes into the shared libraries (behind an opt-in
 function) or into a `wire_config.py` sibling (below) — never into a bespoke script.
 
@@ -67,9 +68,9 @@ A conforming script:
   (`schema/scripts/generateMathTypes.sh`) does not call this library — its
   post-processor (`schema/scripts/reuse/postprocess_mathtypes.py`, see
   [`mathTypeTiers.md`](mathTypeTiers.md)) injects the equivalent `DataModelHelper`
-  parent + import itself, alongside its `XxxxLike` ABC reparenting, since Plan 21
-  moved those ABCs to `foundation_abc.math` and dropped their own
-  `DataModelHelper` inheritance.
+  parent + import itself and replaces quicktype's local enum copies. Math shape
+  protocols remain independent and are satisfied structurally; the postprocessor
+  does not inject them into generated class hierarchies.
 - `schema/scripts/reuse/normalize_generated.sh` — **single source of truth** for
   post-quicktype rewrites that must reach *every* generated model regardless of which
   script produced it. Three passes:

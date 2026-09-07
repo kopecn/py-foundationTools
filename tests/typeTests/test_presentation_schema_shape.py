@@ -146,9 +146,9 @@ def test_region_and_region_defaults_have_font_family_override() -> None:
         assert field["type"] == "string"
         assert definition_name not in definitions[definition_name].get("required", [])
         assert "fontFamily" not in definitions[definition_name].get("required", [])
-        assert "default" not in field, (
-            "fontFamily must have no schema default (inherits, not defaults)"
-        )
+        assert (
+            "default" not in field
+        ), "fontFamily must have no schema default (inherits, not defaults)"
         description = field["description"]
         assert "Font family override" in description
         assert "metadata.defaults.fontFamily" in description

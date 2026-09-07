@@ -1,15 +1,13 @@
-"""Tier-2 shared abstractions for attosecond-precision time intervals and timestamps.
+"""Structural interfaces for attosecond-precision intervals and timestamps.
 
 See ``.claude/specs/mathTypeTiers.md``. :class:`PrecisionTimeIntervalABC` and
-:class:`PrecisionTimestampABC` are the shared accessor + serialization contracts
-(inherited by the codegen ``PrecisionTimeIntervalType`` / ``PrecisionTimestampType``);
-the math contracts are in
-:mod:`foundationTypes.mathTypes.precisionTimeIntervalMathLike` and
-:mod:`foundationTypes.mathTypes.precisionTimestampMathLike`.
+:class:`PrecisionTimestampABC` are structural accessor + serialization protocols.
+Code-generated carriers satisfy them without inheritance. Time arithmetic belongs
+in higher-level implementations, not here.
 """
 
-from abc import ABC, abstractmethod
-from typing import Any
+from abc import abstractmethod
+from typing import Any, Protocol
 
 from foundation_abc.math.mathEnums import NumericSign, ReferenceFrame, Timescale
 
@@ -17,7 +15,7 @@ from foundation_abc.math.mathEnums import NumericSign, ReferenceFrame, Timescale
 ATTOSECONDS_PER_SECOND = 1_000_000_000_000_000_000
 
 
-class PrecisionTimeIntervalABC(ABC):
+class PrecisionTimeIntervalABC(Protocol):
     """Shared abstraction for an attosecond-precision time interval.
 
     Carries an unsigned ``(seconds, attoseconds)`` magnitude and an explicit
@@ -40,27 +38,9 @@ class PrecisionTimeIntervalABC(ABC):
     def sign(self) -> NumericSign:
         """The sign of the time interval."""
 
-    @property
-    def is_zero(self) -> bool:
-        """Whether this interval is exactly zero."""
-        return self.sign == NumericSign.ZERO
-
-    @property
-    def is_positive(self) -> bool:
-        """Whether this interval is strictly positive."""
-        return self.sign == NumericSign.POSITIVE
-
-    @property
-    def is_negative(self) -> bool:
-        """Whether this interval is strictly negative."""
-        return self.sign == NumericSign.NEGATIVE
-
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "attoseconds": self.attoseconds,
-            "seconds": self.seconds,
-            "sign": self.sign.value,
-        }
+        """Serialize this interval."""
 
     @classmethod
     @abstractmethod
@@ -68,7 +48,7 @@ class PrecisionTimeIntervalABC(ABC):
         """Construct from a ``{"attoseconds", "seconds", "sign"}`` dict."""
 
 
-class PrecisionTimestampABC(ABC):
+class PrecisionTimestampABC(Protocol):
     """Shared abstraction for an attosecond-precision absolute timestamp.
 
     Represents an offset from the Unix epoch (1970-01-01 00:00:00 UTC) as an
@@ -108,34 +88,9 @@ class PrecisionTimestampABC(ABC):
     def uncertainty(self) -> int | None:
         """Optional measurement uncertainty, in attoseconds."""
 
-    @property
-    def is_epoch(self) -> bool:
-        """Whether this timestamp is exactly the Unix epoch."""
-        return self.sign == NumericSign.ZERO
-
-    @property
-    def is_after_epoch(self) -> bool:
-        """Whether this timestamp is strictly after the Unix epoch."""
-        return self.sign == NumericSign.POSITIVE
-
-    @property
-    def is_before_epoch(self) -> bool:
-        """Whether this timestamp is strictly before the Unix epoch."""
-        return self.sign == NumericSign.NEGATIVE
-
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {
-            "attoseconds": self.attoseconds,
-            "seconds": self.seconds,
-            "sign": self.sign.value,
-        }
-        if self.reference_frame is not None:
-            result["referenceFrame"] = self.reference_frame.value
-        if self.timescale is not None:
-            result["timescale"] = self.timescale.value
-        if self.uncertainty is not None:
-            result["uncertainty"] = self.uncertainty
-        return result
+        """Serialize this timestamp."""
 
     @classmethod
     @abstractmethod

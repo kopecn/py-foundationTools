@@ -12,13 +12,13 @@ Transforms applied, in order:
      foundationTypes.data_model_helper.
   2. Strip the generated enum classes (NumericSign / Timescale / ReferenceFrame);
      import them from foundation_abc.math.mathEnums (single source of truth, also
-     avoids a circular import with the Tier-2 modules).
+     avoids a circular import with the structural protocol modules).
   3. Reparent each ``class XxxxType:`` to ``class XxxxType(DataModelHelper):``
      and import ``DataModelHelper``. Required fields remain exactly as quicktype
      emitted them: non-optional and without constructor defaults.
 
 from_dict (@staticmethod -> @classmethod) and to_dict return-type widening are
-left to the shared run_ruff / normalize_generated pass, as for every generator.
+left to the shared run_black / normalize_generated pass, as for every generator.
 """
 
 from __future__ import annotations
@@ -40,6 +40,7 @@ HELPERS = [
     "to_float",
 ]
 ENUMS = ["NumericSign", "ReferenceFrame", "Timescale"]
+
 
 def strip_block(content: str, header_regex: str) -> str:
     """Remove a top-level ``def``/``class`` block and its indented/blank body."""

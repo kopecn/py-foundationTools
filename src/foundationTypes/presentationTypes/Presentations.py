@@ -6,9 +6,6 @@
 # =============================================================================
 
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, TypeVar
-
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_bool,
@@ -22,6 +19,8 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
+from typing import Optional, Any, List, TypeVar, Type, cast, Callable
+from enum import Enum
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
@@ -60,7 +59,7 @@ class PresentationColor(DataModelHelper):
     r: int
     """Red channel value from 0 to 255."""
 
-    opacity: float | None = None
+    opacity: Optional[float] = None
     """Optional opacity from 0 to 1, where 0 is fully transparent and 1 is fully opaque."""
 
     @classmethod
@@ -180,7 +179,7 @@ class PresentationColorTheme(DataModelHelper):
     background: PresentationColor
     """Primary presentation background color."""
 
-    chart_colors: list[PresentationColor]
+    chart_colors: List[PresentationColor]
     """Ordered palette of colors used for categorical charts and visual data series."""
 
     muted_text: PresentationColor
@@ -291,25 +290,25 @@ class RegionDefaults(DataModelHelper):
     Default geometry and styling for title regions.
     """
 
-    color: ThemeColorRef | None = None
+    color: Optional[ThemeColorRef] = None
     """Default semantic color resolved from PresentationColorTheme."""
 
-    font_family: str | None = None
+    font_family: Optional[str] = None
     """Font family override. When unset, inherits `metadata.defaults.fontFamily`."""
 
-    font_size: float | None = None
+    font_size: Optional[float] = None
     """Default font size in points."""
 
-    height: float | None = None
+    height: Optional[float] = None
     """Default region height in pixels."""
 
-    width: float | None = None
+    width: Optional[float] = None
     """Default region width in pixels."""
 
-    x: float | None = None
+    x: Optional[float] = None
     """Default horizontal offset in pixels from the canvas origin."""
 
-    y: float | None = None
+    y: Optional[float] = None
     """Default vertical offset in pixels from the canvas origin."""
 
     @classmethod
@@ -350,7 +349,7 @@ class RegionDefaults(DataModelHelper):
 class Notes(DataModelHelper):
     """Speaker notes rendering defaults."""
 
-    enabled: bool | None = None
+    enabled: Optional[bool] = None
     """Whether speaker notes are rendered."""
 
     @classmethod
@@ -375,22 +374,22 @@ class LayoutDefaults(DataModelHelper):
     outer margin.
     """
 
-    body: RegionDefaults | None = None
+    body: Optional[RegionDefaults] = None
     """Default geometry and styling for body regions."""
 
-    canvas_height: int | None = None
+    canvas_height: Optional[int] = None
     """Canvas height in pixels. Layout region coordinates are absolute against this."""
 
-    canvas_width: int | None = None
+    canvas_width: Optional[int] = None
     """Canvas width in pixels. Layout region coordinates are absolute against this."""
 
-    notes: Notes | None = None
+    notes: Optional[Notes] = None
     """Speaker notes rendering defaults."""
 
-    outer_margin: int | None = None
+    outer_margin: Optional[int] = None
     """Default outer margin in pixels."""
 
-    title: RegionDefaults | None = None
+    title: Optional[RegionDefaults] = None
     """Default geometry and styling for title regions."""
 
     @classmethod
@@ -473,41 +472,41 @@ class Region(DataModelHelper):
     id: str
     """Region identifier referenced by a slide's content blocks."""
 
-    align: Align | None = None
+    align: Optional[Align] = None
     """Horizontal text alignment."""
 
-    color: ThemeColorRef | None = None
+    color: Optional[ThemeColorRef] = None
     """Semantic color name resolved from PresentationColorTheme."""
 
-    font_family: str | None = None
+    font_family: Optional[str] = None
     """Font family override. When unset, inherits `metadata.defaults.fontFamily`."""
 
-    font_size: float | None = None
+    font_size: Optional[float] = None
     """Font size in points."""
 
-    height: float | None = None
+    height: Optional[float] = None
     """Region height in pixels."""
 
-    overflow: Overflow | None = None
+    overflow: Optional[Overflow] = None
     """Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip'
     truncates at the boundary.
     """
-    padding: float | None = None
+    padding: Optional[float] = None
     """Inner padding in pixels."""
 
-    type: RegionType | None = None
+    type: Optional[RegionType] = None
     """Region kind, informing default styling."""
 
-    vertical_align: VerticalAlign | None = None
+    vertical_align: Optional[VerticalAlign] = None
     """Vertical text alignment."""
 
-    width: float | None = None
+    width: Optional[float] = None
     """Region width in pixels."""
 
-    x: float | None = None
+    x: Optional[float] = None
     """Horizontal offset in pixels from the canvas origin."""
 
-    y: float | None = None
+    y: Optional[float] = None
     """Vertical offset in pixels from the canvas origin."""
 
     @classmethod
@@ -589,13 +588,13 @@ class SlideLayout(DataModelHelper):
     name: str
     """Human-readable layout name."""
 
-    regions: list[Region]
+    regions: List[Region]
     """The regions making up this layout."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """Human-readable layout description."""
 
-    notes: str | None = None
+    notes: Optional[str] = None
     """Authoring guidance for agents or presentation generators."""
 
     @classmethod
@@ -630,7 +629,7 @@ class PresentationSlideLayouts(DataModelHelper):
     defaults: LayoutDefaults
     """Canvas geometry and per-region-type defaults shared by every layout."""
 
-    layouts: list[SlideLayout]
+    layouts: List[SlideLayout]
     """The reusable slide layout library."""
 
     @classmethod
@@ -652,16 +651,16 @@ class PresentationSlideLayouts(DataModelHelper):
 class Defaults(DataModelHelper):
     """Rendering defaults inherited by slides and layouts unless overridden."""
 
-    body_font_size: float | None = None
+    body_font_size: Optional[float] = None
     """Default body font size in points."""
 
-    font_family: str | None = None
+    font_family: Optional[str] = None
     """Default font family."""
 
-    small_font_size: float | None = None
+    small_font_size: Optional[float] = None
     """Default small/footer font size in points."""
 
-    title_font_size: float | None = None
+    title_font_size: Optional[float] = None
     """Default title font size in points."""
 
     @classmethod
@@ -700,10 +699,10 @@ class File(DataModelHelper):
     name: str
     """Output filename including extension."""
 
-    format: Format | None = None
+    format: Optional[Format] = None
     """Output file format."""
 
-    path: str | None = None
+    path: Optional[str] = None
     """Output directory. Defaults to the current working directory."""
 
     @classmethod
@@ -733,10 +732,10 @@ class LayoutVersion(DataModelHelper):
     identity -- it does not resolve, store, or discover layout definitions.
     """
 
-    id: str | None = None
+    id: Optional[str] = None
     """Identifier of the layout standard, e.g. a layout-set name or slug."""
 
-    version: str | None = None
+    version: Optional[str] = None
     """Version of the layout standard."""
 
     @classmethod
@@ -764,10 +763,10 @@ class ThemeVersion(DataModelHelper):
     identity -- it does not resolve, store, or discover theme definitions.
     """
 
-    id: str | None = None
+    id: Optional[str] = None
     """Identifier of the corporate theme, e.g. a theme name or slug."""
 
-    version: str | None = None
+    version: Optional[str] = None
     """Version of the corporate theme."""
 
     @classmethod
@@ -806,31 +805,31 @@ class PresentationMetadata(DataModelHelper):
     title: str
     """Presentation title."""
 
-    defaults: Defaults | None = None
+    defaults: Optional[Defaults] = None
     """Rendering defaults inherited by slides and layouts unless overridden."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """Short description of the presentation purpose."""
 
-    layout_version: LayoutVersion | None = None
+    layout_version: Optional[LayoutVersion] = None
     """Identity of the slide layout standard (PresentationSlideLayouts) this deck was authored
     against, recorded so a separate migration tool can later decide whether the deck needs
     updating to a newer layout standard. This library only records and round-trips this
     identity -- it does not resolve, store, or discover layout definitions.
     """
-    subtitle: str | None = None
+    subtitle: Optional[str] = None
     """Optional presentation subtitle."""
 
-    tags: list[str] | None = None
+    tags: Optional[List[str]] = None
     """Free-form tags describing the presentation."""
 
-    theme_version: ThemeVersion | None = None
+    theme_version: Optional[ThemeVersion] = None
     """Identity of the corporate color theme (PresentationColorTheme) this deck was authored
     against, recorded so a separate migration tool can later decide whether the deck needs
     updating to a newer corporate theme. This library only records and round-trips this
     identity -- it does not resolve, store, or discover theme definitions.
     """
-    version: str | None = None
+    version: Optional[str] = None
     """Optional presentation/content version."""
 
     @classmethod
@@ -910,10 +909,10 @@ class TextRun(DataModelHelper):
     text: str
     """The run's literal text."""
 
-    bold: bool | None = None
+    bold: Optional[bool] = None
     """Whether the run renders bold."""
 
-    italic: bool | None = None
+    italic: Optional[bool] = None
     """Whether the run renders italic."""
 
     @classmethod
@@ -942,10 +941,10 @@ class ChartSeries(DataModelHelper):
     name: str
     """Series label for the legend."""
 
-    values: list[float]
+    values: List[float]
     """Numeric values, one per category."""
 
-    color: ThemeColorRef | None = None
+    color: Optional[ThemeColorRef] = None
     """Optional semantic series color resolved from PresentationColorTheme."""
 
     @classmethod
@@ -972,16 +971,16 @@ class ChartSeries(DataModelHelper):
 class Style(DataModelHelper):
     """Optional style overrides for this content block."""
 
-    align: Align | None = None
+    align: Optional[Align] = None
     """Horizontal text alignment."""
 
-    bold: bool | None = None
+    bold: Optional[bool] = None
     """Whether the content renders bold."""
 
-    color: ThemeColorRef | None = None
+    color: Optional[ThemeColorRef] = None
     """Semantic color resolved from PresentationColorTheme."""
 
-    font_size: float | None = None
+    font_size: Optional[float] = None
     """Font size override in points."""
 
     @classmethod
@@ -1037,56 +1036,56 @@ class ContentBlock(DataModelHelper):
     capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
     diagram source with no renderer yet (see 'mermaidSource').
     """
-    bullet_levels: list[int] | None = None
+    bullet_levels: Optional[List[int]] = None
     """Optional indent level per entry in 'items', 0 (outermost) to 4. Shorter than 'items'
     leaves the remaining bullets at level 0.
     """
-    categories: list[str] | None = None
+    categories: Optional[List[str]] = None
     """Shared x-axis category labels for a 'chart' block."""
 
-    chart_kind: ChartKind | None = None
+    chart_kind: Optional[ChartKind] = None
     """Chart kind for a 'chart' block. Placeholder set; an arm is added only once it is
     renderable downstream.
     """
-    delta: str | None = None
+    delta: Optional[str] = None
     """Optional change indicator for a 'metric' block, e.g. '+3.1pp QoQ'. Empty when the metric
     shows no comparison.
     """
-    headers: list[str] | None = None
+    headers: Optional[List[str]] = None
     """Optional column headers for a 'table' block. Empty for a headerless table."""
 
-    items: list[str] | None = None
+    items: Optional[List[str]] = None
     """Bullet items for a 'bullets' block."""
 
-    label: str | None = None
+    label: Optional[str] = None
     """Caption naming what a 'metric' block measures."""
 
-    mermaid_source: str | None = None
+    mermaid_source: Optional[str] = None
     """Raw Mermaid diagram source text for a 'mermaid' block. This repository stores the source
     only; it does not parse, lay out, or render Mermaid diagrams. Rendering, if ever added,
     is a downstream (clerical-tools) concern.
     """
-    rows: list[list[str]] | None = None
+    rows: Optional[List[List[str]]] = None
     """Row-major cells for a 'table' block. Every cell is a pre-formatted string; ragged rows
     are an authoring error the consumer reports.
     """
-    runs: list[TextRun] | None = None
+    runs: Optional[List[TextRun]] = None
     """Inline emphasis runs for a 'text' block that needs mixed formatting. When present the
     renderer uses these instead of the flat 'text' string.
     """
-    series: list[ChartSeries] | None = None
+    series: Optional[List[ChartSeries]] = None
     """One or more named data series for a 'chart' block."""
 
-    source: str | None = None
+    source: Optional[str] = None
     """Filesystem path to the image file for an 'image' block."""
 
-    style: Style | None = None
+    style: Optional[Style] = None
     """Optional style overrides for this content block."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """Body text for a 'text' block."""
 
-    value: str | None = None
+    value: Optional[str] = None
     """Pre-formatted headline value for a 'metric' block, e.g. '$4.2M' or '+12%'. A string so
     number formatting and locale stay a renderer concern.
     """
@@ -1201,23 +1200,23 @@ class Slide(DataModelHelper):
     number: int
     """1-based slide position within the deck."""
 
-    content: list[ContentBlock] | None = None
+    content: Optional[List[ContentBlock]] = None
     """Content blocks placed into the slide's layout regions."""
 
-    hidden: bool | None = None
+    hidden: Optional[bool] = None
     """When true, the slide is excluded from the rendered deck."""
 
-    id: str | None = None
+    id: Optional[str] = None
     """Optional stable identifier for the slide."""
 
-    notes: str | None = None
+    notes: Optional[str] = None
     """Speaker notes or agent instructions specific to this slide."""
 
-    subtitle: str | None = None
+    subtitle: Optional[str] = None
     """Optional slide subtitle. When present it binds to the reserved region id 'subtitle' on
     the slide's layout; a missing region is an authoring error.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Slide title. Optional so a divider or full-bleed slide can omit one. When present it
     binds to the reserved region id 'title' on the slide's layout; a missing region is an
     authoring error.
@@ -1266,7 +1265,7 @@ class PresentationDeck(DataModelHelper):
     """Presentation content consisting of ordered slides referencing reusable slide layouts."""
 
     metadata: PresentationMetadata
-    slides: list[Slide]
+    slides: List[Slide]
     """Ordered slides making up the deck."""
 
     @classmethod

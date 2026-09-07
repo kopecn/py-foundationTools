@@ -83,9 +83,9 @@ def test_foundation_science_does_not_import_sibling_packages() -> None:
 def test_foundation_science_is_scanned() -> None:
     """Guard against the scan silently finding zero files."""
     scanned = list(FOUNDATION_SCIENCE_ROOT.rglob("*.py"))
-    assert len(scanned) >= 6, (
-        f"expected at least 6 modules under foundation_science/, found {scanned}"
-    )
+    assert (
+        len(scanned) >= 6
+    ), f"expected at least 6 modules under foundation_science/, found {scanned}"
 
 
 def test_foundation_abc_math_subpackage_is_scanned() -> None:

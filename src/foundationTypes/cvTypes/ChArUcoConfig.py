@@ -5,10 +5,8 @@
 # To modify, update the source schema in schema/schemas/ and re-run codegen.
 # =============================================================================
 
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypeVar
-
+from dataclasses import dataclass
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_float,
@@ -19,6 +17,7 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
+from typing import Optional, Any, TypeVar, Type, cast
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
@@ -72,7 +71,7 @@ class ChArUcoBoard(DataModelHelper):
     squares_y: int
     """Number of chessboard squares down the board."""
 
-    dictionary: ArucoDictionary | None = None
+    dictionary: Optional[ArucoDictionary] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ChArUcoBoard":
@@ -113,13 +112,13 @@ class ChArUcoRenderOptions(DataModelHelper):
     image_width: int
     """Width of the generated image in pixels."""
 
-    border_bits: int | None = None
+    border_bits: Optional[int] = None
     """Width of the black border surrounding each ArUco marker, expressed in marker cells."""
 
-    dpi: int | None = None
+    dpi: Optional[int] = None
     """Target print resolution in dots per inch."""
 
-    margin_size: int | None = None
+    margin_size: Optional[int] = None
     """White border around the board, measured in pixels."""
 
     @classmethod

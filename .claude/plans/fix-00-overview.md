@@ -2,20 +2,20 @@
 plan: RepositoryHardeningOverview
 scope: project
 status: needs-approval
-last_updated: 2026-09-04
-semver: 1.0.0
+last_updated: 2026-09-07
+semver: 1.1.0
 author: Nicholas Bergantz
 ---
 
 # Repository review findings
 
-Plans `fix-01`–`fix-04` and `fix-06`–`fix-08` are completed records. The obsolete
-`fix-05` record was removed after its path-root work was superseded and completed.
+Plans `fix-01`–`fix-04`, `fix-06`–`fix-08`, and `fix-10` are completed records.
+The obsolete `fix-05` record was removed after its path-root work was superseded
+and completed.
 
 The 2026-09-04 trace-path review added these independent candidates:
 
 - `fix-09`: make transaction-ID registration and frame preparation atomic;
-- `fix-10`: stop generated math types from weakening required ABC fields to `None`;
 - `fix-11`: prevent incomplete presentation migrations from claiming target versions;
 - `fix-12`: define and enforce socket client/router/server lifecycle ownership;
 - `fix-13`: terminate and reap asynchronous CLI children when callers cancel;

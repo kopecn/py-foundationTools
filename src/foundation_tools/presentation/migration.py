@@ -62,17 +62,25 @@ class MigrationMapping:
     ``None`` leaves the current ``layout_version`` stamp as-is.
     """
 
-    layout_map: Mapping[str, str] = field(default_factory=dict)
-    """Old ``Slide.layout`` id -> new layout id."""
-
-    region_map: Mapping[str, str] = field(default_factory=dict)
-    """Old ``ContentBlock.region`` id -> new region id. Reserved region ids
-    (``title``, ``subtitle``, R11) are a fixed contract, not an authored
-    reference, so they are never looked up here.
+    layout_map: Mapping[str, str] | None = None
+    """Old ``Slide.layout`` id -> new layout id. ``None`` leaves layouts
+    outside this migration's scope; an empty mapping explicitly scopes layouts
+    but cannot resolve any layout reference.
     """
 
-    color_map: Mapping[str, str] = field(default_factory=dict)
-    """Old ``ThemeColorRef`` value -> new ``ThemeColorRef`` value."""
+    region_map: Mapping[str, str] | None = None
+    """Old ``ContentBlock.region`` id -> new region id. Reserved region ids
+    (``title``, ``subtitle``, R11) are a fixed contract, not an authored
+    reference, so they are never looked up here. ``None`` leaves authored
+    regions outside this migration's scope; an empty mapping explicitly scopes
+    them but cannot resolve any authored region reference.
+    """
+
+    color_map: Mapping[str, str] | None = None
+    """Old ``ThemeColorRef`` value -> new ``ThemeColorRef`` value. ``None``
+    leaves colors outside this migration's scope; an empty mapping explicitly
+    scopes colors but cannot resolve any color reference.
+    """
 
 
 @dataclass(frozen=True)
@@ -106,11 +114,11 @@ class MigrationResult:
 
 def _migrate_style(
     style: Style | None,
-    color_map: Mapping[str, str],
+    color_map: Mapping[str, str] | None,
     slide_number: int,
     unplaced: list[UnplacedContent],
 ) -> Style | None:
-    if style is None or style.color is None:
+    if color_map is None or style is None or style.color is None:
         return style
     old_ref = style.color.value
     new_ref = color_map.get(old_ref)
@@ -146,7 +154,7 @@ def _migrate_block(
     unplaced: list[UnplacedContent],
 ) -> ContentBlock:
     new_region = block.region
-    if block.region not in RESERVED_REGION_IDS.values():
+    if mapping.region_map is not None and block.region not in RESERVED_REGION_IDS.values():
         target = mapping.region_map.get(block.region)
         if target is None:
             unplaced.append(
@@ -170,17 +178,20 @@ def _migrate_block(
 def _migrate_slide(
     slide: Slide, mapping: MigrationMapping, unplaced: list[UnplacedContent]
 ) -> Slide:
-    new_layout = mapping.layout_map.get(slide.layout)
-    if new_layout is None:
-        unplaced.append(
-            UnplacedContent(
-                slide_number=slide.number,
-                kind="layout",
-                old_reference=slide.layout,
-                reason=f"no layout mapping entry for '{slide.layout}'",
+    new_layout = slide.layout
+    if mapping.layout_map is not None:
+        target = mapping.layout_map.get(slide.layout)
+        if target is None:
+            unplaced.append(
+                UnplacedContent(
+                    slide_number=slide.number,
+                    kind="layout",
+                    old_reference=slide.layout,
+                    reason=f"no layout mapping entry for '{slide.layout}'",
+                )
             )
-        )
-        new_layout = slide.layout
+        else:
+            new_layout = target
 
     new_content = slide.content
     if slide.content is not None:
@@ -194,16 +205,26 @@ def _migrate_slide(
 
 
 def _migrate_metadata(
-    metadata: PresentationMetadata, mapping: MigrationMapping
+    metadata: PresentationMetadata,
+    mapping: MigrationMapping,
+    unplaced: list[UnplacedContent],
 ) -> PresentationMetadata:
-    theme_version = (
-        mapping.to_theme_version if mapping.to_theme_version is not None else metadata.theme_version
+    failed_kinds = {item.kind for item in unplaced}
+    theme_succeeded = mapping.color_map is not None and "color" not in failed_kinds
+    layout_succeeded = (
+        mapping.layout_map is not None
+        and mapping.region_map is not None
+        and failed_kinds.isdisjoint({"layout", "region"})
     )
-    layout_version = (
-        mapping.to_layout_version
-        if mapping.to_layout_version is not None
-        else metadata.layout_version
-    )
+
+    theme_version = metadata.theme_version
+    if mapping.to_theme_version is not None and theme_succeeded:
+        theme_version = mapping.to_theme_version
+
+    layout_version = metadata.layout_version
+    if mapping.to_layout_version is not None and layout_succeeded:
+        layout_version = mapping.to_layout_version
+
     if theme_version is metadata.theme_version and layout_version is metadata.layout_version:
         return metadata
     return replace(metadata, theme_version=theme_version, layout_version=layout_version)
@@ -221,8 +242,8 @@ def migrate_deck(deck: PresentationDeck, mapping: MigrationMapping) -> Migration
     this migration could not place is reported, never dropped.
     """
     unplaced: list[UnplacedContent] = []
-    new_metadata = _migrate_metadata(deck.metadata, mapping)
     new_slides = [_migrate_slide(slide, mapping, unplaced) for slide in deck.slides]
+    new_metadata = _migrate_metadata(deck.metadata, mapping, unplaced)
 
     if new_metadata is deck.metadata and new_slides == deck.slides:
         new_deck = deck

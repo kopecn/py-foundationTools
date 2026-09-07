@@ -3,161 +3,103 @@ spec: MathTypeTiers
 scope: project
 status: implemented
 applies_to: schema/schemas/Math/, schema/scripts/generateMathTypes.sh, schema/scripts/reuse/postprocess_mathtypes.py, src/foundationTypes/mathTypes/, src/foundation_abc/math/, tests/typeTests/test_math_tier_contract.py
-last_updated: 2026-07-08
-semver: 0.2.0
+last_updated: 2026-09-07
+semver: 1.0.0
 author: Nicholas Bergantz
 ---
 
-# Math Type Tiers Specification
+# Math data and interface boundaries
 
-> **Status — implemented (Tier 1 + Tier 2).** Tier 3 is planned and lives
-> outside this repository. This spec governs how every non-enum type under the
-> `Math` schema domain is layered. It complements
-> [`schemaCodegen.md`](schemaCodegen.md) (Tier 1's codegen authority) and
-> [`dataModelHelper.md`](dataModelHelper.md) (the serialization base class every
-> tier transitively inherits).
+## Purpose
 
-## Goal — SE(3) rigid body transformations
+The Math domain needs two independent things:
 
-The `Position` / `Quaternion` / `SpatialTransform` family (`spatialABCs.py`) exists to
-give **SE(3), the Lie group of 3D rigid body transformations (rotation +
-translation)**, a storage-independent, serializable data contract:
+1. schema-backed values for validation, serialization, file IO, and transport; and
+2. storage-independent interfaces that algorithms can accept without depending on
+   a particular concrete representation.
 
-- `PositionABC` — the translation part, a point in `R^3`.
-- `QuaternionABC` — the rotation part, a unit quaternion (the standard double
-  cover of `SO(3)`, the rotation subgroup of SE(3)).
-- `SpatialTransformABC` — one SE(3) group element: a translation composed with a
-  rotation, i.e. a pose.
-- `WaveformSpatialABC` (and its single-component siblings `PositionWaveformABC`
-  / `QuaternionWaveformABC`) — a uniformly-sampled trajectory through SE(3)
-  over time.
+Those concerns interoperate through structural typing. They do not share a class
+hierarchy.
 
-This spec's tier split (below) is *how* that contract is layered so the data
-shape stays independent of the math implementation; the group-theoretic
-context above is *why* the family exists. Group operations (composition,
-inverse, interpolation) belong on the `XxxxMathLike` tier, never on the
-`XxxxLike` accessor contracts — see Invariant 1.
-
-## Why
-
-A Math type has two independent concerns: a **data shape** (for IO, storage,
-validation, plotting) and a **math implementation** (arithmetic, composition,
-interpolation — which may want `np.quaternion`, SIMD, or GPU storage). Binding
-those together — e.g. making a downstream math class inherit a concrete
-`w/x/y/z: float` dataclass — freezes the storage and blocks alternative compute
-backends. The Math family instead applies **dependency inversion**: one
-storage-independent abstraction at the bottom, with several sibling
-implementations that each choose their own storage yet "talk commonly" through
-the shared abstraction.
-
-```
-        XxxxLike   (ABC only, stdlib-only)   ← shared abstraction (bottom)
-        /        \
-  XxxxType     XxxxMathLike   (adds the math-op contract)
- (codegen,          \
-  XxxxLike +          Xxxx   (downstream math engine: np.quaternion today,
-  DataModelHelper)     a SIMD/GPU build tomorrow — interchangeable)
- data IO /
- storage /
- validation /
- plotting
+```text
+JSON Schema -> XxxxType(DataModelHelper)  ── structurally satisfies ──> XxxxABC Protocol
+                      ^                                              ^
+                      |                                              |
+             generated storage                            alternate math storage
 ```
 
-## Tiers
+The existing `XxxxABC` names are retained as public API names. Their implementation
+is `typing.Protocol`, because the contract describes readable shape rather than a
+required storage base class.
 
-| Role | Name | Lives in | Inherits |
-|---|---|---|---|
-| Shared abstraction | `XxxxLike` | hand-written, `foundation_abc/math/` | `ABC` |
-| Codegen data carrier | `XxxxType` | generated `MathTypes.py` (`foundationTypes/mathTypes/`) | `XxxxLike`, `DataModelHelper` |
-| Math-op interface | `XxxxMathLike` | hand-written, this repo | `XxxxLike` |
-| Math implementation | `Xxxx` | downstream repo (e.g. `py-MathTools`) | `XxxxMathLike` |
+## Schema-backed carriers
 
-- **`XxxxLike`** — abstract `@property` accessor per data field, a concrete
-  `to_dict` built on those accessors (define serialization once), and an abstract
-  `from_dict`. It declares **no math operations** (see the invariant below) and is
-  **stdlib-only** (`ABC` alone, no `DataModelHelper`) — this is what lets it live
-  in `foundation_abc/math/`, a zero-dependency leaf package, without creating a
-  `foundationTypes -> foundation_abc -> foundationTypes` cycle (Plan 21). Downstream
-  code that needs the serialization surface gets it from `XxxxType` (or a
-  `Xxxx` math implementation that separately composes it), not from `XxxxLike`
-  itself.
-- **`XxxxType`** — the quicktype-generated dataclass. Pure data. Inherits **both**
-  `XxxxLike` and `DataModelHelper` directly (ABC first in the base list — see
-  Invariant 4 for why the order is load-bearing). Directly instantiable; used for
-  serialization, validation, and plotting.
-- **`XxxxMathLike`** — abstract `from_components` plus the math-op signatures
-  (no bodies), so alternative engines stay interchangeable. Only math
-  implementations inherit it; the codegen carrier does not.
-- **`Xxxx`** — implemented downstream by subclassing `XxxxMathLike`, choosing its
-  own storage and exposing the accessors as computed properties.
+`src/foundationTypes/mathTypes/MathTypes.py` is generated from the Math JSON schemas.
+Each non-enum model is an ordinary dataclass with one concrete parent:
+`DataModelHelper`.
 
-Enums (`NumericSign`, `Timescale`, `ReferenceFrame`) get no tier split. They are
-hand-written in `foundation_abc/math/mathEnums.py` (a leaf module, stdlib-only,
-that both `MathTypes.py` and the Tier-2 modules import, avoiding a circular
-import); the codegen post-processor strips quicktype's inline copies and imports
-these instead.
+- JSON Schema is authoritative for field names and requiredness.
+- A schema-required field is a non-optional constructor argument with no default.
+- A schema-optional field may use `None`; currently these are the optional
+  `PrecisionTimestampType` metadata fields.
+- Generated `from_dict` and `to_dict` own the wire representation.
+- `DataModelHelper` supplies the shared file, JSON, byte, wire, and environment IO
+  extensions.
 
-## Invariants (empirically forced — do not "fix")
+## Structural interfaces
 
-1. **`XxxxLike` carries accessors + serialization only, never abstract math
-   ops.** A dataclass cannot inherit any abstract *method* it does not
-   implement, and the codegen carrier implements no math. Ops therefore live on
-   `XxxxMathLike`. Adding an abstract op to `XxxxLike` makes every `XxxxType`
-   non-instantiable.
-2. **Every codegen field must carry a literal class-level default.** An abstract
-   `@property` is a *data descriptor*: without a shadowing class attribute it
-   both keeps the class abstract and raises `property '<f>' has no setter` at
-   construction. A literal default (never `field(default_factory=...)`, which
-   sets no class attribute) supplies that shadow. The post-processor injects:
-   scalars → `0.0` / `0` / `NumericSign.ZERO`; lists → `Sequence[...] = ()`
-   (covariant, immutable); nested single-object carriers → `... | None = None`
-   with `# type: ignore[assignment]` (the Optionality is a codegen-only tax —
-   `from_dict` always supplies the value — kept off the Tier-2 contract).
-3. **Accessor return types are covariant.** Lists use `Sequence[XxxxLike]` (not
-   `list`, which is invariant); nested carriers are typed by the sibling
-   `XxxxLike`, so both `XxxxType` and downstream impls satisfy the override under
-   mypy strict.
-4. **`XxxxLike` must come first in `XxxxType`'s base list.** The generated
-   declaration is `class XxxxType(XxxxLike, DataModelHelper):`, never the reverse.
-   `XxxxLike` supplies the concrete `to_dict` and the abstract `@property`
-   accessors that invariant 2's literal defaults shadow; putting `DataModelHelper`
-   first would let its own (non-`XxxxLike`-aware) methods win the MRO and break
-   that interaction. This is also what keeps `foundation_abc/math/` a
-   zero-dependency leaf: `XxxxLike` itself never inherits `DataModelHelper` (see
-   Tiers above) — the two are combined only here, on the generated carrier.
+`src/foundation_abc/math/` contains stdlib-only protocols for positions,
+quaternions, transforms, spherical geometry, precision time, and waveforms.
+They declare readable properties plus the `from_dict` / `to_dict` serialization
+surface, but they do not implement wire mappings or math operations.
 
-## Codegen
+A generated carrier conforms because its fields and methods have compatible types;
+it does not inherit a protocol. An alternate implementation can use properties,
+native arrays, SIMD/GPU storage, or another representation and satisfy the same
+protocol. Concrete IO behavior is opt-in: implementations that need
+`DataModelHelper` inherit it directly or convert through a generated carrier.
 
-`schema/scripts/generateMathTypes.sh` consolidates all Math schemas whose `$ref`
-graph is one connected component into a single quicktype invocation → one
-`MathTypes.py` (per the "one invocation, one file" constraint in
-[`schemaCodegen.md`](schemaCodegen.md)). Each object schema's `title` is its
-public `XxxxType` name. `schema/scripts/reuse/postprocess_mathtypes.py` then
-reparents each class to `(XxxxLike, DataModelHelper)` — ABC first, per invariant
-4 — importing `XxxxLike` from `foundation_abc.math.<module>` and injecting the
-`DataModelHelper` class import directly (the `XxxxLike` ABCs no longer carry it
-transitively); it also extracts the enums (imported from
-`foundation_abc.math.mathEnums`), imports the `data_model_helper` `from_*`/`to_*`
-helpers, and injects the field defaults from invariant 2. `from_dict`/`to_dict`
-normalization is the shared `run_ruff` pass. This post-processor is intentionally
-Math-specific — the shared reuse libraries stay generic for the other generators.
+Enums (`NumericSign`, `Timescale`, and `ReferenceFrame`) remain concrete shared
+values in `foundation_abc/math/mathEnums.py`. Generated carriers import them so the
+schema and protocol layers use the same enum identities.
+
+## Invariants
+
+1. **Generated carriers inherit `DataModelHelper`, not field protocols.** Abstract
+   property descriptors must never be injected into generated dataclass MROs.
+2. **Schema requiredness reaches Python unchanged.** Codegen must not add fabricated
+   scalar, collection, nested-object, or `None` defaults to required fields.
+3. **Math shape interfaces are structural.** They subclass `typing.Protocol` and
+   must remain free of concrete wire mappings, IO behavior, and math operations.
+4. **Read-only collection accessors use `Sequence`.** This permits carriers backed
+   by `list` and alternate implementations backed by other sequence types.
+5. **The postprocessor is narrow.** It extracts shared enums, imports the common
+   serialization helpers, and adds `DataModelHelper`; it does not rewrite field
+   annotations or defaults.
+
+## Code generation
+
+`schema/scripts/generateMathTypes.sh` passes the connected Math schema graph to one
+quicktype invocation. `schema/scripts/reuse/postprocess_mathtypes.py` then:
+
+1. replaces quicktype's local helper functions with the shared
+   `foundationTypes.data_model_helper` helpers;
+2. replaces quicktype's generated enum copies with the shared Math enums; and
+3. makes each generated `XxxxType` a direct `DataModelHelper` subclass.
+
+The shared normalization pass converts `from_dict` to the project classmethod
+contract, replaces assertion-only input guards, and formats the result.
 
 ## Compliance
 
-A new Math object type MUST, when its schema is authored:
+A new Math object type must:
 
-1. Use its public `XxxxType` name as the schema `title`.
-2. Get a hand-written `XxxxLike` (accessors + serialization, `ABC`-only, in
-   `foundation_abc/math/`) and `XxxxMathLike` (op contract) — the latter may be an
-   empty scaffold while Tier 3 is unwritten.
-3. Be added to `generateMathTypes.sh`'s `INPUT_SCHEMA_FILES` and to the
-   post-processor's `TYPE_TO_LIKE` map (module name resolves under
-   `foundation_abc.math`).
-4. Pass `make uv-typecheck` after `make codegen-all`.
-5. Not introduce any import from `foundationTypes`, `foundation_math`, or
-   `foundation_tools` into the new `XxxxLike` module — enforced by
-   `tests/test_package_layering.py`.
-6. Add a `(XxxxType, XxxxABC)` entry to the pairs table in
-   `tests/typeTests/test_math_tier_contract.py` with a representative
-   `from_dict` payload — this pins invariant 4 (ABC-first base order) and the
-   Tier-1/Tier-2 `to_dict` serialization parity for the new type.
+1. declare its public type name and required fields in JSON Schema;
+2. be included in `generateMathTypes.sh`;
+3. have a compatible structural protocol when algorithms need a representation-
+   independent contract;
+4. add representative payload and required-field entries to
+   `tests/typeTests/test_math_tier_contract.py`;
+5. pass regeneration, strict type checking, and the full test suite; and
+6. keep `foundation_abc` free of imports from `foundationTypes`, `foundation_math`,
+   and `foundation_tools`.

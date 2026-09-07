@@ -180,7 +180,7 @@ class TransactionRouter:
                 data = await self._transport.receive(self._read_size, timeout=self._poll_timeout)
             except TimeoutError:
                 continue  # idle tick — no data yet, not an error
-            except (ConnectionError, RuntimeError, OSError) as error:
+            except (RuntimeError, OSError) as error:
                 self._teardown(ConnectionClosedError(f"transport error: {error}"))
                 return
 

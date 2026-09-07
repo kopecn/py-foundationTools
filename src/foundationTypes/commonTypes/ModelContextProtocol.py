@@ -5,10 +5,8 @@
 # To modify, update the source schema in schema/schemas/ and re-run codegen.
 # =============================================================================
 
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypeVar
-
+from dataclasses import dataclass
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_bool,
@@ -23,6 +21,7 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
+from typing import List, Optional, Any, Dict, Union, TypeVar, Callable, Type, cast
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
@@ -43,13 +42,13 @@ class AudiocontentAnnotations(DataModelHelper):
     Optional annotations for the client.
     """
 
-    audience: list[RoleElement] | None = None
+    audience: Optional[List[RoleElement]] = None
     """Describes who the intended audience of this object or data is.
     
     It can include multiple entries to indicate content useful for multiple audiences (e.g.,
     `["user", "assistant"]`).
     """
-    last_modified: str | None = None
+    last_modified: Optional[str] = None
     """The moment the resource was last modified, as an ISO 8601 formatted string.
     
     Should be an ISO 8601 formatted string (e.g., "2025-01-12T15:00:58Z").
@@ -57,7 +56,7 @@ class AudiocontentAnnotations(DataModelHelper):
     Examples: last activity timestamp in an open file, timestamp when the resource
     was attached, etc.
     """
-    priority: float | None = None
+    priority: Optional[float] = None
     """Describes how important this data is for operating the server.
     
     A value of 1 means "most important," and indicates that the data is
@@ -103,11 +102,11 @@ class Audiocontent(DataModelHelper):
     """The MIME type of the audio. Different providers may support different audio types."""
 
     type: AudiocontentType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
     @classmethod
@@ -147,7 +146,7 @@ class Basemetadata(DataModelHelper):
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -181,11 +180,11 @@ class Blobresourcecontents(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
     @classmethod
@@ -218,9 +217,9 @@ class BooleanschemaType(Enum):
 @dataclass
 class BooleanschemaClass(DataModelHelper):
     type: BooleanschemaType
-    default: bool | None = None
-    description: str | None = None
-    title: str | None = None
+    default: Optional[bool] = None
+    description: Optional[str] = None
+    title: Optional[str] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "BooleanschemaClass":
@@ -258,7 +257,7 @@ class PurpleMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -294,7 +293,7 @@ class Task(DataModelHelper):
     Include this in the `task` field of the request parameters.
     """
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Requested duration in milliseconds to retain task from creation."""
 
     @classmethod
@@ -318,14 +317,14 @@ class CalltoolrequestParams(DataModelHelper):
     name: str
     """The name of the tool."""
 
-    meta: PurpleMeta | None = None
+    meta: Optional[PurpleMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    arguments: dict[str, Any] | None = None
+    arguments: Optional[Dict[str, Any]] = None
     """Arguments to use for the tool call."""
 
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -364,7 +363,7 @@ class CalltoolrequestParams(DataModelHelper):
 class Calltoolrequest(DataModelHelper):
     """Used by the client to invoke a tool provided by the server."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: CalltoolrequestMethod
     params: CalltoolrequestParams
@@ -414,18 +413,18 @@ class IconElement(DataModelHelper):
     Consumers SHOULD take appropriate precautions when consuming SVGs as they can contain
     executable JavaScript.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """Optional MIME type override if the source MIME type is missing or generic.
     For example: `"image/png"`, `"image/jpeg"`, or `"image/svg+xml"`.
     """
-    sizes: list[str] | None = None
+    sizes: Optional[List[str]] = None
     """Optional array of strings that specify sizes at which the icon can be used.
     Each string should be in WxH format (e.g., `"48x48"`, `"96x96"`) or `"any"` for scalable
     formats like SVG.
     
     If not provided, the client should assume that the icon can be used at any size.
     """
-    theme: Theme | None = None
+    theme: Optional[Theme] = None
     """Optional specifier for the theme this icon is designed for. `light` indicates
     the icon is designed to be used with a light background, and `dark` indicates
     the icon is designed to be used with a dark background.
@@ -460,18 +459,18 @@ class Resource(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """The text of the item. This must only be set if the item can actually be represented as
     text (not binary data).
     """
-    blob: str | None = None
+    blob: Optional[str] = None
     """A base64-encoded string representing the binary data of the item."""
 
     @classmethod
@@ -530,35 +529,35 @@ class ContentblockElement(DataModelHelper):
     """
 
     type: ContentblockType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """The text content of the message."""
 
-    data: str | None = None
+    data: Optional[str] = None
     """The base64-encoded image data.
     
     The base64-encoded audio data.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of the image. Different providers may support different image types.
     
     The MIME type of the audio. Different providers may support different audio types.
     
     The MIME type of this resource, if known.
     """
-    description: str | None = None
+    description: Optional[str] = None
     """A description of what this resource represents.
     
     This can be used by clients to improve the LLM's understanding of available resources. It
     can be thought of like a "hint" to the model.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -569,17 +568,17 @@ class ContentblockElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    name: str | None = None
+    name: Optional[str] = None
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    size: int | None = None
+    size: Optional[int] = None
     """The size of the raw resource content, in bytes (i.e., before base64 encoding or any
     tokenization), if known.
     
     This can be used by Hosts to display file sizes and estimate context window usage.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -588,10 +587,10 @@ class ContentblockElement(DataModelHelper):
     where `annotations.title` should be given precedence over using `name`,
     if present).
     """
-    uri: str | None = None
+    uri: Optional[str] = None
     """The URI of this resource."""
 
-    resource: Resource | None = None
+    resource: Optional[Resource] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ContentblockElement":
@@ -672,14 +671,14 @@ class ContentblockElement(DataModelHelper):
 class Calltoolresult(DataModelHelper):
     """The server's response to a tool call."""
 
-    content: list[ContentblockElement]
+    content: List[ContentblockElement]
     """A list of content objects that represent the unstructured result of the tool call."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    is_error: bool | None = None
+    is_error: Optional[bool] = None
     """Whether the tool call ended in an error.
     
     If not set, this is assumed to be false (the call was successful).
@@ -693,7 +692,7 @@ class Calltoolresult(DataModelHelper):
     server does not support tool calls, or any other exceptional conditions,
     should be reported as an MCP error response.
     """
-    structured_content: dict[str, Any] | None = None
+    structured_content: Optional[Dict[str, Any]] = None
     """An optional JSON object that represents the structured result of the tool call."""
 
     @classmethod
@@ -732,15 +731,15 @@ class CancellednotificationMethod(Enum):
 class CancellednotificationParams(DataModelHelper):
     """Parameters for a `notifications/cancelled` notification."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    reason: str | None = None
+    reason: Optional[str] = None
     """An optional string describing the reason for the cancellation. This MAY be logged or
     presented to the user.
     """
-    request_id: int | str | None = None
+    request_id: Optional[Union[int, str]] = None
     """The ID of the request to cancel.
     
     This MUST correspond to the ID of a request previously issued in the same direction.
@@ -811,8 +810,8 @@ class Cancellednotification(DataModelHelper):
 class ClientcapabilitiesElicitation(DataModelHelper):
     """Present if the client supports elicitation from the server."""
 
-    form: dict[str, Any] | None = None
-    url: dict[str, Any] | None = None
+    form: Optional[Dict[str, Any]] = None
+    url: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientcapabilitiesElicitation":
@@ -835,7 +834,7 @@ class ClientcapabilitiesElicitation(DataModelHelper):
 class Roots(DataModelHelper):
     """Present if the client supports listing roots."""
 
-    list_changed: bool | None = None
+    list_changed: Optional[bool] = None
     """Whether the client supports notifications for changes to the roots list."""
 
     @classmethod
@@ -856,11 +855,11 @@ class Roots(DataModelHelper):
 class ClientcapabilitiesSampling(DataModelHelper):
     """Present if the client supports sampling from an LLM."""
 
-    context: dict[str, Any] | None = None
+    context: Optional[Dict[str, Any]] = None
     """Whether the client supports context inclusion via includeContext parameter.
     If not declared, servers SHOULD only use `includeContext: "none"` (or omit it).
     """
-    tools: dict[str, Any] | None = None
+    tools: Optional[Dict[str, Any]] = None
     """Whether the client supports tool use via tools and toolChoice parameters."""
 
     @classmethod
@@ -888,7 +887,7 @@ class ClientcapabilitiesSampling(DataModelHelper):
 class RequestsElicitation(DataModelHelper):
     """Task support for elicitation-related requests."""
 
-    create: dict[str, Any] | None = None
+    create: Optional[Dict[str, Any]] = None
     """Whether the client supports task-augmented elicitation/create requests."""
 
     @classmethod
@@ -911,7 +910,7 @@ class RequestsElicitation(DataModelHelper):
 class RequestsSampling(DataModelHelper):
     """Task support for sampling-related requests."""
 
-    create_message: dict[str, Any] | None = None
+    create_message: Optional[Dict[str, Any]] = None
     """Whether the client supports task-augmented sampling/createMessage requests."""
 
     @classmethod
@@ -936,10 +935,10 @@ class RequestsSampling(DataModelHelper):
 class PurpleRequests(DataModelHelper):
     """Specifies which request types can be augmented with tasks."""
 
-    elicitation: RequestsElicitation | None = None
+    elicitation: Optional[RequestsElicitation] = None
     """Task support for elicitation-related requests."""
 
-    sampling: RequestsSampling | None = None
+    sampling: Optional[RequestsSampling] = None
     """Task support for sampling-related requests."""
 
     @classmethod
@@ -967,13 +966,13 @@ class PurpleRequests(DataModelHelper):
 class ClientcapabilitiesTasks(DataModelHelper):
     """Present if the client supports task-augmented requests."""
 
-    cancel: dict[str, Any] | None = None
+    cancel: Optional[Dict[str, Any]] = None
     """Whether this client supports tasks/cancel."""
 
-    list: dict[str, Any] | None = None
+    list: Optional[Dict[str, Any]] = None
     """Whether this client supports tasks/list."""
 
-    requests: PurpleRequests | None = None
+    requests: Optional[PurpleRequests] = None
     """Specifies which request types can be augmented with tasks."""
 
     @classmethod
@@ -1006,19 +1005,19 @@ class Clientcapabilities(DataModelHelper):
     but this is not a closed set: any client can define its own, additional capabilities.
     """
 
-    elicitation: ClientcapabilitiesElicitation | None = None
+    elicitation: Optional[ClientcapabilitiesElicitation] = None
     """Present if the client supports elicitation from the server."""
 
-    experimental: dict[str, dict[str, Any]] | None = None
+    experimental: Optional[Dict[str, Dict[str, Any]]] = None
     """Experimental, non-standard capabilities that the client supports."""
 
-    roots: Roots | None = None
+    roots: Optional[Roots] = None
     """Present if the client supports listing roots."""
 
-    sampling: ClientcapabilitiesSampling | None = None
+    sampling: Optional[ClientcapabilitiesSampling] = None
     """Present if the client supports sampling from an LLM."""
 
-    tasks: ClientcapabilitiesTasks | None = None
+    tasks: Optional[ClientcapabilitiesTasks] = None
     """Present if the client supports task-augmented requests."""
 
     @classmethod
@@ -1095,58 +1094,58 @@ class ClientnotificationParams(DataModelHelper):
     Data associated with a task.
     """
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    reason: str | None = None
+    reason: Optional[str] = None
     """An optional string describing the reason for the cancellation. This MAY be logged or
     presented to the user.
     """
-    request_id: int | str | None = None
+    request_id: Optional[Union[int, str]] = None
     """The ID of the request to cancel.
     
     This MUST correspond to the ID of a request previously issued in the same direction.
     This MUST be provided for cancelling non-task requests.
     This MUST NOT be used for cancelling tasks (use the `tasks/cancel` request instead).
     """
-    message: str | None = None
+    message: Optional[str] = None
     """An optional message describing the current progress."""
 
-    progress: float | None = None
+    progress: Optional[float] = None
     """The progress thus far. This should increase every time progress is made, even if the
     total is unknown.
     """
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """The progress token which was given in the initial request, used to associate this
     notification with the request that is proceeding.
     """
-    total: float | None = None
+    total: Optional[float] = None
     """Total number of items to process (or total progress required), if known."""
 
-    created_at: str | None = None
+    created_at: Optional[str] = None
     """ISO 8601 timestamp when the task was created."""
 
-    last_updated_at: str | None = None
+    last_updated_at: Optional[str] = None
     """ISO 8601 timestamp when the task was last updated."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status: Status | None = None
+    status: Optional[Status] = None
     """Current task state."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier."""
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
     @classmethod
@@ -1253,7 +1252,7 @@ class Clientnotification(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: ClientnotificationMethod
-    params: ClientnotificationParams | None = None
+    params: Optional[ClientnotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientnotification":
@@ -1329,14 +1328,14 @@ class ClientInfo(DataModelHelper):
     fallback (if title isn't present).
     """
     version: str
-    description: str | None = None
+    description: Optional[str] = None
     """An optional human-readable description of what this implementation does.
     
     This can be used by clients or servers to provide context about their purpose
     and capabilities. For example, a server might describe the types of resources
     or tools it provides, while a client might describe its intended use case.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -1347,7 +1346,7 @@ class ClientInfo(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -1356,7 +1355,7 @@ class ClientInfo(DataModelHelper):
     where `annotations.title` should be given precedence over using `name`,
     if present).
     """
-    website_url: str | None = None
+    website_url: Optional[str] = None
     """An optional URL of the website for this implementation."""
 
     @classmethod
@@ -1394,7 +1393,7 @@ class ClientInfo(DataModelHelper):
 class Context(DataModelHelper):
     """Additional, optional context for completions"""
 
-    arguments: dict[str, str] | None = None
+    arguments: Optional[Dict[str, str]] = None
     """Previously-resolved variables in a URI template or prompt."""
 
     @classmethod
@@ -1442,7 +1441,7 @@ class FluffyMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -1478,11 +1477,11 @@ class Ref(DataModelHelper):
     """
 
     type: RefType
-    name: str | None = None
+    name: Optional[str] = None
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -1491,7 +1490,7 @@ class Ref(DataModelHelper):
     where `annotations.title` should be given precedence over using `name`,
     if present).
     """
-    uri: str | None = None
+    uri: Optional[str] = None
     """The URI or URI template of the resource."""
 
     @classmethod
@@ -1539,35 +1538,35 @@ class ClientrequestParams(DataModelHelper):
     Parameters for a `completion/complete` request.
     """
 
-    meta: FluffyMeta | None = None
+    meta: Optional[FluffyMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    capabilities: Clientcapabilities | None = None
-    client_info: ClientInfo | None = None
-    protocol_version: str | None = None
+    capabilities: Optional[Clientcapabilities] = None
+    client_info: Optional[ClientInfo] = None
+    protocol_version: Optional[str] = None
     """The latest version of the Model Context Protocol that the client supports. The client MAY
     decide to support older versions as well.
     """
-    cursor: str | None = None
+    cursor: Optional[str] = None
     """An opaque token representing the current pagination position.
     If provided, the server should return results starting after this cursor.
     """
-    uri: str | None = None
+    uri: Optional[str] = None
     """The URI of the resource. The URI can use any protocol; it is up to the server how to
     interpret it.
     """
-    arguments: dict[str, Any] | None = None
+    arguments: Optional[Dict[str, Any]] = None
     """Arguments to use for templating the prompt.
     
     Arguments to use for the tool call.
     """
-    name: str | None = None
+    name: Optional[str] = None
     """The name of the prompt or prompt template.
     
     The name of the tool.
     """
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -1575,25 +1574,25 @@ class ClientrequestParams(DataModelHelper):
     Task augmentation is subject to capability negotiation - receivers MUST declare support
     for task augmentation of specific request types in their capabilities.
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier to query.
     
     The task identifier to retrieve results for.
     
     The task identifier to cancel.
     """
-    level: Level | None = None
+    level: Optional[Level] = None
     """The level of logging that the client wants to receive from the server. The server should
     send all logs at this level and higher (i.e., more severe) to the client as
     notifications/message.
     """
-    argument: Argument | None = None
+    argument: Optional[Argument] = None
     """The argument's information"""
 
-    context: Context | None = None
+    context: Optional[Context] = None
     """Additional, optional context for completions"""
 
-    ref: Ref | None = None
+    ref: Optional[Ref] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientrequestParams":
@@ -1718,10 +1717,10 @@ class Clientrequest(DataModelHelper):
     A request from the client to the server, to ask for completion options.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ClientrequestMethod
-    params: ClientrequestParams | None = None
+    params: Optional[ClientrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientrequest":
@@ -1779,7 +1778,7 @@ class ContentElement(DataModelHelper):
     """
 
     type: PurpleType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     
@@ -1795,51 +1794,51 @@ class ContentElement(DataModelHelper):
     See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """The text content of the message."""
 
-    data: str | None = None
+    data: Optional[str] = None
     """The base64-encoded image data.
     
     The base64-encoded audio data.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of the image. Different providers may support different image types.
     
     The MIME type of the audio. Different providers may support different audio types.
     """
-    id: str | None = None
+    id: Optional[str] = None
     """A unique identifier for this tool use.
     
     This ID is used to match tool results to their corresponding tool uses.
     """
-    input: dict[str, Any] | None = None
+    input: Optional[Dict[str, Any]] = None
     """The arguments to pass to the tool, conforming to the tool's input schema."""
 
-    name: str | None = None
+    name: Optional[str] = None
     """The name of the tool to call."""
 
-    content: list[ContentblockElement] | None = None
+    content: Optional[List[ContentblockElement]] = None
     """The unstructured result content of the tool use.
     
     This has the same format as CallToolResult.content and can include text, images,
     audio, resource links, and embedded resources.
     """
-    is_error: bool | None = None
+    is_error: Optional[bool] = None
     """Whether the tool use resulted in an error.
     
     If true, the content typically describes the error that occurred.
     Default: false
     """
-    structured_content: dict[str, Any] | None = None
+    structured_content: Optional[Dict[str, Any]] = None
     """An optional structured result object.
     
     If the tool defined an outputSchema, this SHOULD conform to that schema.
     """
-    tool_use_id: str | None = None
+    tool_use_id: Optional[str] = None
     """The ID of the tool use this result corresponds to.
     
     This MUST match the ID from a previous ToolUseContent.
@@ -1942,7 +1941,7 @@ class PurpleModelContextProtocol20250618_Schema(DataModelHelper):
     Omitted for out-of-band mode responses.
     """
 
-    meta: dict[str, Any] | list[str] | int | bool | str | None = None
+    meta: Optional[Union[Dict[str, Any], List[str], int, bool, str]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     
@@ -1958,52 +1957,52 @@ class PurpleModelContextProtocol20250618_Schema(DataModelHelper):
     See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | list[str] | int | bool | str | None = None
+    annotations: Optional[Union[AudiocontentAnnotations, List[str], int, bool, str]] = None
     """Optional annotations for the client."""
 
-    text: list[str] | int | bool | str | None = None
+    text: Optional[Union[List[str], int, bool, str]] = None
     """The text content of the message."""
 
-    type: list[str] | int | bool | str | None = None
-    data: list[str] | int | bool | str | None = None
+    type: Optional[Union[List[str], int, bool, str]] = None
+    data: Optional[Union[List[str], int, bool, str]] = None
     """The base64-encoded image data.
     
     The base64-encoded audio data.
     """
-    mime_type: list[str] | int | bool | str | None = None
+    mime_type: Optional[Union[List[str], int, bool, str]] = None
     """The MIME type of the image. Different providers may support different image types.
     
     The MIME type of the audio. Different providers may support different audio types.
     """
-    id: list[str] | int | bool | str | None = None
+    id: Optional[Union[List[str], int, bool, str]] = None
     """A unique identifier for this tool use.
     
     This ID is used to match tool results to their corresponding tool uses.
     """
-    input: dict[str, Any] | list[str] | int | bool | str | None = None
+    input: Optional[Union[Dict[str, Any], List[str], int, bool, str]] = None
     """The arguments to pass to the tool, conforming to the tool's input schema."""
 
-    name: list[str] | int | bool | str | None = None
+    name: Optional[Union[List[str], int, bool, str]] = None
     """The name of the tool to call."""
 
-    content: list[ContentblockElement | str] | int | bool | str | None = None
+    content: Optional[Union[List[Union[ContentblockElement, str]], int, bool, str]] = None
     """The unstructured result content of the tool use.
     
     This has the same format as CallToolResult.content and can include text, images,
     audio, resource links, and embedded resources.
     """
-    is_error: list[str] | int | bool | str | None = None
+    is_error: Optional[Union[List[str], int, bool, str]] = None
     """Whether the tool use resulted in an error.
     
     If true, the content typically describes the error that occurred.
     Default: false
     """
-    structured_content: dict[str, Any] | list[str] | int | bool | str | None = None
+    structured_content: Optional[Union[Dict[str, Any], List[str], int, bool, str]] = None
     """An optional structured result object.
     
     If the tool defined an outputSchema, this SHOULD conform to that schema.
     """
-    tool_use_id: list[str] | int | bool | str | None = None
+    tool_use_id: Optional[Union[List[str], int, bool, str]] = None
     """The ID of the tool use this result corresponds to.
     
     This MUST match the ID from a previous ToolUseContent.
@@ -2235,11 +2234,11 @@ class RootElement(DataModelHelper):
     This restriction may be relaxed in future versions of the protocol to allow
     other URI schemes.
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    name: str | None = None
+    name: Optional[str] = None
     """An optional name for the root. This can be used to provide a human-readable
     identifier for the root, which may be useful for display purposes or for
     referencing the root in other parts of the application.
@@ -2282,17 +2281,17 @@ class TaskElement(DataModelHelper):
     task_id: str
     """The task identifier."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
     @classmethod
@@ -2350,50 +2349,50 @@ class Clientresult(DataModelHelper):
     The client's response to an elicitation request.
     """
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    created_at: str | None = None
+    created_at: Optional[str] = None
     """ISO 8601 timestamp when the task was created."""
 
-    last_updated_at: str | None = None
+    last_updated_at: Optional[str] = None
     """ISO 8601 timestamp when the task was last updated."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status: Status | None = None
+    status: Optional[Status] = None
     """Current task state."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier."""
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
-    tasks: list[TaskElement] | None = None
-    content: PurpleModelContextProtocol20250618_Schema | list[ContentElement] | None = None
+    tasks: Optional[List[TaskElement]] = None
+    content: Optional[Union[PurpleModelContextProtocol20250618_Schema, List[ContentElement]]] = None
     """The submitted form data, only present when action is "accept" and mode was "form".
     Contains values matching the requested schema.
     Omitted for out-of-band mode responses.
     """
-    model: str | None = None
+    model: Optional[str] = None
     """The name of the model that generated the message."""
 
-    role: RoleElement | None = None
-    stop_reason: str | None = None
+    role: Optional[RoleElement] = None
+    stop_reason: Optional[str] = None
     """The reason why sampling stopped, if known.
     
     Standard values:
@@ -2404,8 +2403,8 @@ class Clientresult(DataModelHelper):
     
     This field is an open string to allow for provider-specific stop reasons.
     """
-    roots: list[RootElement] | None = None
-    action: Action | None = None
+    roots: Optional[List[RootElement]] = None
+    action: Optional[Action] = None
     """The user action in response to the elicitation.
     - "accept": User submitted the form/confirmed the action
     - "decline": User explicitly decline the action
@@ -2522,7 +2521,7 @@ class TentacledMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -2553,11 +2552,11 @@ class CompleterequestParams(DataModelHelper):
     """The argument's information"""
 
     ref: Ref
-    meta: TentacledMeta | None = None
+    meta: Optional[TentacledMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    context: Context | None = None
+    context: Optional[Context] = None
     """Additional, optional context for completions"""
 
     @classmethod
@@ -2589,7 +2588,7 @@ class CompleterequestParams(DataModelHelper):
 class CompleterequestClass(DataModelHelper):
     """A request from the client to the server, to ask for completion options."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: CompleterequestMethod
     params: CompleterequestParams
@@ -2615,14 +2614,14 @@ class CompleterequestClass(DataModelHelper):
 
 @dataclass
 class Completion(DataModelHelper):
-    values: list[str]
+    values: List[str]
     """An array of completion values. Must not exceed 100 items."""
 
-    has_more: bool | None = None
+    has_more: Optional[bool] = None
     """Indicates whether there are additional completion options beyond those provided in the
     current response, even if the exact total is unknown.
     """
-    total: int | None = None
+    total: Optional[int] = None
     """The total number of completion options available. This can exceed the number of values
     actually sent in the response.
     """
@@ -2651,7 +2650,7 @@ class Completeresult(DataModelHelper):
     """The server's response to a completion/complete request"""
 
     completion: Completion
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -2708,7 +2707,7 @@ class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
     """
 
     type: PurpleType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     
@@ -2724,51 +2723,51 @@ class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
     See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """The text content of the message."""
 
-    data: str | None = None
+    data: Optional[str] = None
     """The base64-encoded image data.
     
     The base64-encoded audio data.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of the image. Different providers may support different image types.
     
     The MIME type of the audio. Different providers may support different audio types.
     """
-    id: str | None = None
+    id: Optional[str] = None
     """A unique identifier for this tool use.
     
     This ID is used to match tool results to their corresponding tool uses.
     """
-    input: dict[str, Any] | None = None
+    input: Optional[Dict[str, Any]] = None
     """The arguments to pass to the tool, conforming to the tool's input schema."""
 
-    name: str | None = None
+    name: Optional[str] = None
     """The name of the tool to call."""
 
-    content: list[ContentblockElement] | None = None
+    content: Optional[List[ContentblockElement]] = None
     """The unstructured result content of the tool use.
     
     This has the same format as CallToolResult.content and can include text, images,
     audio, resource links, and embedded resources.
     """
-    is_error: bool | None = None
+    is_error: Optional[bool] = None
     """Whether the tool use resulted in an error.
     
     If true, the content typically describes the error that occurred.
     Default: false
     """
-    structured_content: dict[str, Any] | None = None
+    structured_content: Optional[Dict[str, Any]] = None
     """An optional structured result object.
     
     If the tool defined an outputSchema, this SHOULD conform to that schema.
     """
-    tool_use_id: str | None = None
+    tool_use_id: Optional[str] = None
     """The ID of the tool use this result corresponds to.
     
     This MUST match the ID from a previous ToolUseContent.
@@ -2858,9 +2857,9 @@ class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
 class SamplingmessageElement(DataModelHelper):
     """Describes a message issued to or received from an LLM API."""
 
-    content: FluffyModelContextProtocol20250618_Schema | list[ContentElement]
+    content: Union[FluffyModelContextProtocol20250618_Schema, List[ContentElement]]
     role: RoleElement
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -2903,7 +2902,7 @@ class StickyMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -2934,7 +2933,7 @@ class ModelhintElement(DataModelHelper):
     to the client to interpret.
     """
 
-    name: str | None = None
+    name: Optional[str] = None
     """A hint for a model name.
     
     The client SHOULD treat this as a substring of a model name; for example:
@@ -2979,12 +2978,12 @@ class ModelpreferencesClass(DataModelHelper):
     balance them against other considerations.
     """
 
-    cost_priority: float | None = None
+    cost_priority: Optional[float] = None
     """How much to prioritize cost when selecting a model. A value of 0 means cost
     is not important, while a value of 1 means cost is the most important
     factor.
     """
-    hints: list[ModelhintElement] | None = None
+    hints: Optional[List[ModelhintElement]] = None
     """Optional hints to use for model selection.
     
     If multiple hints are specified, the client MUST evaluate them in order
@@ -2993,12 +2992,12 @@ class ModelpreferencesClass(DataModelHelper):
     The client SHOULD prioritize these hints over the numeric priorities, but
     MAY still use the priorities to select from ambiguous matches.
     """
-    intelligence_priority: float | None = None
+    intelligence_priority: Optional[float] = None
     """How much to prioritize intelligence and capabilities when selecting a
     model. A value of 0 means intelligence is not important, while a value of 1
     means intelligence is the most important factor.
     """
-    speed_priority: float | None = None
+    speed_priority: Optional[float] = None
     """How much to prioritize sampling speed (latency) when selecting a model. A
     value of 0 means speed is not important, while a value of 1 means speed is
     the most important factor.
@@ -3056,7 +3055,7 @@ class ToolChoice(DataModelHelper):
     Controls tool selection behavior for sampling requests.
     """
 
-    mode: ToolChoiceMode | None = None
+    mode: Optional[ToolChoiceMode] = None
     """Controls the tool use ability of the model:
     - "auto": Model decides whether to use tools (default)
     - "required": Model MUST use at least one tool before completing
@@ -3095,7 +3094,7 @@ class ToolannotationsClass(DataModelHelper):
     received from untrusted servers.
     """
 
-    destructive_hint: bool | None = None
+    destructive_hint: Optional[bool] = None
     """If true, the tool may perform destructive updates to its environment.
     If false, the tool performs only additive updates.
     
@@ -3103,7 +3102,7 @@ class ToolannotationsClass(DataModelHelper):
     
     Default: true
     """
-    idempotent_hint: bool | None = None
+    idempotent_hint: Optional[bool] = None
     """If true, calling the tool repeatedly with the same arguments
     will have no additional effect on its environment.
     
@@ -3111,7 +3110,7 @@ class ToolannotationsClass(DataModelHelper):
     
     Default: false
     """
-    open_world_hint: bool | None = None
+    open_world_hint: Optional[bool] = None
     """If true, this tool may interact with an "open world" of external
     entities. If false, the tool's domain of interaction is closed.
     For example, the world of a web search tool is open, whereas that
@@ -3119,12 +3118,12 @@ class ToolannotationsClass(DataModelHelper):
     
     Default: true
     """
-    read_only_hint: bool | None = None
+    read_only_hint: Optional[bool] = None
     """If true, the tool does not modify its environment.
     
     Default: false
     """
-    title: str | None = None
+    title: Optional[str] = None
     """A human-readable title for the tool."""
 
     @classmethod
@@ -3179,7 +3178,7 @@ class Execution(DataModelHelper):
     Execution-related properties for a tool.
     """
 
-    task_support: TaskSupport | None = None
+    task_support: Optional[TaskSupport] = None
     """Indicates whether this tool supports task-augmented execution.
     This allows clients to handle long-running operations through polling
     the task system.
@@ -3216,9 +3215,9 @@ class InputSchema(DataModelHelper):
     """A JSON Schema object defining the expected parameters for the tool."""
 
     type: InputSchemaType
-    schema: str | None = None
-    properties: dict[str, dict[str, Any]] | None = None
-    required: list[str] | None = None
+    schema: Optional[str] = None
+    properties: Optional[Dict[str, Dict[str, Any]]] = None
+    required: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InputSchema":
@@ -3260,9 +3259,9 @@ class OutputSchema(DataModelHelper):
     """
 
     type: InputSchemaType
-    schema: str | None = None
-    properties: dict[str, dict[str, Any]] | None = None
-    required: list[str] | None = None
+    schema: Optional[str] = None
+    properties: Optional[Dict[str, Dict[str, Any]]] = None
+    required: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "OutputSchema":
@@ -3305,25 +3304,25 @@ class ToolElement(DataModelHelper):
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: ToolannotationsClass | None = None
+    annotations: Optional[ToolannotationsClass] = None
     """Optional additional tool information.
     
     Display name precedence order is: title, annotations.title, then name.
     """
-    description: str | None = None
+    description: Optional[str] = None
     """A human-readable description of the tool.
     
     This can be used by clients to improve the LLM's understanding of available tools. It can
     be thought of like a "hint" to the model.
     """
-    execution: Execution | None = None
+    execution: Optional[Execution] = None
     """Execution-related properties for this tool."""
 
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -3334,14 +3333,14 @@ class ToolElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    output_schema: OutputSchema | None = None
+    output_schema: Optional[OutputSchema] = None
     """An optional JSON Schema object defining the structure of the tool's output returned in
     the structuredContent field of a CallToolResult.
     
     Defaults to JSON Schema 2020-12 when no explicit $schema is provided.
     Currently restricted to type: "object" at the root level.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -3420,12 +3419,12 @@ class CreatemessagerequestParams(DataModelHelper):
     
     The client MAY choose to sample fewer tokens than the requested maximum.
     """
-    messages: list[SamplingmessageElement]
-    meta: StickyMeta | None = None
+    messages: List[SamplingmessageElement]
+    meta: Optional[StickyMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    include_context: IncludeContext | None = None
+    include_context: Optional[IncludeContext] = None
     """A request to include context from one or more MCP servers (including the caller), to be
     attached to the prompt.
     The client MAY ignore this request.
@@ -3435,20 +3434,20 @@ class CreatemessagerequestParams(DataModelHelper):
     declares ClientCapabilities.sampling.context. These values may be removed in future spec
     releases.
     """
-    metadata: dict[str, Any] | None = None
+    metadata: Optional[Dict[str, Any]] = None
     """Optional metadata to pass through to the LLM provider. The format of this metadata is
     provider-specific.
     """
-    model_preferences: ModelpreferencesClass | None = None
+    model_preferences: Optional[ModelpreferencesClass] = None
     """The server's preferences for which model to select. The client MAY ignore these
     preferences.
     """
-    stop_sequences: list[str] | None = None
-    system_prompt: str | None = None
+    stop_sequences: Optional[List[str]] = None
+    system_prompt: Optional[str] = None
     """An optional system prompt the server wants to use for sampling. The client MAY modify or
     omit this prompt.
     """
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -3456,14 +3455,14 @@ class CreatemessagerequestParams(DataModelHelper):
     Task augmentation is subject to capability negotiation - receivers MUST declare support
     for task augmentation of specific request types in their capabilities.
     """
-    temperature: float | None = None
-    tool_choice: ToolChoice | None = None
+    temperature: Optional[float] = None
+    tool_choice: Optional[ToolChoice] = None
     """Controls how the model uses tools.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
     Default is `{ mode: "auto" }`.
     """
-    tools: list[ToolElement] | None = None
+    tools: Optional[List[ToolElement]] = None
     """Tools that the model may use during generation.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
@@ -3553,7 +3552,7 @@ class Createmessagerequest(DataModelHelper):
     approve it.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: CreatemessagerequestMethod
     params: CreatemessagerequestParams
@@ -3585,16 +3584,16 @@ class CreatemessageresultClass(DataModelHelper):
     it.
     """
 
-    content: FluffyModelContextProtocol20250618_Schema | list[ContentElement]
+    content: Union[FluffyModelContextProtocol20250618_Schema, List[ContentElement]]
     model: str
     """The name of the model that generated the message."""
 
     role: RoleElement
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    stop_reason: str | None = None
+    stop_reason: Optional[str] = None
     """The reason why sampling stopped, if known.
     
     Standard values:
@@ -3653,7 +3652,7 @@ class IndigoMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -3722,11 +3721,11 @@ class Items(DataModelHelper):
     Schema for array items with enum options and display labels.
     """
 
-    enum: list[str] | None = None
+    enum: Optional[List[str]] = None
     """Array of enum values to choose from."""
 
-    type: ItemsType | None = None
-    any_of: list[AnyOf] | None = None
+    type: Optional[ItemsType] = None
+    any_of: Optional[List[AnyOf]] = None
     """Array of enum options with values and display labels."""
 
     @classmethod
@@ -3800,38 +3799,38 @@ class PrimitiveschemadefinitionValue(DataModelHelper):
     """
 
     type: PrimitiveschemadefinitionType
-    default: list[str] | int | bool | str | None = None
+    default: Optional[Union[List[str], int, bool, str]] = None
     """Optional default value."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """Optional description for the enum field."""
 
-    format: Format | None = None
-    max_length: int | None = None
-    min_length: int | None = None
-    title: str | None = None
+    format: Optional[Format] = None
+    max_length: Optional[int] = None
+    min_length: Optional[int] = None
+    title: Optional[str] = None
     """Optional title for the enum field."""
 
-    maximum: int | None = None
-    minimum: int | None = None
-    enum: list[str] | None = None
+    maximum: Optional[int] = None
+    minimum: Optional[int] = None
+    enum: Optional[List[str]] = None
     """Array of enum values to choose from."""
 
-    one_of: list[OneOf] | None = None
+    one_of: Optional[List[OneOf]] = None
     """Array of enum options with values and display labels."""
 
-    items: Items | None = None
+    items: Optional[Items] = None
     """Schema for the array items.
     
     Schema for array items with enum options and display labels.
     """
-    max_items: int | None = None
+    max_items: Optional[int] = None
     """Maximum number of items to select."""
 
-    min_items: int | None = None
+    min_items: Optional[int] = None
     """Minimum number of items to select."""
 
-    enum_names: list[str] | None = None
+    enum_names: Optional[List[str]] = None
     """(Legacy) Display names for enum values.
     Non-standard according to JSON schema 2020-12.
     """
@@ -3923,10 +3922,10 @@ class RequestedSchema(DataModelHelper):
     Only top-level properties are allowed, without nesting.
     """
 
-    properties: dict[str, PrimitiveschemadefinitionValue]
+    properties: Dict[str, PrimitiveschemadefinitionValue]
     type: InputSchemaType
-    schema: str | None = None
-    required: list[str] | None = None
+    schema: Optional[str] = None
+    required: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestedSchema":
@@ -3970,18 +3969,18 @@ class ElicitrequestParams(DataModelHelper):
     
     The message to present to the user describing what information is being requested.
     """
-    meta: IndigoMeta | None = None
+    meta: Optional[IndigoMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    elicitation_id: str | None = None
+    elicitation_id: Optional[str] = None
     """The ID of the elicitation, which must be unique within the context of the server.
     The client MUST treat this ID as an opaque value.
     """
-    mode: ParamsMode | None = None
+    mode: Optional[ParamsMode] = None
     """The elicitation mode."""
 
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -3989,10 +3988,10 @@ class ElicitrequestParams(DataModelHelper):
     Task augmentation is subject to capability negotiation - receivers MUST declare support
     for task augmentation of specific request types in their capabilities.
     """
-    url: str | None = None
+    url: Optional[str] = None
     """The URL that the user should navigate to."""
 
-    requested_schema: RequestedSchema | None = None
+    requested_schema: Optional[RequestedSchema] = None
     """A restricted subset of JSON Schema.
     Only top-level properties are allowed, without nesting.
     """
@@ -4036,7 +4035,7 @@ class ElicitrequestParams(DataModelHelper):
 class Elicitrequest(DataModelHelper):
     """A request from the server to elicit additional information from the user via the client."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ElicitrequestMethod
     params: ElicitrequestParams
@@ -4070,11 +4069,11 @@ class ElicitresultClass(DataModelHelper):
     - "decline": User explicitly decline the action
     - "cancel": User dismissed without making an explicit choice
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    content: dict[str, list[str] | int | bool | str] | None = None
+    content: Optional[Dict[str, Union[List[str], int, bool, str]]] = None
     """The submitted form data, only present when action is "accept" and mode was "form".
     Contains values matching the requested schema.
     Omitted for out-of-band mode responses.
@@ -4137,11 +4136,11 @@ class EmbeddedresourceClass(DataModelHelper):
 
     resource: Resource
     type: EmbeddedresourceType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
     @classmethod
@@ -4173,7 +4172,7 @@ class EmbeddedresourceClass(DataModelHelper):
 
 @dataclass
 class EmptyresultClass(DataModelHelper):
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -4214,33 +4213,33 @@ class EnumschemaClass(DataModelHelper):
     """
 
     type: EnumschemaType
-    default: str | list[str] | None = None
+    default: Optional[Union[str, List[str]]] = None
     """Optional default value."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """Optional description for the enum field."""
 
-    enum: list[str] | None = None
+    enum: Optional[List[str]] = None
     """Array of enum values to choose from."""
 
-    title: str | None = None
+    title: Optional[str] = None
     """Optional title for the enum field."""
 
-    one_of: list[OneOf] | None = None
+    one_of: Optional[List[OneOf]] = None
     """Array of enum options with values and display labels."""
 
-    items: Items | None = None
+    items: Optional[Items] = None
     """Schema for the array items.
     
     Schema for array items with enum options and display labels.
     """
-    max_items: int | None = None
+    max_items: Optional[int] = None
     """Maximum number of items to select."""
 
-    min_items: int | None = None
+    min_items: Optional[int] = None
     """Minimum number of items to select."""
 
-    enum_names: list[str] | None = None
+    enum_names: Optional[List[str]] = None
     """(Legacy) Display names for enum values.
     Non-standard according to JSON schema 2020-12.
     """
@@ -4305,7 +4304,7 @@ class IndecentMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -4335,11 +4334,11 @@ class GetpromptrequestParams(DataModelHelper):
     name: str
     """The name of the prompt or prompt template."""
 
-    meta: IndecentMeta | None = None
+    meta: Optional[IndecentMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    arguments: dict[str, str] | None = None
+    arguments: Optional[Dict[str, str]] = None
     """Arguments to use for templating the prompt."""
 
     @classmethod
@@ -4369,7 +4368,7 @@ class GetpromptrequestParams(DataModelHelper):
 class GetpromptrequestClass(DataModelHelper):
     """Used by the client to get a prompt provided by the server."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: GetpromptrequestMethod
     params: GetpromptrequestParams
@@ -4423,12 +4422,12 @@ class PromptmessageElement(DataModelHelper):
 class Getpromptresult(DataModelHelper):
     """The server's response to a prompts/get request from the client."""
 
-    messages: list[PromptmessageElement]
-    meta: dict[str, Any] | None = None
+    messages: List[PromptmessageElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    description: str | None = None
+    description: Optional[str] = None
     """An optional description for the prompt."""
 
     @classmethod
@@ -4467,11 +4466,11 @@ class ImagecontentClass(DataModelHelper):
     """The MIME type of the image. Different providers may support different image types."""
 
     type: ImagecontentType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
     @classmethod
@@ -4509,7 +4508,7 @@ class InitializednotificationMethod(Enum):
 
 @dataclass
 class InitializednotificationParams(DataModelHelper):
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -4536,7 +4535,7 @@ class InitializednotificationClass(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: InitializednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializednotificationClass":
@@ -4568,7 +4567,7 @@ class HilariousMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -4601,7 +4600,7 @@ class InitializerequestParams(DataModelHelper):
     """The latest version of the Model Context Protocol that the client supports. The client MAY
     decide to support older versions as well.
     """
-    meta: HilariousMeta | None = None
+    meta: Optional[HilariousMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -4634,7 +4633,7 @@ class InitializerequestClass(DataModelHelper):
     begin initialization.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: InitializerequestMethod
     params: InitializerequestParams
@@ -4662,7 +4661,7 @@ class InitializerequestClass(DataModelHelper):
 class Prompts(DataModelHelper):
     """Present if the server offers any prompt templates."""
 
-    list_changed: bool | None = None
+    list_changed: Optional[bool] = None
     """Whether this server supports notifications for changes to the prompt list."""
 
     @classmethod
@@ -4683,10 +4682,10 @@ class Prompts(DataModelHelper):
 class Resources(DataModelHelper):
     """Present if the server offers any resources to read."""
 
-    list_changed: bool | None = None
+    list_changed: Optional[bool] = None
     """Whether this server supports notifications for changes to the resource list."""
 
-    subscribe: bool | None = None
+    subscribe: Optional[bool] = None
     """Whether this server supports subscribing to resource updates."""
 
     @classmethod
@@ -4710,7 +4709,7 @@ class Resources(DataModelHelper):
 class RequestsTools(DataModelHelper):
     """Task support for tool-related requests."""
 
-    call: dict[str, Any] | None = None
+    call: Optional[Dict[str, Any]] = None
     """Whether the server supports task-augmented tools/call requests."""
 
     @classmethod
@@ -4731,7 +4730,7 @@ class RequestsTools(DataModelHelper):
 class FluffyRequests(DataModelHelper):
     """Specifies which request types can be augmented with tasks."""
 
-    tools: RequestsTools | None = None
+    tools: Optional[RequestsTools] = None
     """Task support for tool-related requests."""
 
     @classmethod
@@ -4754,13 +4753,13 @@ class FluffyRequests(DataModelHelper):
 class ServercapabilitiesTasks(DataModelHelper):
     """Present if the server supports task-augmented requests."""
 
-    cancel: dict[str, Any] | None = None
+    cancel: Optional[Dict[str, Any]] = None
     """Whether this server supports tasks/cancel."""
 
-    list: dict[str, Any] | None = None
+    list: Optional[Dict[str, Any]] = None
     """Whether this server supports tasks/list."""
 
-    requests: FluffyRequests | None = None
+    requests: Optional[FluffyRequests] = None
     """Specifies which request types can be augmented with tasks."""
 
     @classmethod
@@ -4791,7 +4790,7 @@ class ServercapabilitiesTasks(DataModelHelper):
 class ServercapabilitiesTools(DataModelHelper):
     """Present if the server offers any tools to call."""
 
-    list_changed: bool | None = None
+    list_changed: Optional[bool] = None
     """Whether this server supports notifications for changes to the tool list."""
 
     @classmethod
@@ -4815,25 +4814,25 @@ class Capabilities(DataModelHelper):
     capabilities.
     """
 
-    completions: dict[str, Any] | None = None
+    completions: Optional[Dict[str, Any]] = None
     """Present if the server supports argument autocompletion suggestions."""
 
-    experimental: dict[str, dict[str, Any]] | None = None
+    experimental: Optional[Dict[str, Dict[str, Any]]] = None
     """Experimental, non-standard capabilities that the server supports."""
 
-    logging: dict[str, Any] | None = None
+    logging: Optional[Dict[str, Any]] = None
     """Present if the server supports sending log messages to the client."""
 
-    prompts: Prompts | None = None
+    prompts: Optional[Prompts] = None
     """Present if the server offers any prompt templates."""
 
-    resources: Resources | None = None
+    resources: Optional[Resources] = None
     """Present if the server offers any resources to read."""
 
-    tasks: ServercapabilitiesTasks | None = None
+    tasks: Optional[ServercapabilitiesTasks] = None
     """Present if the server supports task-augmented requests."""
 
-    tools: ServercapabilitiesTools | None = None
+    tools: Optional[ServercapabilitiesTools] = None
     """Present if the server offers any tools to call."""
 
     @classmethod
@@ -4899,11 +4898,11 @@ class Initializeresult(DataModelHelper):
     it MUST disconnect.
     """
     server_info: ClientInfo
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    instructions: str | None = None
+    instructions: Optional[str] = None
     """Instructions describing how to use the server and its features.
     
     This can be used by clients to improve the LLM's understanding of available tools,
@@ -4974,7 +4973,7 @@ class Jsonrpcerror(DataModelHelper):
 
     error: Error
     jsonrpc: Jsonrpc
-    id: int | str | None = None
+    id: Optional[Union[int, str]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcerror":
@@ -5009,11 +5008,11 @@ class Jsonrpcmessage(DataModelHelper):
     """
 
     jsonrpc: Jsonrpc
-    id: int | str | None = None
-    method: str | None = None
-    params: dict[str, Any] | None = None
-    result: EmptyresultClass | None = None
-    error: Error | None = None
+    id: Optional[Union[int, str]] = None
+    method: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
+    result: Optional[EmptyresultClass] = None
+    error: Optional[Error] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcmessage":
@@ -5053,7 +5052,7 @@ class JsonrpcnotificationClass(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: str
-    params: dict[str, Any] | None = None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "JsonrpcnotificationClass":
@@ -5079,10 +5078,10 @@ class JsonrpcnotificationClass(DataModelHelper):
 class JsonrpcrequestClass(DataModelHelper):
     """A request that expects a response."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: str
-    params: dict[str, Any] | None = None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "JsonrpcrequestClass":
@@ -5116,9 +5115,9 @@ class Jsonrpcresponse(DataModelHelper):
     """
 
     jsonrpc: Jsonrpc
-    id: int | str | None = None
-    result: EmptyresultClass | None = None
-    error: Error | None = None
+    id: Optional[Union[int, str]] = None
+    result: Optional[EmptyresultClass] = None
+    error: Optional[Error] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcresponse":
@@ -5154,7 +5153,7 @@ class AmbitiousMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -5181,11 +5180,11 @@ class AmbitiousMeta(DataModelHelper):
 class ListpromptsrequestParams(DataModelHelper):
     """Common parameters for paginated requests."""
 
-    meta: AmbitiousMeta | None = None
+    meta: Optional[AmbitiousMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    cursor: str | None = None
+    cursor: Optional[str] = None
     """An opaque token representing the current pagination position.
     If provided, the server should return results starting after this cursor.
     """
@@ -5213,10 +5212,10 @@ class ListpromptsrequestParams(DataModelHelper):
 class ListpromptsrequestClass(DataModelHelper):
     """Sent from the client to request a list of prompts and prompt templates the server has."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListpromptsrequestMethod
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListpromptsrequestClass":
@@ -5248,13 +5247,13 @@ class PromptargumentElement(DataModelHelper):
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    description: str | None = None
+    description: Optional[str] = None
     """A human-readable description of the argument."""
 
-    required: bool | None = None
+    required: Optional[bool] = None
     """Whether this argument must be provided."""
 
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -5294,17 +5293,17 @@ class PromptElement(DataModelHelper):
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    arguments: list[PromptargumentElement] | None = None
+    arguments: Optional[List[PromptargumentElement]] = None
     """A list of arguments to use for templating the prompt."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """An optional description of what this prompt provides"""
 
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -5315,7 +5314,7 @@ class PromptElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -5369,12 +5368,12 @@ class PromptElement(DataModelHelper):
 class Listpromptsresult(DataModelHelper):
     """The server's response to a prompts/list request from the client."""
 
-    prompts: list[PromptElement]
-    meta: dict[str, Any] | None = None
+    prompts: List[PromptElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
@@ -5408,10 +5407,10 @@ class ListresourcesrequestMethod(Enum):
 class ListresourcesrequestClass(DataModelHelper):
     """Sent from the client to request a list of resources the server has."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListresourcesrequestMethod
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListresourcesrequestClass":
@@ -5446,20 +5445,20 @@ class ResourceElement(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """A description of what this resource represents.
     
     This can be used by clients to improve the LLM's understanding of available resources. It
     can be thought of like a "hint" to the model.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -5470,16 +5469,16 @@ class ResourceElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
-    size: int | None = None
+    size: Optional[int] = None
     """The size of the raw resource content, in bytes (i.e., before base64 encoding or any
     tokenization), if known.
     
     This can be used by Hosts to display file sizes and estimate context window usage.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -5541,12 +5540,12 @@ class ResourceElement(DataModelHelper):
 class Listresourcesresult(DataModelHelper):
     """The server's response to a resources/list request from the client."""
 
-    resources: list[ResourceElement]
-    meta: dict[str, Any] | None = None
+    resources: List[ResourceElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
@@ -5580,10 +5579,10 @@ class ListresourcetemplatesrequestMethod(Enum):
 class ListresourcetemplatesrequestClass(DataModelHelper):
     """Sent from the client to request a list of resource templates the server has."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListresourcetemplatesrequestMethod
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListresourcetemplatesrequestClass":
@@ -5618,20 +5617,20 @@ class ResourcetemplateElement(DataModelHelper):
     uri_template: str
     """A URI template (according to RFC 6570) that can be used to construct resource URIs."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """A description of what this template is for.
     
     This can be used by clients to improve the LLM's understanding of available resources. It
     can be thought of like a "hint" to the model.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -5642,11 +5641,11 @@ class ResourcetemplateElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type for all resources that match this template. This should only be included if
     all resources matching this template have the same type.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -5705,12 +5704,12 @@ class ResourcetemplateElement(DataModelHelper):
 class Listresourcetemplatesresult(DataModelHelper):
     """The server's response to a resources/templates/list request from the client."""
 
-    resource_templates: list[ResourcetemplateElement]
-    meta: dict[str, Any] | None = None
+    resource_templates: List[ResourcetemplateElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
@@ -5750,7 +5749,7 @@ class CunningMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -5777,7 +5776,7 @@ class CunningMeta(DataModelHelper):
 class ListrootsrequestParams(DataModelHelper):
     """Common params for any request."""
 
-    meta: CunningMeta | None = None
+    meta: Optional[CunningMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -5807,10 +5806,10 @@ class Listrootsrequest(DataModelHelper):
     structure or access specific locations that the client has permission to read from.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListrootsrequestMethod
-    params: ListrootsrequestParams | None = None
+    params: Optional[ListrootsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listrootsrequest":
@@ -5841,8 +5840,8 @@ class ListrootsresultClass(DataModelHelper):
     or file that the server can operate on.
     """
 
-    roots: list[RootElement]
-    meta: dict[str, Any] | None = None
+    roots: List[RootElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -5873,10 +5872,10 @@ class ListtoolsrequestMethod(Enum):
 class ListtoolsrequestClass(DataModelHelper):
     """Sent from the client to request a list of tools the server has."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListtoolsrequestMethod
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListtoolsrequestClass":
@@ -5904,12 +5903,12 @@ class ListtoolsrequestClass(DataModelHelper):
 class Listtoolsresult(DataModelHelper):
     """The server's response to a tools/list request from the client."""
 
-    tools: list[ToolElement]
-    meta: dict[str, Any] | None = None
+    tools: List[ToolElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
@@ -5950,11 +5949,11 @@ class LoggingmessagenotificationParams(DataModelHelper):
     level: Level
     """The severity of this log message."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    logger: str | None = None
+    logger: Optional[str] = None
     """An optional name of the logger issuing this message."""
 
     @classmethod
@@ -6011,7 +6010,7 @@ class Loggingmessagenotification(DataModelHelper):
 @dataclass
 class Notification(DataModelHelper):
     method: str
-    params: dict[str, Any] | None = None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Notification":
@@ -6039,11 +6038,11 @@ class NumberschemaType(Enum):
 @dataclass
 class NumberschemaClass(DataModelHelper):
     type: NumberschemaType
-    default: int | None = None
-    description: str | None = None
-    maximum: int | None = None
-    minimum: int | None = None
-    title: str | None = None
+    default: Optional[int] = None
+    description: Optional[str] = None
+    maximum: Optional[int] = None
+    minimum: Optional[int] = None
+    title: Optional[str] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "NumberschemaClass":
@@ -6075,10 +6074,10 @@ class NumberschemaClass(DataModelHelper):
 
 @dataclass
 class Paginatedrequest(DataModelHelper):
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: str
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Paginatedrequest":
@@ -6104,11 +6103,11 @@ class Paginatedrequest(DataModelHelper):
 
 @dataclass
 class Paginatedresult(DataModelHelper):
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
@@ -6142,10 +6141,10 @@ class PingrequestClass(DataModelHelper):
     alive. The receiver must promptly respond, or else may be disconnected.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: PingrequestMethod
-    params: ListrootsrequestParams | None = None
+    params: Optional[ListrootsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PingrequestClass":
@@ -6181,18 +6180,18 @@ class ProgressnotificationParams(DataModelHelper):
     """The progress thus far. This should increase every time progress is made, even if the
     total is unknown.
     """
-    progress_token: int | str
+    progress_token: Union[int, str]
     """The progress token which was given in the initial request, used to associate this
     notification with the request that is proceeding.
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    message: str | None = None
+    message: Optional[str] = None
     """An optional message describing the current progress."""
 
-    total: float | None = None
+    total: Optional[float] = None
     """Total number of items to process (or total progress required), if known."""
 
     @classmethod
@@ -6261,7 +6260,7 @@ class Promptlistchangednotification(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: PromptlistchangednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Promptlistchangednotification":
@@ -6296,7 +6295,7 @@ class PromptreferenceClass(DataModelHelper):
     fallback (if title isn't present).
     """
     type: PromptreferenceType
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -6334,7 +6333,7 @@ class MagentaMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -6365,7 +6364,7 @@ class ReadresourcerequestParams(DataModelHelper):
     """The URI of the resource. The URI can use any protocol; it is up to the server how to
     interpret it.
     """
-    meta: MagentaMeta | None = None
+    meta: Optional[MagentaMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -6390,7 +6389,7 @@ class ReadresourcerequestParams(DataModelHelper):
 class ReadresourcerequestClass(DataModelHelper):
     """Sent from the client to the server, to read a specific resource URI."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ReadresourcerequestMethod
     params: ReadresourcerequestParams
@@ -6418,8 +6417,8 @@ class ReadresourcerequestClass(DataModelHelper):
 class Readresourceresult(DataModelHelper):
     """The server's response to a resources/read request from the client."""
 
-    contents: list[Resource]
-    meta: dict[str, Any] | None = None
+    contents: List[Resource]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -6445,7 +6444,7 @@ class Readresourceresult(DataModelHelper):
 @dataclass
 class Request(DataModelHelper):
     method: str
-    params: dict[str, Any] | None = None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Request":
@@ -6472,11 +6471,11 @@ class Resourcecontents(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
     @classmethod
@@ -6521,20 +6520,20 @@ class ResourcelinkClass(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """A description of what this resource represents.
     
     This can be used by clients to improve the LLM's understanding of available resources. It
     can be thought of like a "hint" to the model.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -6545,16 +6544,16 @@ class ResourcelinkClass(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
-    size: int | None = None
+    size: Optional[int] = None
     """The size of the raw resource content, in bytes (i.e., before base64 encoding or any
     tokenization), if known.
     
     This can be used by Hosts to display file sizes and estimate context window usage.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -6627,7 +6626,7 @@ class Resourcelistchangednotification(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: ResourcelistchangednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resourcelistchangednotification":
@@ -6688,7 +6687,7 @@ class ResourceupdatednotificationParams(DataModelHelper):
     """The URI of the resource that has been updated. This might be a sub-resource of the one
     that the client actually subscribed to.
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -6753,7 +6752,7 @@ class RootslistchangednotificationClass(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: RootslistchangednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RootslistchangednotificationClass":
@@ -6802,75 +6801,75 @@ class ServernotificationParams(DataModelHelper):
     Parameters for a `notifications/message` notification.
     """
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    reason: str | None = None
+    reason: Optional[str] = None
     """An optional string describing the reason for the cancellation. This MAY be logged or
     presented to the user.
     """
-    request_id: int | str | None = None
+    request_id: Optional[Union[int, str]] = None
     """The ID of the request to cancel.
     
     This MUST correspond to the ID of a request previously issued in the same direction.
     This MUST be provided for cancelling non-task requests.
     This MUST NOT be used for cancelling tasks (use the `tasks/cancel` request instead).
     """
-    message: str | None = None
+    message: Optional[str] = None
     """An optional message describing the current progress."""
 
-    progress: float | None = None
+    progress: Optional[float] = None
     """The progress thus far. This should increase every time progress is made, even if the
     total is unknown.
     """
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """The progress token which was given in the initial request, used to associate this
     notification with the request that is proceeding.
     """
-    total: float | None = None
+    total: Optional[float] = None
     """Total number of items to process (or total progress required), if known."""
 
-    uri: str | None = None
+    uri: Optional[str] = None
     """The URI of the resource that has been updated. This might be a sub-resource of the one
     that the client actually subscribed to.
     """
-    created_at: str | None = None
+    created_at: Optional[str] = None
     """ISO 8601 timestamp when the task was created."""
 
-    last_updated_at: str | None = None
+    last_updated_at: Optional[str] = None
     """ISO 8601 timestamp when the task was last updated."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status: Status | None = None
+    status: Optional[Status] = None
     """Current task state."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier."""
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
     data: Any = None
     """The data to be logged, such as a string message or an object. Any JSON serializable type
     is allowed here.
     """
-    level: Level | None = None
+    level: Optional[Level] = None
     """The severity of this log message."""
 
-    logger: str | None = None
+    logger: Optional[str] = None
     """An optional name of the logger issuing this message."""
 
-    elicitation_id: str | None = None
+    elicitation_id: Optional[str] = None
     """The ID of the elicitation that completed."""
 
     @classmethod
@@ -7012,7 +7011,7 @@ class Servernotification(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: ServernotificationMethod
-    params: ServernotificationParams | None = None
+    params: Optional[ServernotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Servernotification":
@@ -7051,7 +7050,7 @@ class FriskyMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -7092,22 +7091,22 @@ class ServerrequestParams(DataModelHelper):
     in the client.
     """
 
-    meta: FriskyMeta | None = None
+    meta: Optional[FriskyMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier to query.
     
     The task identifier to retrieve results for.
     
     The task identifier to cancel.
     """
-    cursor: str | None = None
+    cursor: Optional[str] = None
     """An opaque token representing the current pagination position.
     If provided, the server should return results starting after this cursor.
     """
-    include_context: IncludeContext | None = None
+    include_context: Optional[IncludeContext] = None
     """A request to include context from one or more MCP servers (including the caller), to be
     attached to the prompt.
     The client MAY ignore this request.
@@ -7117,26 +7116,26 @@ class ServerrequestParams(DataModelHelper):
     declares ClientCapabilities.sampling.context. These values may be removed in future spec
     releases.
     """
-    max_tokens: int | None = None
+    max_tokens: Optional[int] = None
     """The requested maximum number of tokens to sample (to prevent runaway completions).
     
     The client MAY choose to sample fewer tokens than the requested maximum.
     """
-    messages: list[SamplingmessageElement] | None = None
-    metadata: dict[str, Any] | None = None
+    messages: Optional[List[SamplingmessageElement]] = None
+    metadata: Optional[Dict[str, Any]] = None
     """Optional metadata to pass through to the LLM provider. The format of this metadata is
     provider-specific.
     """
-    model_preferences: ModelpreferencesClass | None = None
+    model_preferences: Optional[ModelpreferencesClass] = None
     """The server's preferences for which model to select. The client MAY ignore these
     preferences.
     """
-    stop_sequences: list[str] | None = None
-    system_prompt: str | None = None
+    stop_sequences: Optional[List[str]] = None
+    system_prompt: Optional[str] = None
     """An optional system prompt the server wants to use for sampling. The client MAY modify or
     omit this prompt.
     """
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -7144,34 +7143,34 @@ class ServerrequestParams(DataModelHelper):
     Task augmentation is subject to capability negotiation - receivers MUST declare support
     for task augmentation of specific request types in their capabilities.
     """
-    temperature: float | None = None
-    tool_choice: ToolChoice | None = None
+    temperature: Optional[float] = None
+    tool_choice: Optional[ToolChoice] = None
     """Controls how the model uses tools.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
     Default is `{ mode: "auto" }`.
     """
-    tools: list[ToolElement] | None = None
+    tools: Optional[List[ToolElement]] = None
     """Tools that the model may use during generation.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
     """
-    elicitation_id: str | None = None
+    elicitation_id: Optional[str] = None
     """The ID of the elicitation, which must be unique within the context of the server.
     The client MUST treat this ID as an opaque value.
     """
-    message: str | None = None
+    message: Optional[str] = None
     """The message to present to the user explaining why the interaction is needed.
     
     The message to present to the user describing what information is being requested.
     """
-    mode: ParamsMode | None = None
+    mode: Optional[ParamsMode] = None
     """The elicitation mode."""
 
-    url: str | None = None
+    url: Optional[str] = None
     """The URL that the user should navigate to."""
 
-    requested_schema: RequestedSchema | None = None
+    requested_schema: Optional[RequestedSchema] = None
     """A restricted subset of JSON Schema.
     Only top-level properties are allowed, without nesting.
     """
@@ -7321,10 +7320,10 @@ class Serverrequest(DataModelHelper):
     A request from the server to elicit additional information from the user via the client.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ServerrequestMethod
-    params: ServerrequestParams | None = None
+    params: Optional[ServerrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Serverrequest":
@@ -7381,41 +7380,41 @@ class Serverresult(DataModelHelper):
     The server's response to a completion/complete request
     """
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    capabilities: Capabilities | None = None
-    instructions: str | None = None
+    capabilities: Optional[Capabilities] = None
+    instructions: Optional[str] = None
     """Instructions describing how to use the server and its features.
     
     This can be used by clients to improve the LLM's understanding of available tools,
     resources, etc. It can be thought of like a "hint" to the model. For example, this
     information MAY be added to the system prompt.
     """
-    protocol_version: str | None = None
+    protocol_version: Optional[str] = None
     """The version of the Model Context Protocol that the server wants to use. This may not
     match the version that the client requested. If the client cannot support this version,
     it MUST disconnect.
     """
-    server_info: ClientInfo | None = None
-    next_cursor: str | None = None
+    server_info: Optional[ClientInfo] = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
-    resources: list[ResourceElement] | None = None
-    resource_templates: list[ResourcetemplateElement] | None = None
-    contents: list[Resource] | None = None
-    prompts: list[PromptElement] | None = None
-    description: str | None = None
+    resources: Optional[List[ResourceElement]] = None
+    resource_templates: Optional[List[ResourcetemplateElement]] = None
+    contents: Optional[List[Resource]] = None
+    prompts: Optional[List[PromptElement]] = None
+    description: Optional[str] = None
     """An optional description for the prompt."""
 
-    messages: list[PromptmessageElement] | None = None
-    tools: list[ToolElement] | None = None
-    content: list[ContentblockElement] | None = None
+    messages: Optional[List[PromptmessageElement]] = None
+    tools: Optional[List[ToolElement]] = None
+    content: Optional[List[ContentblockElement]] = None
     """A list of content objects that represent the unstructured result of the tool call."""
 
-    is_error: bool | None = None
+    is_error: Optional[bool] = None
     """Whether the tool call ended in an error.
     
     If not set, this is assumed to be false (the call was successful).
@@ -7429,36 +7428,36 @@ class Serverresult(DataModelHelper):
     server does not support tool calls, or any other exceptional conditions,
     should be reported as an MCP error response.
     """
-    structured_content: dict[str, Any] | None = None
+    structured_content: Optional[Dict[str, Any]] = None
     """An optional JSON object that represents the structured result of the tool call."""
 
-    created_at: str | None = None
+    created_at: Optional[str] = None
     """ISO 8601 timestamp when the task was created."""
 
-    last_updated_at: str | None = None
+    last_updated_at: Optional[str] = None
     """ISO 8601 timestamp when the task was last updated."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status: Status | None = None
+    status: Optional[Status] = None
     """Current task state."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier."""
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
-    tasks: list[TaskElement] | None = None
-    completion: Completion | None = None
+    tasks: Optional[List[TaskElement]] = None
+    completion: Optional[Completion] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Serverresult":
@@ -7632,7 +7631,7 @@ class MischievousMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -7664,7 +7663,7 @@ class SetlevelrequestParams(DataModelHelper):
     send all logs at this level and higher (i.e., more severe) to the client as
     notifications/message.
     """
-    meta: MischievousMeta | None = None
+    meta: Optional[MischievousMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -7691,7 +7690,7 @@ class SetlevelrequestParams(DataModelHelper):
 class SetlevelrequestClass(DataModelHelper):
     """A request from the client to the server, to enable or adjust logging."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: SetlevelrequestMethod
     params: SetlevelrequestParams
@@ -7718,12 +7717,12 @@ class SetlevelrequestClass(DataModelHelper):
 @dataclass
 class StringschemaClass(DataModelHelper):
     type: ItemsType
-    default: str | None = None
-    description: str | None = None
-    format: Format | None = None
-    max_length: int | None = None
-    min_length: int | None = None
-    title: str | None = None
+    default: Optional[str] = None
+    description: Optional[str] = None
+    format: Optional[Format] = None
+    max_length: Optional[int] = None
+    min_length: Optional[int] = None
+    title: Optional[str] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "StringschemaClass":
@@ -7766,7 +7765,7 @@ class BraggadociousMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -7797,7 +7796,7 @@ class SubscriberequestParams(DataModelHelper):
     """The URI of the resource. The URI can use any protocol; it is up to the server how to
     interpret it.
     """
-    meta: BraggadociousMeta | None = None
+    meta: Optional[BraggadociousMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -7826,7 +7825,7 @@ class SubscriberequestClass(DataModelHelper):
     a particular resource changes.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: SubscriberequestMethod
     params: SubscriberequestParams
@@ -7862,11 +7861,11 @@ class TextcontentClass(DataModelHelper):
     """The text content of the message."""
 
     type: TextcontentType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
     @classmethod
@@ -7905,11 +7904,11 @@ class TextresourcecontentsClass(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
     @classmethod
@@ -7948,7 +7947,7 @@ class ToollistchangednotificationClass(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: ToollistchangednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToollistchangednotificationClass":
@@ -7980,7 +7979,7 @@ class Meta1(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -8011,7 +8010,7 @@ class UnsubscriberequestParams(DataModelHelper):
     """The URI of the resource. The URI can use any protocol; it is up to the server how to
     interpret it.
     """
-    meta: Meta1 | None = None
+    meta: Optional[Meta1] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
@@ -8038,7 +8037,7 @@ class UnsubscriberequestClass(DataModelHelper):
     server. This should follow a previous resources/subscribe request.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: UnsubscriberequestMethod
     params: UnsubscriberequestParams
@@ -8065,96 +8064,96 @@ class UnsubscriberequestClass(DataModelHelper):
 @dataclass
 class ModelContextProtocolTypesSchema(DataModelHelper):
     annotations: AudiocontentAnnotations
-    audiocontent: Audiocontent | None = None
-    basemetadata: Basemetadata | None = None
-    blobresourcecontents: Blobresourcecontents | None = None
-    booleanschema: BooleanschemaClass | None = None
-    calltoolrequest: Calltoolrequest | None = None
-    calltoolresult: Calltoolresult | None = None
-    cancellednotification: Cancellednotification | None = None
-    clientcapabilities: Clientcapabilities | None = None
-    clientnotification: Clientnotification | None = None
-    clientrequest: Clientrequest | None = None
-    clientresult: Clientresult | None = None
-    completerequest: CompleterequestClass | None = None
-    completeresult: Completeresult | None = None
-    contentblock: ContentblockElement | None = None
-    createmessagerequest: Createmessagerequest | None = None
-    createmessageresult: CreatemessageresultClass | None = None
-    cursor: str | None = None
-    elicitrequest: Elicitrequest | None = None
-    elicitresult: ElicitresultClass | None = None
-    embeddedresource: EmbeddedresourceClass | None = None
-    emptyresult: EmptyresultClass | None = None
-    enumschema: EnumschemaClass | None = None
-    getpromptrequest: GetpromptrequestClass | None = None
-    getpromptresult: Getpromptresult | None = None
-    imagecontent: ImagecontentClass | None = None
-    implementation: ClientInfo | None = None
-    initializednotification: InitializednotificationClass | None = None
-    initializerequest: InitializerequestClass | None = None
-    initializeresult: Initializeresult | None = None
-    jsonrpcerror: Jsonrpcerror | None = None
-    jsonrpcmessage: Jsonrpcmessage | None = None
-    jsonrpcnotification: JsonrpcnotificationClass | None = None
-    jsonrpcrequest: JsonrpcrequestClass | None = None
-    jsonrpcresponse: Jsonrpcresponse | None = None
-    listpromptsrequest: ListpromptsrequestClass | None = None
-    listpromptsresult: Listpromptsresult | None = None
-    listresourcesrequest: ListresourcesrequestClass | None = None
-    listresourcesresult: Listresourcesresult | None = None
-    listresourcetemplatesrequest: ListresourcetemplatesrequestClass | None = None
-    listresourcetemplatesresult: Listresourcetemplatesresult | None = None
-    listrootsrequest: Listrootsrequest | None = None
-    listrootsresult: ListrootsresultClass | None = None
-    listtoolsrequest: ListtoolsrequestClass | None = None
-    listtoolsresult: Listtoolsresult | None = None
-    logginglevel: Level | None = None
-    loggingmessagenotification: Loggingmessagenotification | None = None
-    modelhint: ModelhintElement | None = None
-    modelpreferences: ModelpreferencesClass | None = None
-    notification: Notification | None = None
-    numberschema: NumberschemaClass | None = None
-    paginatedrequest: Paginatedrequest | None = None
-    paginatedresult: Paginatedresult | None = None
-    pingrequest: PingrequestClass | None = None
-    primitiveschemadefinition: PrimitiveschemadefinitionValue | None = None
-    progressnotification: ProgressnotificationClass | None = None
-    progresstoken: int | str | None = None
-    prompt: PromptElement | None = None
-    promptargument: PromptargumentElement | None = None
-    promptlistchangednotification: Promptlistchangednotification | None = None
-    promptmessage: PromptmessageElement | None = None
-    promptreference: PromptreferenceClass | None = None
-    readresourcerequest: ReadresourcerequestClass | None = None
-    readresourceresult: Readresourceresult | None = None
-    request: Request | None = None
-    requestid: int | str | None = None
-    resource: ResourceElement | None = None
-    resourcecontents: Resourcecontents | None = None
-    resourcelink: ResourcelinkClass | None = None
-    resourcelistchangednotification: Resourcelistchangednotification | None = None
-    resourcetemplate: ResourcetemplateElement | None = None
-    resourcetemplatereference: ResourcetemplatereferenceClass | None = None
-    resourceupdatednotification: Resourceupdatednotification | None = None
-    result: EmptyresultClass | None = None
-    role: RoleElement | None = None
-    root: RootElement | None = None
-    rootslistchangednotification: RootslistchangednotificationClass | None = None
-    samplingmessage: SamplingmessageElement | None = None
-    servercapabilities: Capabilities | None = None
-    servernotification: Servernotification | None = None
-    serverrequest: Serverrequest | None = None
-    serverresult: Serverresult | None = None
-    setlevelrequest: SetlevelrequestClass | None = None
-    stringschema: StringschemaClass | None = None
-    subscriberequest: SubscriberequestClass | None = None
-    textcontent: TextcontentClass | None = None
-    textresourcecontents: TextresourcecontentsClass | None = None
-    tool: ToolElement | None = None
-    toolannotations: ToolannotationsClass | None = None
-    toollistchangednotification: ToollistchangednotificationClass | None = None
-    unsubscriberequest: UnsubscriberequestClass | None = None
+    audiocontent: Optional[Audiocontent] = None
+    basemetadata: Optional[Basemetadata] = None
+    blobresourcecontents: Optional[Blobresourcecontents] = None
+    booleanschema: Optional[BooleanschemaClass] = None
+    calltoolrequest: Optional[Calltoolrequest] = None
+    calltoolresult: Optional[Calltoolresult] = None
+    cancellednotification: Optional[Cancellednotification] = None
+    clientcapabilities: Optional[Clientcapabilities] = None
+    clientnotification: Optional[Clientnotification] = None
+    clientrequest: Optional[Clientrequest] = None
+    clientresult: Optional[Clientresult] = None
+    completerequest: Optional[CompleterequestClass] = None
+    completeresult: Optional[Completeresult] = None
+    contentblock: Optional[ContentblockElement] = None
+    createmessagerequest: Optional[Createmessagerequest] = None
+    createmessageresult: Optional[CreatemessageresultClass] = None
+    cursor: Optional[str] = None
+    elicitrequest: Optional[Elicitrequest] = None
+    elicitresult: Optional[ElicitresultClass] = None
+    embeddedresource: Optional[EmbeddedresourceClass] = None
+    emptyresult: Optional[EmptyresultClass] = None
+    enumschema: Optional[EnumschemaClass] = None
+    getpromptrequest: Optional[GetpromptrequestClass] = None
+    getpromptresult: Optional[Getpromptresult] = None
+    imagecontent: Optional[ImagecontentClass] = None
+    implementation: Optional[ClientInfo] = None
+    initializednotification: Optional[InitializednotificationClass] = None
+    initializerequest: Optional[InitializerequestClass] = None
+    initializeresult: Optional[Initializeresult] = None
+    jsonrpcerror: Optional[Jsonrpcerror] = None
+    jsonrpcmessage: Optional[Jsonrpcmessage] = None
+    jsonrpcnotification: Optional[JsonrpcnotificationClass] = None
+    jsonrpcrequest: Optional[JsonrpcrequestClass] = None
+    jsonrpcresponse: Optional[Jsonrpcresponse] = None
+    listpromptsrequest: Optional[ListpromptsrequestClass] = None
+    listpromptsresult: Optional[Listpromptsresult] = None
+    listresourcesrequest: Optional[ListresourcesrequestClass] = None
+    listresourcesresult: Optional[Listresourcesresult] = None
+    listresourcetemplatesrequest: Optional[ListresourcetemplatesrequestClass] = None
+    listresourcetemplatesresult: Optional[Listresourcetemplatesresult] = None
+    listrootsrequest: Optional[Listrootsrequest] = None
+    listrootsresult: Optional[ListrootsresultClass] = None
+    listtoolsrequest: Optional[ListtoolsrequestClass] = None
+    listtoolsresult: Optional[Listtoolsresult] = None
+    logginglevel: Optional[Level] = None
+    loggingmessagenotification: Optional[Loggingmessagenotification] = None
+    modelhint: Optional[ModelhintElement] = None
+    modelpreferences: Optional[ModelpreferencesClass] = None
+    notification: Optional[Notification] = None
+    numberschema: Optional[NumberschemaClass] = None
+    paginatedrequest: Optional[Paginatedrequest] = None
+    paginatedresult: Optional[Paginatedresult] = None
+    pingrequest: Optional[PingrequestClass] = None
+    primitiveschemadefinition: Optional[PrimitiveschemadefinitionValue] = None
+    progressnotification: Optional[ProgressnotificationClass] = None
+    progresstoken: Optional[Union[int, str]] = None
+    prompt: Optional[PromptElement] = None
+    promptargument: Optional[PromptargumentElement] = None
+    promptlistchangednotification: Optional[Promptlistchangednotification] = None
+    promptmessage: Optional[PromptmessageElement] = None
+    promptreference: Optional[PromptreferenceClass] = None
+    readresourcerequest: Optional[ReadresourcerequestClass] = None
+    readresourceresult: Optional[Readresourceresult] = None
+    request: Optional[Request] = None
+    requestid: Optional[Union[int, str]] = None
+    resource: Optional[ResourceElement] = None
+    resourcecontents: Optional[Resourcecontents] = None
+    resourcelink: Optional[ResourcelinkClass] = None
+    resourcelistchangednotification: Optional[Resourcelistchangednotification] = None
+    resourcetemplate: Optional[ResourcetemplateElement] = None
+    resourcetemplatereference: Optional[ResourcetemplatereferenceClass] = None
+    resourceupdatednotification: Optional[Resourceupdatednotification] = None
+    result: Optional[EmptyresultClass] = None
+    role: Optional[RoleElement] = None
+    root: Optional[RootElement] = None
+    rootslistchangednotification: Optional[RootslistchangednotificationClass] = None
+    samplingmessage: Optional[SamplingmessageElement] = None
+    servercapabilities: Optional[Capabilities] = None
+    servernotification: Optional[Servernotification] = None
+    serverrequest: Optional[Serverrequest] = None
+    serverresult: Optional[Serverresult] = None
+    setlevelrequest: Optional[SetlevelrequestClass] = None
+    stringschema: Optional[StringschemaClass] = None
+    subscriberequest: Optional[SubscriberequestClass] = None
+    textcontent: Optional[TextcontentClass] = None
+    textresourcecontents: Optional[TextresourcecontentsClass] = None
+    tool: Optional[ToolElement] = None
+    toolannotations: Optional[ToolannotationsClass] = None
+    toollistchangednotification: Optional[ToollistchangednotificationClass] = None
+    unsubscriberequest: Optional[UnsubscriberequestClass] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ModelContextProtocolTypesSchema":

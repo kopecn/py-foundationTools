@@ -490,10 +490,12 @@ class StandardizedLogger(Logger):
         msg: str,
         args: tuple[Any, ...] = (),
         extra: dict[str, Any] | None = None,
-        exc_info: bool
-        | tuple[type[BaseException], BaseException, TracebackType | None]
-        | BaseException
-        | None = None,
+        exc_info: (
+            bool
+            | tuple[type[BaseException], BaseException, TracebackType | None]
+            | BaseException
+            | None
+        ) = None,
         stack_info: bool = False,
         stacklevel: int = 1,
         **kwargs: Any,

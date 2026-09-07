@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Generated `from_dict` methods now raise `TypeError` (via `normalize_generated.sh`'s new third normalization pass) instead of a bare `assert isinstance(obj, dict)` — the prior form escaped `from_union`'s catch tuple and was silently disabled under `python -O`. All 190 occurrences across every generated model were rewritten by re-running `make codegen-all`; `from_union` itself is unchanged.
+- Math codegen now preserves JSON Schema requiredness in direct constructors. Generated carriers inherit `DataModelHelper` directly and satisfy the independent Math protocols structurally, removing fabricated scalar/list defaults, required-object `None` defaults, and assignment suppressions.
 
 ## [0.0.4] - 2026-08-14
 

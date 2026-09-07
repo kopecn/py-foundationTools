@@ -161,7 +161,9 @@ class TestCLITransact:
     def test_determine_success_with_return_code_zero(self) -> None:
         """Test success determination with return code 0."""
         cli = CLITransact()
-        assert cli._determine_success(SUCCESS_RETURN_CODE, "output") is True  # pylint: disable=protected-access
+        assert (
+            cli._determine_success(SUCCESS_RETURN_CODE, "output") is True
+        )  # pylint: disable=protected-access
 
     def test_determine_success_with_return_code_nonzero(self) -> None:
         """Test success determination with non-zero return code."""
@@ -172,7 +174,9 @@ class TestCLITransact:
         """Test success determination with success marker present."""
         cli = CLITransact(success_marker="SUCCESS")
         assert (
-            cli._determine_success(SUCCESS_RETURN_CODE, "Operation SUCCESS completed")  # pylint: disable=protected-access
+            cli._determine_success(
+                SUCCESS_RETURN_CODE, "Operation SUCCESS completed"
+            )  # pylint: disable=protected-access
             is True
         )
 
@@ -180,17 +184,22 @@ class TestCLITransact:
         """Test success determination with success marker missing."""
         cli = CLITransact(success_marker="SUCCESS")
         assert (
-            cli._determine_success(SUCCESS_RETURN_CODE, "Operation completed") is False  # pylint: disable=protected-access
+            cli._determine_success(SUCCESS_RETURN_CODE, "Operation completed")
+            is False  # pylint: disable=protected-access
         )
 
     def test_determine_success_with_error_sentinel(self) -> None:
         """The framework error sentinel (-1) is always a failure, marker or not."""
         cli = CLITransact()
-        assert cli._determine_success(ERROR_RETURN_CODE, "output") is False  # pylint: disable=protected-access
+        assert (
+            cli._determine_success(ERROR_RETURN_CODE, "output") is False
+        )  # pylint: disable=protected-access
 
         cli_with_marker = CLITransact(success_marker="SUCCESS")
         assert (
-            cli_with_marker._determine_success(ERROR_RETURN_CODE, "SUCCESS")  # pylint: disable=protected-access
+            cli_with_marker._determine_success(
+                ERROR_RETURN_CODE, "SUCCESS"
+            )  # pylint: disable=protected-access
             is False
         )
 
@@ -212,7 +221,9 @@ class TestCLITransact:
     def test_normalize_output_with_content(self) -> None:
         """Test output normalization with actual content."""
         cli = CLITransact()
-        assert cli._normalize_output("  hello world  \n") == "hello world"  # pylint: disable=protected-access
+        assert (
+            cli._normalize_output("  hello world  \n") == "hello world"
+        )  # pylint: disable=protected-access
 
 
 class TestCLITransactSync:

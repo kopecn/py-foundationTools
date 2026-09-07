@@ -5,10 +5,8 @@
 # To modify, update the source schema in schema/schemas/ and re-run codegen.
 # =============================================================================
 
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypeVar
-
+from dataclasses import dataclass
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_bool,
@@ -19,6 +17,7 @@ from foundationTypes.data_model_helper import (
     to_class,
     to_enum,
 )
+from typing import Optional, Any, TypeVar, Type, cast
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
@@ -43,20 +42,20 @@ class StandardizedLoggerConfig(DataModelHelper):
     name: str
     """Unique logger identifier used as the logging namespace and tag across all outputs."""
 
-    console_level_icons: bool | None = None
+    console_level_icons: Optional[bool] = None
     """Adds visual severity indicators to console logs. Applies only to human-readable output."""
 
-    console_pretty: bool | None = None
+    console_pretty: Optional[bool] = None
     """Enables human-readable log output to standard error for interactive and development use."""
 
-    log_dir: str | None = None
+    log_dir: Optional[str] = None
     """Base filesystem directory for writing persistent, date-rolling log files. Enables file
     logging when set.
     """
-    log_level: LogLevel | None = None
+    log_level: Optional[LogLevel] = None
     """Minimum severity level that will be emitted. Log events below this threshold are ignored."""
 
-    rotation_days: int | None = None
+    rotation_days: Optional[int] = None
     """Number of UTC calendar days before a new log file is created. Rotation occurs at day
     boundaries.
     """

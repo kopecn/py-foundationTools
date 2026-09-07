@@ -12,11 +12,8 @@ twist/velocity — and is out of scope for these accessor contracts.)
 
 See ``.claude/specs/mathTypeTiers.md``. :class:`PositionABC`, :class:`QuaternionABC`,
 and :class:`SpatialTransformABC` are structural accessor + serialization protocols.
-Code-generated carriers satisfy them without inheritance. The math contracts
-(group composition, inverse, etc.)
-are in :mod:`foundationTypes.mathTypes.positionVectorMathLike`,
-:mod:`foundationTypes.mathTypes.quaternionMathLike`, and
-:mod:`foundationTypes.mathTypes.spatialPoseMathLike`.
+Code-generated carriers satisfy them without inheritance. Math operations such
+as composition and inverse belong in higher-level implementations, not here.
 """
 
 from abc import abstractmethod

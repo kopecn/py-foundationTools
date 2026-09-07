@@ -48,7 +48,7 @@ CLASSES_FOR_BASE_PARENT=(
 OUTPUT_PYTHON_REL="presentationTypes/Presentations.py"
 
 # === quicktype target. quicktype only emits up to 3.7; modern typing is
-#     restored afterwards by run_ruff (UP rules) + fix_to_dict_return_type. ===
+#     restored afterwards by fix_to_dict_return_type + normalization passes. ===
 PYTHON_VERSION="3.7"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -64,5 +64,5 @@ run_quicktype
 add_base_class "$OUTPUT_PYTHON_FILE" "${CLASSES_FOR_BASE_PARENT[@]}"
 add_helper_imports "$OUTPUT_PYTHON_FILE"
 add_autogen_header "$OUTPUT_PYTHON_FILE"
-run_ruff "$OUTPUT_PYTHON_FILE"
+run_black "$OUTPUT_PYTHON_FILE"
 ensure_py_typed "$OUTPUT_PYTHON_FILE"

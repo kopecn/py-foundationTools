@@ -131,7 +131,7 @@ All under `foundationTypes/`, all subclassing `DataModelHelper`:
 | Package | Contents |
 |---|---|
 | `commonTypes/` | `GeoCoordinate`, `ModelContextProtocol`, and `disk_usage/` (`DiskUsage` + hand-written `wire_config.py`) |
-| `mathTypes/` | concrete Math-domain models (spherical arcs/circles, quaternion types) — the tier-1 ABCs they mirror live in [foundation_abc](foundation_abc.md) |
+| `mathTypes/` | concrete Math-domain `DataModelHelper` models; independent structural protocols live in [foundation_abc](foundation_abc.md) |
 | `cvTypes/` | `ChArUcoConfig` (computer-vision calibration board config) |
 | `standardizedLoggerConfig/` | `StandardizedLoggerConfig`, consumed by the logger in [foundation_tools](foundation_tools.md#standardizedlogger) |
 | `presentationTypes/` | the Presentations schema: `PresentationColorTheme`, `SlideLayout`, `Region`, `PresentationSlideLayouts`, and more — resolved by the `foundation_tools/presentation/` helpers |

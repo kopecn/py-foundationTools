@@ -6,14 +6,13 @@
 # =============================================================================
 
 from dataclasses import dataclass
-from typing import Any, TypeVar
-
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_list,
     from_str,
     to_class,
 )
+from typing import Any, List, TypeVar, Callable, Type, cast
 
 T = TypeVar("T")
 
@@ -68,7 +67,7 @@ class DiskUsageEntry(DataModelHelper):
 class DiskUsage(DataModelHelper):
     """Collection of disk usage entries parsed from df -h output"""
 
-    entries: list[DiskUsageEntry]
+    entries: List[DiskUsageEntry]
 
     @classmethod
     def from_dict(cls, obj: Any) -> "DiskUsage":

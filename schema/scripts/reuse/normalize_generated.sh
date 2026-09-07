@@ -7,7 +7,7 @@
 # generated model, regardless of which generate script produced it — conforming
 # (golden template), legacy/non-conforming, or not-yet-written. Both paths call
 # this script:
-#   - codegen.sh's run_ruff applies it per-file (correct output when a single
+#   - codegen.sh's run_black applies it per-file (correct output when a single
 #     generate script is run on its own).
 #   - `make codegen-all` applies it once over the whole generated tree as a final
 #     guaranteed sweep (poka-yoke: a sloppy or future script cannot escape it).

@@ -13,14 +13,14 @@ graph TD
     subgraph dist["pyFoundationTools (distribution)"]
         FT["foundationTypes<br/>data models + serialization base"]
         FM["foundation_math<br/>pure-python math"]
-        ABC["foundation_abc<br/>abstract interfaces"]
+        ABC["foundation_abc<br/>interfaces + protocols"]
         TOOLS["foundation_tools<br/>runtime utilities + transports"]
         SCI["foundation_science<br/>SI physical constants"]
     end
 
     TOOLS -->|serializes via| FT
     TOOLS -->|implements| ABC
-    ABC -.->|Math-domain ABCs mirror| FT
+    FT -.->|structurally satisfies Math protocols| ABC
     FT -->|models generated from| SCHEMA["schema/ (JSON Schema + quicktype)"]
 
     style FT fill:#e3f2fd
@@ -34,7 +34,7 @@ graph TD
 |---|---|---|
 | `foundationTypes` | Data models + the `DataModelHelper` serialization base class — the heart of the library | [foundationTypes.md](foundationTypes.md) |
 | `foundation_math` | Pure-Python math helpers (`clamp`, `wrap`) | [foundation_math.md](foundation_math.md) |
-| `foundation_abc` | Abstract base interfaces for device/transport and the Math domain | [foundation_abc.md](foundation_abc.md) |
+| `foundation_abc` | Device/transport ABCs and structural Math protocols | [foundation_abc.md](foundation_abc.md) |
 | `foundation_tools` | Runtime utilities: structured logger, path tools, and the full transport/transaction stack | [foundation_tools.md](foundation_tools.md) |
 | `foundation_science` | SI physical constants, each carrying unit + uncertainty metadata | [foundation_science.md](foundation_science.md) |
 
