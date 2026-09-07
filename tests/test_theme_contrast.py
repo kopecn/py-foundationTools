@@ -56,6 +56,7 @@ class TestContrastRatio:
 
 def test_known_mid_grey_pairing_value() -> None:
     """Hand-computed WCAG relative luminance for #808080 vs white."""
+
     def channel(c: int) -> float:
         s = c / 255.0
         return s / 12.92 if s <= 0.03928 else ((s + 0.055) / 1.055) ** 2.4

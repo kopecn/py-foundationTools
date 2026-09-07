@@ -166,9 +166,7 @@ def _normalize_exclusions(exclude_patterns: Iterable[str]) -> _Exclusions:
         if not glob:
             continue
         if len(Path(glob).parts) > 1 or glob in (".", ".."):
-            raise ValueError(
-                f"exclude_patterns takes bare name globs, not paths: {entry!r}"
-            )
+            raise ValueError(f"exclude_patterns takes bare name globs, not paths: {entry!r}")
 
         (directories if is_directory else files).append(glob)
 

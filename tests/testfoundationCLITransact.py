@@ -572,9 +572,7 @@ class TestCLITransactAsync:
         assert result.success is False
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        sys.platform == "win32", reason="Unix-specific (POSIX signals / os.kill)"
-    )
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific (POSIX signals / os.kill)")
     async def test_run_async_cancellation_reaps_child_and_reraises(self) -> None:
         """Cancelling the awaiting task must propagate CancelledError unchanged AND
         terminate + reap the real child process.
@@ -634,9 +632,7 @@ class TestCLITransactShellContract:
     back to each other's execution mode.
     """
 
-    @pytest.mark.skipif(
-        sys.platform == "win32", reason="POSIX shell-identity check via `echo $0`"
-    )
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell-identity check via `echo $0`")
     def test_sync_string_command_runs_via_bash(self) -> None:
         """A sync `str` command is interpreted by `bash`, not the platform `sh`.
 
@@ -649,9 +645,7 @@ class TestCLITransactShellContract:
         assert result.success is True
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        sys.platform == "win32", reason="POSIX shell-identity check via `echo $0`"
-    )
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell-identity check via `echo $0`")
     async def test_async_string_command_runs_via_bash(self) -> None:
         """An async `str` command is interpreted by `bash` as well."""
         result = await CLITransact.run_async("echo $0")
@@ -725,9 +719,7 @@ class TestCLITransactShellContract:
 
     @patch("asyncio.create_subprocess_exec")
     @pytest.mark.asyncio
-    async def test_async_string_path_uses_explicit_bash_argv(
-        self, mock_exec: Any
-    ) -> None:
+    async def test_async_string_path_uses_explicit_bash_argv(self, mock_exec: Any) -> None:
         """Regression lock: the async `str` path spawns `bash -c <command>`."""
 
         async def _fake_communicate() -> tuple[bytes, bytes]:

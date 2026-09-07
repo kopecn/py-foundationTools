@@ -521,8 +521,7 @@ class CLITransact:
                     # Best-effort reaping; the child may already be gone.
                     pass
                 _log.warning(
-                    "CLITransact async child pid=%s terminated and reaped after task "
-                    "cancellation",
+                    "CLITransact async child pid=%s terminated and reaped after task cancellation",
                     child_pid,
                 )
             raise

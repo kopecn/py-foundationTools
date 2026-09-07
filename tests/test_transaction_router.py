@@ -265,9 +265,7 @@ class TestTxIdMechanics:
     async def test_duplicate_inflight_tx_id_raises_immediately(self) -> None:
         transport = FakeTransport()
         async with _running_router(transport) as router:
-            first = asyncio.ensure_future(
-                router.request(b"one", tx_id="dup", timeout=5.0)
-            )
+            first = asyncio.ensure_future(router.request(b"one", tx_id="dup", timeout=5.0))
             await asyncio.sleep(0.01)
             with pytest.raises(RuntimeError, match="dup"):
                 await router.request(b"two", tx_id="dup", timeout=5.0)
@@ -496,9 +494,7 @@ class TestTeardownAndLifecycle:
 class TestSocketByteTransportIntegration:
     @pytest.mark.asyncio
     async def test_request_reply_over_real_transport_and_delimiter_codec(self) -> None:
-        async def echo_handler(
-            reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-        ) -> None:
+        async def echo_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
             # Echo each delimiter-terminated frame back as it arrives, without
             # waiting for the client to close the connection (it won't — the
             # router holds the connection open for further requests).

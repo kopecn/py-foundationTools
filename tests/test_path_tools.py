@@ -128,9 +128,7 @@ def tree(tmp_path: Path) -> Path:
 def test_root_resolves_patterns_against_disk(tmp_path: Path) -> None:
     (tmp_path / "report_0001.csv").write_text("")
     (tmp_path / "report_0001.log").write_text("")
-    assert find_matching_paths(tmp_path, "report_*", ["csv"]) == [
-        tmp_path / "report_0001.csv"
-    ]
+    assert find_matching_paths(tmp_path, "report_*", ["csv"]) == [tmp_path / "report_0001.csv"]
 
 
 def test_excluded_dir_itself_is_pruned(tree: Path) -> None:
@@ -157,22 +155,23 @@ def test_empty_exclusions_disable_pruning(tree: Path) -> None:
 
 
 def test_exclusions_are_extensible(tree: Path) -> None:
-    assert find_matching_paths(
-        tree, "*", [], exclude_patterns=["/.build/", "/.cache/"]
-    ) == [tree / "proj_a", tree / "proj_c"]
+    assert find_matching_paths(tree, "*", [], exclude_patterns=["/.build/", "/.cache/"]) == [
+        tree / "proj_a",
+        tree / "proj_c",
+    ]
 
 
 def test_blank_exclusions_are_ignored(tree: Path) -> None:
-    assert find_matching_paths(
-        tree, "*", [], exclude_patterns=["", "  ", "/", " /.build/ "]
-    ) == [tree / ".cache", tree / "proj_a", tree / "proj_c"]
+    assert find_matching_paths(tree, "*", [], exclude_patterns=["", "  ", "/", " /.build/ "]) == [
+        tree / ".cache",
+        tree / "proj_a",
+        tree / "proj_c",
+    ]
 
 
 def test_matches_are_deduplicated_across_patterns(tmp_path: Path) -> None:
     (tmp_path / "report.csv").write_text("")
-    assert find_matching_paths(tmp_path, "report*", ["csv", "csv"]) == [
-        tmp_path / "report.csv"
-    ]
+    assert find_matching_paths(tmp_path, "report*", ["csv", "csv"]) == [tmp_path / "report.csv"]
 
 
 def test_root_rejects_a_string(tree: Path) -> None:
@@ -219,33 +218,33 @@ def test_leading_or_trailing_slash_marks_a_directory(mixed: Path, entry: str) ->
 
 
 def test_directory_glob_prunes_the_whole_subtree(mixed: Path) -> None:
-    assert (
-        find_matching_paths(mixed, "*/*", [], exclude_patterns=["/xyz*"])
-        == [mixed / "keep" / "mod.py", mixed / "keep" / "mod.pyc"]
-    )
+    assert find_matching_paths(mixed, "*/*", [], exclude_patterns=["/xyz*"]) == [
+        mixed / "keep" / "mod.py",
+        mixed / "keep" / "mod.pyc",
+    ]
 
 
 def test_unslashed_glob_matches_files_only(mixed: Path) -> None:
     """``xyz*`` without slashes drops the file and leaves the directory."""
-    assert find_matching_paths(mixed, "xyz*", [], exclude_patterns=["xyz*"]) == [
-        mixed / "xyzxyz"
-    ]
+    assert find_matching_paths(mixed, "xyz*", [], exclude_patterns=["xyz*"]) == [mixed / "xyzxyz"]
 
 
 def test_file_glob_applies_at_any_depth(mixed: Path) -> None:
-    assert find_matching_paths(
-        mixed, "keep/*", [], exclude_patterns=["*.pyc"]
-    ) == [mixed / "keep" / "mod.py"]
+    assert find_matching_paths(mixed, "keep/*", [], exclude_patterns=["*.pyc"]) == [
+        mixed / "keep" / "mod.py"
+    ]
 
 
 def test_file_glob_does_not_prune_a_subtree(mixed: Path) -> None:
     """A file glob matching a directory name leaves that directory alone."""
-    assert find_matching_paths(
-        mixed, "xyzxyz/*", [], exclude_patterns=["xyzxyz"]
-    ) == [mixed / "xyzxyz" / "nested"]
+    assert find_matching_paths(mixed, "xyzxyz/*", [], exclude_patterns=["xyzxyz"]) == [
+        mixed / "xyzxyz" / "nested"
+    ]
 
 
 def test_directory_and_file_globs_combine(mixed: Path) -> None:
-    assert find_matching_paths(
-        mixed, "**/*", [], exclude_patterns=["/xyz*/", "*.pyc"]
-    ) == [mixed / "keep", mixed / "keep" / "mod.py", mixed / "xyzxyz.txt"]
+    assert find_matching_paths(mixed, "**/*", [], exclude_patterns=["/xyz*/", "*.pyc"]) == [
+        mixed / "keep",
+        mixed / "keep" / "mod.py",
+        mixed / "xyzxyz.txt",
+    ]

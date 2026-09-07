@@ -333,8 +333,7 @@ class TestFreshInterpreterImportHealth:
             timeout=30,
         )
         assert result.returncode == 0, (
-            f"{import_statement!r} failed as first import in a fresh interpreter:\n"
-            f"{result.stderr}"
+            f"{import_statement!r} failed as first import in a fresh interpreter:\n{result.stderr}"
         )
 
 

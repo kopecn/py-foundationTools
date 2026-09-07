@@ -186,9 +186,7 @@ class SocketTransactServer:
     # MARK: - Private — connection handling
     # -----------------------------------------------------------------------
 
-    async def _on_connect(
-        self, reader: "_StreamReaderLike", writer: "_StreamWriterLike"
-    ) -> None:
+    async def _on_connect(self, reader: "_StreamReaderLike", writer: "_StreamWriterLike") -> None:
         # Track this connection's reader-loop task so `stop()` can cancel and
         # await it — without this, the loop below outlives teardown for any
         # client that hasn't sent EOF (Server Compliance Requirement 7).

@@ -38,7 +38,7 @@ T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
 
 
-@dataclass
+@dataclass(slots=True)
 class QuaternionType(QuaternionABC, DataModelHelper):
     """A quaternion representation of a 3D rotation: a scalar (real) part w and a vector
     (imaginary) part x, y, z. The schema does not enforce unit length; normalization is the
@@ -47,16 +47,16 @@ class QuaternionType(QuaternionABC, DataModelHelper):
     The quaternion orientation component of the pose.
     """
 
-    w: float = 0.0
+    w: float
     """The scalar (real) component of the quaternion."""
 
-    x: float = 0.0
+    x: float
     """The x component of the quaternion's vector (imaginary) part."""
 
-    y: float = 0.0
+    y: float
     """The y component of the quaternion's vector (imaginary) part."""
 
-    z: float = 0.0
+    z: float
     """The z component of the quaternion's vector (imaginary) part."""
 
     @classmethod
@@ -78,7 +78,7 @@ class QuaternionType(QuaternionABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class PositionType(PositionABC, DataModelHelper):
     """A 3D Cartesian position vector using right-handed (x, y, z) coordinates, in a
     caller-defined consistent length unit.
@@ -86,13 +86,13 @@ class PositionType(PositionABC, DataModelHelper):
     The Cartesian position component of the pose.
     """
 
-    x: float = 0.0
+    x: float
     """The x-axis (first Cartesian) component of the position."""
 
-    y: float = 0.0
+    y: float
     """The y-axis (second Cartesian) component of the position."""
 
-    z: float = 0.0
+    z: float
     """The z-axis (third Cartesian) component of the position."""
 
     @classmethod
@@ -112,16 +112,16 @@ class PositionType(PositionABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class SpatialTransformType(SpatialTransformABC, DataModelHelper):
     """A full 6-degree-of-freedom rigid body state: a Cartesian position composed with a
     quaternion orientation.
     """
 
-    orientation: QuaternionType | None = None  # type: ignore[assignment]
+    orientation: QuaternionType
     """The quaternion orientation component of the pose."""
 
-    position: PositionType | None = None  # type: ignore[assignment]
+    position: PositionType
     """The Cartesian position component of the pose."""
 
     @classmethod
@@ -139,7 +139,7 @@ class SpatialTransformType(SpatialTransformABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
     """A time interval with attosecond precision. Stores seconds and attoseconds as unsigned
     integers with an explicit sign, avoiding floating-point precision loss over large spans.
@@ -147,14 +147,14 @@ class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
     The fixed interval between consecutive samples.
     """
 
-    attoseconds: int = 0
+    attoseconds: int
     """The sub-second component in attoseconds (10^-18 s). Valid range: 0 to
     999_999_999_999_999_999.
     """
-    seconds: int = 0
+    seconds: int
     """The whole-seconds component of the interval (unsigned)."""
 
-    sign: NumericSign = NumericSign.ZERO
+    sign: NumericSign
     """The sign of the time interval."""
 
     @classmethod
@@ -174,7 +174,7 @@ class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
     """An absolute timestamp with attosecond precision. Stores seconds and attoseconds as
     unsigned integers with an explicit sign. Optionally carries a timescale, reference frame,
@@ -183,14 +183,14 @@ class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
     The timestamp of the first sample.
     """
 
-    attoseconds: int = 0
+    attoseconds: int
     """The sub-second component in attoseconds (10^-18 s). Valid range: 0 to
     999_999_999_999_999_999.
     """
-    seconds: int = 0
+    seconds: int
     """The whole-seconds component of the timestamp (unsigned)."""
 
-    sign: NumericSign = NumericSign.ZERO
+    sign: NumericSign
     """The sign of the timestamp."""
 
     reference_frame: ReferenceFrame | None = None
@@ -236,19 +236,19 @@ class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class PositionWaveformType(PositionWaveformABC, DataModelHelper):
     """A uniformly-sampled time series of 3D Cartesian positions, anchored at a start timestamp
     and sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    positions: Sequence[PositionType] = ()
+    positions: Sequence[PositionType]
     """The uniformly-sampled position values, in chronological order."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
@@ -268,19 +268,19 @@ class PositionWaveformType(PositionWaveformABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
     """A uniformly-sampled time series of quaternion orientations, anchored at a start timestamp
     and sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    quaternions: Sequence[QuaternionType] = ()
+    quaternions: Sequence[QuaternionType]
     """The uniformly-sampled orientation values, in chronological order."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
@@ -300,23 +300,23 @@ class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
     """A uniformly-sampled time series of 6-DOF poses, represented as parallel position and
     quaternion arrays (not an array of SpatialTransform), anchored at a start timestamp and
     sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    positions: Sequence[PositionType] = ()
+    positions: Sequence[PositionType]
     """The uniformly-sampled position values, in chronological order, parallel to quaternions."""
 
-    quaternions: Sequence[QuaternionType] = ()
+    quaternions: Sequence[QuaternionType]
     """The uniformly-sampled orientation values, in chronological order, parallel to positions."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
@@ -338,19 +338,19 @@ class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class ScalarWaveformType(Waveform1dABC, DataModelHelper):
     """A uniformly-sampled time series of a single scalar signal, anchored at a start timestamp
     and sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
-    waveform: Sequence[float] = ()
+    waveform: Sequence[float]
     """The uniformly-sampled scalar values, in chronological order."""
 
     @classmethod
@@ -370,25 +370,25 @@ class ScalarWaveformType(Waveform1dABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
     """Represents an arc on a unit sphere in spherical coordinates using physics convention.
     This arc is formed by a spherical reference point and then projected from that start
     point along the unit circle for the length of the arc in radians.
     """
 
-    arc_length: float = 0.0
+    arc_length: float
     """The arc length in radians (-2*pi to 2*pi."""
 
-    azimuth: float = 0.0
+    azimuth: float
     """Azimuthal angle in radians (0 to 2*pi).  Represents the longitudinal position around the
     sphere.
     """
-    orient: float = 0.0
+    orient: float
     """The rotated orientation about the vector from the sphere's origin through the start point
     in radians (-pi to pi.
     """
-    polar: float = 0.0
+    polar: float
     """Polar angle (colatitude/zenith angle) in radians (0 to pi), measured from the positive
     z-axis following ISO 80000-2:2019 physics convention. 0 is the north pole (+z axis), pi/2
     is the equator (xy-plane), and pi is the south pole (-z axis).
@@ -413,19 +413,19 @@ class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC, DataModelHelper):
     """A uniformly-sampled time series of UnitSphericalArc samples, anchored at a start
     timestamp and sampled at a fixed interval.
     """
 
-    arcs: Sequence[UnitSphericalArcType] = ()
+    arcs: Sequence[UnitSphericalArcType]
     """The uniformly-sampled arc values, in chronological order."""
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
@@ -445,7 +445,7 @@ class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC, DataModelHelper)
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper):
     """Represents a small circle on a unit sphere in spherical coordinates using physics
     convention.  A small circle is formed by intersecting the sphere with a plane that does
@@ -453,16 +453,16 @@ class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper)
     distance from a reference point.
     """
 
-    azimuth: float = 0.0
+    azimuth: float
     """Azimuthal angle in radians (0 to 2*pi).  Represents the longitudinal position around the
     sphere.
     """
-    polar: float = 0.0
+    polar: float
     """Polar angle (colatitude/zenith angle) in radians (0 to pi), measured from the positive
     z-axis following ISO 80000-2:2019 physics convention. 0 is the north pole (+z axis), pi/2
     is the equator (xy-plane), and pi is the south pole (-z axis).
     """
-    radius_angle: float = 0.0
+    radius_angle: float
     """Angular radius of the small circle in radians.  Represents the angular distance from the
     center point.
     """
@@ -484,19 +484,19 @@ class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper)
         return result
 
 
-@dataclass
+@dataclass(slots=True)
 class UnitSphericalSmallCircleWaveformType(WaveformUnitSphericalSmallCircleABC, DataModelHelper):
     """A uniformly-sampled time series of UnitSphericalSmallCircle samples, anchored at a start
     timestamp and sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    small_circles: Sequence[UnitSphericalSmallCircleType] = ()
+    small_circles: Sequence[UnitSphericalSmallCircleType]
     """The uniformly-sampled small-circle values, in chronological order."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod

@@ -22,7 +22,9 @@ Pins two invariants from ``.claude/specs/mathTypeTiers.md`` across all 13
 
 from __future__ import annotations
 
-from typing import Any
+import inspect
+from pathlib import Path
+from typing import Any, get_args, get_type_hints
 
 import pytest
 
@@ -30,8 +32,15 @@ from foundation_abc.math.precisionTimeABC import (
     PrecisionTimeIntervalABC,
     PrecisionTimestampABC,
 )
-from foundation_abc.math.spatialABCs import PositionABC, QuaternionABC, SpatialTransformABC
-from foundation_abc.math.sphericalABCs import UnitSphericalArcABC, UnitSphericalSmallCircleABC
+from foundation_abc.math.spatialABCs import (
+    PositionABC,
+    QuaternionABC,
+    SpatialTransformABC,
+)
+from foundation_abc.math.sphericalABCs import (
+    UnitSphericalArcABC,
+    UnitSphericalSmallCircleABC,
+)
 from foundation_abc.math.waveformABCs import (
     PositionWaveformABC,
     QuaternionWaveformABC,
@@ -69,7 +78,11 @@ _TIME_INTERVAL: dict[str, Any] = {
     "sign": "positive",
 }
 # Optionals absent -- this is also the shape nested waveform payloads reuse.
-_TIMESTAMP_MINIMAL: dict[str, Any] = {"attoseconds": 0, "seconds": 1_000, "sign": "positive"}
+_TIMESTAMP_MINIMAL: dict[str, Any] = {
+    "attoseconds": 0,
+    "seconds": 1_000,
+    "sign": "positive",
+}
 # Optionals present -- referenceFrame / timescale / uncertainty all populated.
 _TIMESTAMP_FULL: dict[str, Any] = {
     "attoseconds": 5,
@@ -98,7 +111,11 @@ PAIRS: list[tuple[type[DataModelHelper], type[Any], dict[str, Any]]] = [
     (
         PositionWaveformType,
         PositionWaveformABC,
-        {"dt": _TIME_INTERVAL, "positions": [_POSITION, _POSITION_2], "t0": _TIMESTAMP_MINIMAL},
+        {
+            "dt": _TIME_INTERVAL,
+            "positions": [_POSITION, _POSITION_2],
+            "t0": _TIMESTAMP_MINIMAL,
+        },
     ),
     (
         QuaternionWaveformType,
@@ -132,11 +149,62 @@ PAIRS: list[tuple[type[DataModelHelper], type[Any], dict[str, Any]]] = [
     (
         UnitSphericalSmallCircleWaveformType,
         WaveformUnitSphericalSmallCircleABC,
-        {"dt": _TIME_INTERVAL, "smallCircles": [_SMALL_CIRCLE], "t0": _TIMESTAMP_MINIMAL},
+        {
+            "dt": _TIME_INTERVAL,
+            "smallCircles": [_SMALL_CIRCLE],
+            "t0": _TIMESTAMP_MINIMAL,
+        },
     ),
 ]
 
 assert len(PAIRS) == 13, f"expected all 13 Math types, found {len(PAIRS)}"
+
+# (wire name, constructor field) for every schema-required field.
+REQUIRED_FIELDS: dict[type[DataModelHelper], tuple[tuple[str, str], ...]] = {
+    QuaternionType: (("w", "w"), ("x", "x"), ("y", "y"), ("z", "z")),
+    PositionType: (("x", "x"), ("y", "y"), ("z", "z")),
+    SpatialTransformType: (("orientation", "orientation"), ("position", "position")),
+    PrecisionTimeIntervalType: (
+        ("attoseconds", "attoseconds"),
+        ("seconds", "seconds"),
+        ("sign", "sign"),
+    ),
+    PrecisionTimestampType: (
+        ("attoseconds", "attoseconds"),
+        ("seconds", "seconds"),
+        ("sign", "sign"),
+    ),
+    UnitSphericalArcType: (
+        ("arcLength", "arc_length"),
+        ("azimuth", "azimuth"),
+        ("orient", "orient"),
+        ("polar", "polar"),
+    ),
+    UnitSphericalSmallCircleType: (
+        ("azimuth", "azimuth"),
+        ("polar", "polar"),
+        ("radiusAngle", "radius_angle"),
+    ),
+    PositionWaveformType: (("dt", "dt"), ("positions", "positions"), ("t0", "t0")),
+    QuaternionWaveformType: (
+        ("dt", "dt"),
+        ("quaternions", "quaternions"),
+        ("t0", "t0"),
+    ),
+    SpatialTransformWaveformType: (
+        ("dt", "dt"),
+        ("positions", "positions"),
+        ("quaternions", "quaternions"),
+        ("t0", "t0"),
+    ),
+    ScalarWaveformType: (("dt", "dt"), ("t0", "t0"), ("waveform", "waveform")),
+    UnitSphericalArcWaveformType: (("arcs", "arcs"), ("dt", "dt"), ("t0", "t0")),
+    UnitSphericalSmallCircleWaveformType: (
+        ("dt", "dt"),
+        ("smallCircles", "small_circles"),
+        ("t0", "t0"),
+    ),
+}
 
 
 def _pair_id(value: Any) -> str | None:
@@ -175,3 +243,49 @@ def test_precision_timestamp_parity_with_optionals_present() -> None:
     """
     instance = PrecisionTimestampType.from_dict(_TIMESTAMP_FULL)
     assert PrecisionTimestampABC.to_dict(instance) == instance.to_dict()
+
+
+@pytest.mark.parametrize("type_cls,_abc_cls,payload", PAIRS, ids=_pair_id)
+def test_direct_constructor_requires_every_schema_required_field(
+    type_cls: type[DataModelHelper], _abc_cls: type[Any], payload: dict[str, Any]
+) -> None:
+    """Required fields are non-optional and have no constructor defaults."""
+    instance = type_cls.from_dict(payload)
+    parameters = inspect.signature(type_cls).parameters
+    hints = get_type_hints(type_cls)
+    required = REQUIRED_FIELDS[type_cls]
+    complete = {field_name: getattr(instance, field_name) for _, field_name in required}
+
+    for _, field_name in required:
+        assert parameters[field_name].default is inspect.Parameter.empty
+        assert type(None) not in get_args(hints[field_name])
+        incomplete = complete | {}
+        del incomplete[field_name]
+        with pytest.raises(TypeError):
+            type_cls(**incomplete)
+
+
+@pytest.mark.parametrize("type_cls,_abc_cls,payload", PAIRS, ids=_pair_id)
+def test_from_dict_rejects_each_missing_required_field(
+    type_cls: type[DataModelHelper], _abc_cls: type[Any], payload: dict[str, Any]
+) -> None:
+    """Deserialization rejects every required field when it is absent."""
+    for wire_name, _ in REQUIRED_FIELDS[type_cls]:
+        incomplete = payload | {}
+        del incomplete[wire_name]
+        with pytest.raises((TypeError, ValueError)):
+            type_cls.from_dict(incomplete)
+
+
+def test_generated_math_source_pins_slotted_required_field_strategy() -> None:
+    """Regeneration must retain slots and never restore compatibility defaults."""
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "src"
+        / "foundationTypes"
+        / "mathTypes"
+        / "MathTypes.py"
+    ).read_text(encoding="utf-8")
+
+    assert source.count("@dataclass(slots=True)") == len(PAIRS)
+    assert "# type: ignore[assignment]" not in source

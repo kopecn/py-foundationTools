@@ -61,9 +61,7 @@ class TestFromWireRoundTrip:
         model = GeoCoordinate(latitude=51.5074, longitude=-0.1278)
         wire_str = model.to_wire()
 
-        result = await CLITransact.run_async_with_model(
-            ["echo", wire_str], GeoCoordinate.from_wire
-        )
+        result = await CLITransact.run_async_with_model(["echo", wire_str], GeoCoordinate.from_wire)
 
         assert result.success is True
         assert result.model == model

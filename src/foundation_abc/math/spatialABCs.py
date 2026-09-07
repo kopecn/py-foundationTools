@@ -1,4 +1,4 @@
-"""Tier-2 shared abstractions for positions, quaternions, and 6-DOF poses.
+"""Structural interfaces for positions, quaternions, and 6-DOF poses.
 
 The goal of this module is to give **SE(3), the Lie group of 3D rigid body
 transformations (rotation + translation)**, a storage-independent data
@@ -11,19 +11,19 @@ lowercase ``se(3)``, is the tangent space at the identity — e.g. a
 twist/velocity — and is out of scope for these accessor contracts.)
 
 See ``.claude/specs/mathTypeTiers.md``. :class:`PositionABC`, :class:`QuaternionABC`,
-and :class:`SpatialTransformABC` are the shared accessor + serialization contracts
-(inherited by the codegen ``PositionType`` / ``QuaternionType`` /
-``SpatialTransformType``). The math contracts (group composition, inverse, etc.)
+and :class:`SpatialTransformABC` are structural accessor + serialization protocols.
+Code-generated carriers satisfy them without inheritance. The math contracts
+(group composition, inverse, etc.)
 are in :mod:`foundationTypes.mathTypes.positionVectorMathLike`,
 :mod:`foundationTypes.mathTypes.quaternionMathLike`, and
 :mod:`foundationTypes.mathTypes.spatialPoseMathLike`.
 """
 
-from abc import ABC, abstractmethod
-from typing import Any
+from abc import abstractmethod
+from typing import Any, Protocol
 
 
-class PositionABC(ABC):
+class PositionABC(Protocol):
     """Shared, storage-independent abstraction for a 3D position (``x``, ``y``, ``z``).
 
     This is the translation component of an SE(3) rigid body transformation —
@@ -45,8 +45,9 @@ class PositionABC(ABC):
     def z(self) -> float:
         """The z-axis (third Cartesian) component."""
 
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
-        return {"x": self.x, "y": self.y, "z": self.z}
+        """Serialize this position."""
 
     @classmethod
     @abstractmethod
@@ -54,7 +55,7 @@ class PositionABC(ABC):
         """Construct from a ``{"x", "y", "z"}`` dict."""
 
 
-class QuaternionABC(ABC):
+class QuaternionABC(Protocol):
     """Shared, storage-independent abstraction for a quaternion.
 
     A quaternion has a scalar (real) component ``w`` and a vector (imaginary)
@@ -88,9 +89,9 @@ class QuaternionABC(ABC):
     def z(self) -> float:
         """The z component of the quaternion's vector (imaginary) part."""
 
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain ``{"w", "x", "y", "z"}`` dict."""
-        return {"w": self.w, "x": self.x, "y": self.y, "z": self.z}
 
     @classmethod
     @abstractmethod
@@ -98,7 +99,7 @@ class QuaternionABC(ABC):
         """Construct from a ``{"w", "x", "y", "z"}`` dict."""
 
 
-class SpatialTransformABC(ABC):
+class SpatialTransformABC(Protocol):
     """Shared abstraction for a 6-DOF pose (position + orientation).
 
     A pose is one element of SE(3), the Lie group of 3D rigid body
@@ -116,11 +117,9 @@ class SpatialTransformABC(ABC):
     def orientation(self) -> QuaternionABC:
         """The quaternion orientation component of the pose."""
 
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "position": self.position.to_dict(),
-            "orientation": self.orientation.to_dict(),
-        }
+        """Serialize this spatial transform."""
 
     @classmethod
     @abstractmethod

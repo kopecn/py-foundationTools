@@ -73,9 +73,7 @@ class TransactionRouter:
         self._read_size = read_size
         self._poll_timeout = poll_timeout
         self._pending: dict[str, asyncio.Future[bytes]] = {}
-        self._unsolicited: asyncio.Queue[bytes | None] = asyncio.Queue(
-            maxsize=unsolicited_maxsize
-        )
+        self._unsolicited: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=unsolicited_maxsize)
         self._reader_task: asyncio.Task[None] | None = None
         self._closed = False
 

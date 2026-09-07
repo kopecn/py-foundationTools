@@ -199,9 +199,7 @@ class TestPresentationSlideLayouts(unittest.TestCase):
         # round-trip byte-identically for state.
         with_override = copy.deepcopy(self.example_dict)
         with_override["defaults"]["title"] = {"fontFamily": "Georgia"}
-        title_layout = next(
-            layer for layer in with_override["layouts"] if layer["id"] == "title"
-        )
+        title_layout = next(layer for layer in with_override["layouts"] if layer["id"] == "title")
         title_region = next(r for r in title_layout["regions"] if r["id"] == "title")
         title_region["fontFamily"] = "Calibri"
 
@@ -209,12 +207,8 @@ class TestPresentationSlideLayouts(unittest.TestCase):
         result = layouts.to_dict()
 
         self.assertEqual(result["defaults"]["title"]["fontFamily"], "Georgia")
-        result_title_layout = next(
-            layer for layer in result["layouts"] if layer["id"] == "title"
-        )
-        result_title_region = next(
-            r for r in result_title_layout["regions"] if r["id"] == "title"
-        )
+        result_title_layout = next(layer for layer in result["layouts"] if layer["id"] == "title")
+        result_title_region = next(r for r in result_title_layout["regions"] if r["id"] == "title")
         self.assertEqual(result_title_region["fontFamily"], "Calibri")
 
         round_tripped = PresentationSlideLayouts.from_dict(result)

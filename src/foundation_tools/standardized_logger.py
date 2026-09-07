@@ -239,9 +239,7 @@ class _DateRollingFileHandler(Handler):
         """Fail fast if the derived file name would resolve outside ``log_dir``."""
         probe = (self._log_dir / f"{self._logger_name}_0000-00-00.log").resolve()
         if not probe.is_relative_to(self._log_dir.resolve()):
-            raise ValueError(
-                f"logger name {original_name!r} escapes log_dir {self._log_dir}"
-            )
+            raise ValueError(f"logger name {original_name!r} escapes log_dir {self._log_dir}")
 
     @staticmethod
     def _utc_date() -> str:

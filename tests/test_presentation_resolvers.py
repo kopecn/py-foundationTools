@@ -173,9 +173,7 @@ class TestResolveSlideText:
         subtitle: str | None = None,
         content: list[ContentBlock] | None = None,
     ) -> Slide:
-        return Slide(
-            layout=layout, number=1, title=title, subtitle=subtitle, content=content
-        )
+        return Slide(layout=layout, number=1, title=title, subtitle=subtitle, content=content)
 
     def _layout(self, layout_id: str) -> SlideLayout:
         layout = resolve_layout(_layouts(), layout_id).layout
@@ -183,9 +181,7 @@ class TestResolveSlideText:
         return layout
 
     def test_binds_title_and_subtitle_to_reserved_regions(self) -> None:
-        result = resolve_slide_text(
-            self._layout("title"), self._slide(title="Deck", subtitle="Q3")
-        )
+        result = resolve_slide_text(self._layout("title"), self._slide(title="Deck", subtitle="Q3"))
         assert result.ok
         assert [(b.field, b.region.id, b.text) for b in result.bindings] == [
             ("title", "title", "Deck"),
