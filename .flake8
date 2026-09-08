@@ -9,8 +9,9 @@ select = E, F, B
 
 # E203, W503: disabled for black compatibility.
 # E704: `def f(): ...` one-liners are the idiomatic form for @overload / stub bodies
+# F401: codegen creates a bunch of import baggage that cannot easly and automically removed.  
 #   (e.g. cliTransact.py's typed overloads). Not a defect.
-extend-ignore = E203, E704, W503
+extend-ignore = E203, E704, W503, F401
 
 per-file-ignores =
     # Test docstrings / descriptive assertions carry long lines; don't wrap for E501.

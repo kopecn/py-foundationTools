@@ -178,5 +178,5 @@ make bump-major    # Increment major version (X.x.x)
 
 ## Requirements
 
-- Python >= 3.10
+- Python >= 3.11
 - No external dependencies

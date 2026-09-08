@@ -1,6 +1,6 @@
 # pyFoundationTools — Documentation
 
-`pyFoundationTools` is a **zero-runtime-dependency** Python library (>= 3.10) that extends the standard library with reusable, well-typed building blocks. Nothing in `[project].dependencies` — every feature here is pure standard library.
+`pyFoundationTools` is a **zero-runtime-dependency** Python library (>= 3.11) that extends the standard library with reusable, well-typed building blocks. Nothing in `[project].dependencies` — every feature here is pure standard library.
 
 These docs are organized by top-level module. Each module page explains what the module is for, its public surface, and how the pieces fit, with diagrams for the parts where the shape matters more than the signature.
 

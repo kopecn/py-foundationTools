@@ -105,7 +105,6 @@ Measured `ensurepip._bundled/` contents plus a real `venv` from each:
 
 | Python | ensurepip bundles | `setuptools.build_meta` in fresh venv | `_should_suppress_build_backends()` | pre-fix `nuke` |
 |---|---|---|---|---|
-| 3.10 | pip + setuptools | importable | `True` | safe |
 | 3.11 | pip + setuptools | importable | `True` | safe |
 | 3.12 | pip only | **missing** | `False` | **destructive** |
 | 3.13 | pip only | **missing** | `False` | **destructive** |
@@ -397,7 +396,6 @@ built from each interpreter):
 
 | Python | ensurepip bundles | `setuptools.build_meta` in a fresh venv | `_should_suppress_build_backends()` | `nuke` safe pre-fix |
 |---|---|---|---|---|
-| 3.10 | pip + setuptools | importable | `True` | yes |
 | 3.11 | pip + setuptools | importable | `True` | yes |
 | 3.12 | pip only | **missing** | `False` | **no** |
 | 3.13 | pip only | **missing** | `False` | **no** |

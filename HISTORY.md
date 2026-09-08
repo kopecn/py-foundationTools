@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `foundation_tools/file_tools` path helpers (`find_matching_paths`).
 
 ### Changed
+- Dropped Python 3.10; support floor is now 3.11, adding 3.14 and 3.15.
 - Renamed `foundation_physics` → `foundation_science`; constants reworked onto the `Constant` float subclass with registry-based discovery.
 - Hardened `StandardizedLogger` compatibility and safety.
 
