@@ -31,14 +31,15 @@ _sed_inplace() {
     fi
 }
 
-# Prefer the project's `uv run ruff` runner; fall back to a bare ruff on PATH.
-_ruff() {
+# FIRST-CLASS formatter is black. Prefer the project's `uv run black` runner;
+# fall back to a bare black on PATH.
+_black() {
     if command -v uv >/dev/null 2>&1; then
-        uv run ruff "$@"
-    elif command -v ruff >/dev/null 2>&1; then
-        ruff "$@"
+        uv run black "$@"
+    elif command -v black >/dev/null 2>&1; then
+        black "$@"
     else
-        echo "ERROR: neither 'uv' nor 'ruff' found on PATH" >&2
+        echo "ERROR: neither 'uv' nor 'black' found on PATH" >&2
         return 1
     fi
 }
@@ -109,14 +110,15 @@ fix_from_dict_classmethod() {
     bash "${_CODEGEN_REUSE_DIR}/normalize_generated.sh" "$file"
 }
 
-run_ruff() {
+# Format a generated file with the first-class formatter (black) after the
+# structural sed fixes. black formats only — there is no lint-autofix pass (flake8,
+# the first-class linter, has none). quicktype's typing is left as emitted; the gate
+# lints it via `make lint`.
+run_black() {
     local file="${1:-$OUTPUT_PYTHON_FILE}"
     fix_to_dict_return_type "$file"
     fix_from_dict_classmethod "$file"
-    _ruff format "$file"
-    # --unsafe-fixes mirrors the uv-format target (Makefile): the generated tree
-    # is held to the same autofix level as hand-written source. Do NOT drop it.
-    _ruff check --fix --unsafe-fixes "$file"
+    _black "$file"
 }
 
 ensure_py_typed() {

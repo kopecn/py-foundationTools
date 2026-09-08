@@ -161,7 +161,9 @@ class TestCLITransact:
     def test_determine_success_with_return_code_zero(self) -> None:
         """Test success determination with return code 0."""
         cli = CLITransact()
-        assert cli._determine_success(SUCCESS_RETURN_CODE, "output") is True  # pylint: disable=protected-access
+        assert (
+            cli._determine_success(SUCCESS_RETURN_CODE, "output") is True
+        )  # pylint: disable=protected-access
 
     def test_determine_success_with_return_code_nonzero(self) -> None:
         """Test success determination with non-zero return code."""
@@ -172,7 +174,9 @@ class TestCLITransact:
         """Test success determination with success marker present."""
         cli = CLITransact(success_marker="SUCCESS")
         assert (
-            cli._determine_success(SUCCESS_RETURN_CODE, "Operation SUCCESS completed")  # pylint: disable=protected-access
+            cli._determine_success(
+                SUCCESS_RETURN_CODE, "Operation SUCCESS completed"
+            )  # pylint: disable=protected-access
             is True
         )
 
@@ -180,17 +184,22 @@ class TestCLITransact:
         """Test success determination with success marker missing."""
         cli = CLITransact(success_marker="SUCCESS")
         assert (
-            cli._determine_success(SUCCESS_RETURN_CODE, "Operation completed") is False  # pylint: disable=protected-access
+            cli._determine_success(SUCCESS_RETURN_CODE, "Operation completed")
+            is False  # pylint: disable=protected-access
         )
 
     def test_determine_success_with_error_sentinel(self) -> None:
         """The framework error sentinel (-1) is always a failure, marker or not."""
         cli = CLITransact()
-        assert cli._determine_success(ERROR_RETURN_CODE, "output") is False  # pylint: disable=protected-access
+        assert (
+            cli._determine_success(ERROR_RETURN_CODE, "output") is False
+        )  # pylint: disable=protected-access
 
         cli_with_marker = CLITransact(success_marker="SUCCESS")
         assert (
-            cli_with_marker._determine_success(ERROR_RETURN_CODE, "SUCCESS")  # pylint: disable=protected-access
+            cli_with_marker._determine_success(
+                ERROR_RETURN_CODE, "SUCCESS"
+            )  # pylint: disable=protected-access
             is False
         )
 
@@ -212,7 +221,9 @@ class TestCLITransact:
     def test_normalize_output_with_content(self) -> None:
         """Test output normalization with actual content."""
         cli = CLITransact()
-        assert cli._normalize_output("  hello world  \n") == "hello world"  # pylint: disable=protected-access
+        assert (
+            cli._normalize_output("  hello world  \n") == "hello world"
+        )  # pylint: disable=protected-access
 
 
 class TestCLITransactSync:
@@ -570,6 +581,187 @@ class TestCLITransactAsync:
         assert result.return_code == ERROR_RETURN_CODE
         assert result.stderr is not None and "Command execution failed" in result.stderr
         assert result.success is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific (POSIX signals / os.kill)")
+    async def test_run_async_cancellation_reaps_child_and_reraises(self) -> None:
+        """Cancelling the awaiting task must propagate CancelledError unchanged AND
+        terminate + reap the real child process.
+
+        Proves, against a genuine long-lived subprocess:
+          (a) ``asyncio.CancelledError`` propagates out of ``run_async`` — it is not
+              swallowed and not converted into a ``CLITransactResult``;
+          (b) the child has actually exited and been reaped — ``process.returncode``
+              is set and the OS no longer knows the pid (no orphan, no zombie).
+        """
+        captured: dict[str, Any] = {}
+        real_create = asyncio.create_subprocess_exec
+
+        async def capturing_create(*args: Any, **kwargs: Any) -> Any:
+            proc = await real_create(*args, **kwargs)
+            captured["proc"] = proc
+            return proc
+
+        long_lived = [sys.executable, "-c", "import time; time.sleep(30)"]
+
+        with patch("asyncio.create_subprocess_exec", side_effect=capturing_create):
+            task = asyncio.create_task(CLITransact.run_async(long_lived))
+
+            # Wait until the child exists and the task is parked in communicate().
+            for _ in range(500):
+                if "proc" in captured:
+                    break
+                await asyncio.sleep(0.01)
+            assert "proc" in captured, "child subprocess was never created"
+            await asyncio.sleep(0.05)
+
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+
+        proc = captured["proc"]
+        pid = proc.pid
+
+        # The cleanup path must have waited on the child: returncode is now set
+        # (negative -> killed by signal), never left as None.
+        assert proc.returncode is not None, "child was not reaped (returncode is None)"
+
+        # A reaped process leaves no zombie: the pid is gone from the OS table, so
+        # os.kill(pid, 0) raises ProcessLookupError rather than succeeding.
+        with pytest.raises(ProcessLookupError):
+            os.kill(pid, 0)
+
+
+class TestCLITransactShellContract:
+    """fix-14: `str` commands run through an explicit, consistent shell.
+
+    A `str` command is a shell command and executes through a fixed shell
+    invocation (`bash -c` by default, or an explicit `shell` override) on BOTH
+    the sync and async paths. The sync path no longer uses
+    `subprocess.run(shell=True)` with the platform default shell. The shell is
+    never taken from the ambient environment, and `str`/`list[str]` never fall
+    back to each other's execution mode.
+    """
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell-identity check via `echo $0`")
+    def test_sync_string_command_runs_via_bash(self) -> None:
+        """A sync `str` command is interpreted by `bash`, not the platform `sh`.
+
+        `echo $0` reports the interpreting shell. Before this fix the sync path
+        used `subprocess.run(shell=True)` and this reported `sh`.
+        """
+        result = CLITransact.run_sync("echo $0")
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.stdout == "bash"
+        assert result.success is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell-identity check via `echo $0`")
+    async def test_async_string_command_runs_via_bash(self) -> None:
+        """An async `str` command is interpreted by `bash` as well."""
+        result = await CLITransact.run_async("echo $0")
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.stdout == "bash"
+        assert result.success is True
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell semantics")
+    def test_string_command_sync_async_parity(self) -> None:
+        """The same `str` command has identical execution semantics on both paths.
+
+        Uses a bash-ism (`[[ ... ]]` plus `$0`) that only behaves this way when a
+        real `bash` interpreted the command string.
+        """
+        command = '[[ -n nonempty ]] && echo "$0 ok"'
+        sync_result = CLITransact.run_sync(command)
+
+        async def _run() -> CLITransactResult:
+            return await CLITransact.run_async(command)
+
+        async_result = asyncio.run(_run())
+
+        assert sync_result.stdout == async_result.stdout == "bash ok"
+        assert sync_result.return_code == async_result.return_code == SUCCESS_RETURN_CODE
+        assert sync_result.success is True
+        assert async_result.success is True
+
+    @pytest.mark.skipif(
+        sys.platform == "win32", reason="POSIX: `sh` is always present; identity via `echo $0`"
+    )
+    def test_sync_explicit_shell_override_routes_through_given_shell(self) -> None:
+        """An explicit `shell` override replaces the `bash -c` default (sync)."""
+        result = CLITransact.run_sync("echo $0", shell=["sh", "-c"])
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+        assert result.stdout != "bash"
+
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(
+        sys.platform == "win32", reason="POSIX: `sh` is always present; identity via `echo $0`"
+    )
+    async def test_async_explicit_shell_override_routes_through_given_shell(self) -> None:
+        """An explicit `shell` override replaces the `bash -c` default (async)."""
+        result = await CLITransact.run_async("echo $0", shell=["sh", "-c"])
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.success is True
+        assert result.stdout != "bash"
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell-identity via `echo $0`")
+    def test_string_command_ignores_ambient_shell_env(self) -> None:
+        """The shell is fixed to `bash -c`; the ambient `$SHELL` is never consulted."""
+        with patch.dict(os.environ, {"SHELL": "/nonexistent/pseudo-shell"}):
+            result = CLITransact.run_sync("echo $0")
+        assert result.stdout == "bash"
+        assert result.success is True
+
+    def test_sync_string_path_uses_explicit_bash_argv_no_shell(self) -> None:
+        """Regression lock: the sync `str` path calls `subprocess.run` with an
+        explicit `["bash", "-c", <command>]` argv and `shell=False` — never
+        `shell=True` with the bare command string.
+        """
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = subprocess.CompletedProcess(
+                args=["bash", "-c", "echo x"], returncode=0, stdout="x", stderr=""
+            )
+            CLITransact.run_sync("echo x")
+
+        call_args, call_kwargs = mock_run.call_args
+        assert call_args[0] == ["bash", "-c", "echo x"]
+        assert call_kwargs["shell"] is False
+
+    @patch("asyncio.create_subprocess_exec")
+    @pytest.mark.asyncio
+    async def test_async_string_path_uses_explicit_bash_argv(self, mock_exec: Any) -> None:
+        """Regression lock: the async `str` path spawns `bash -c <command>`."""
+
+        async def _fake_communicate() -> tuple[bytes, bytes]:
+            return b"x", b""
+
+        mock_proc = MagicMock()
+        mock_proc.communicate = _fake_communicate
+        mock_proc.returncode = 0
+        mock_exec.return_value = mock_proc
+
+        await CLITransact.run_async("echo x")
+
+        call_args, _ = mock_exec.call_args
+        assert list(call_args) == ["bash", "-c", "echo x"]
+
+    def test_sync_list_command_is_never_shell_interpreted(self) -> None:
+        """A `list[str]` never falls back to shell mode: a single-element list
+        holding shell syntax is executed as a literal `argv[0]` (nonexistent) and
+        contained as a framework error, not re-parsed by a shell.
+        """
+        result = CLITransact.run_sync(["echo hello && echo world"])
+        assert result.return_code == ERROR_RETURN_CODE
+        assert result.success is False
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Unix-specific test")
+    def test_sync_list_command_has_no_shell_expansion(self) -> None:
+        """`list[str]` is direct argv: shell metacharacters stay literal."""
+        result = CLITransact.run_sync(["echo", "$HOME"])
+        assert result.return_code == SUCCESS_RETURN_CODE
+        assert result.stdout == "$HOME"
+        assert result.success is True
 
 
 class TestCLITransactSyncWithModel:

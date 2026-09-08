@@ -5,10 +5,8 @@
 # To modify, update the source schema in schema/schemas/ and re-run codegen.
 # =============================================================================
 
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypeVar
-
+from dataclasses import dataclass
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_bool,
@@ -23,6 +21,7 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
+from typing import List, Optional, Any, Dict, Union, TypeVar, Callable, Type, cast
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
@@ -43,13 +42,13 @@ class AudiocontentAnnotations(DataModelHelper):
     Optional annotations for the client.
     """
 
-    audience: list[RoleElement] | None = None
+    audience: Optional[List[RoleElement]] = None
     """Describes who the intended audience of this object or data is.
     
     It can include multiple entries to indicate content useful for multiple audiences (e.g.,
     `["user", "assistant"]`).
     """
-    last_modified: str | None = None
+    last_modified: Optional[str] = None
     """The moment the resource was last modified, as an ISO 8601 formatted string.
     
     Should be an ISO 8601 formatted string (e.g., "2025-01-12T15:00:58Z").
@@ -57,7 +56,7 @@ class AudiocontentAnnotations(DataModelHelper):
     Examples: last activity timestamp in an open file, timestamp when the resource
     was attached, etc.
     """
-    priority: float | None = None
+    priority: Optional[float] = None
     """Describes how important this data is for operating the server.
     
     A value of 1 means "most important," and indicates that the data is
@@ -67,7 +66,8 @@ class AudiocontentAnnotations(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "AudiocontentAnnotations":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         audience = from_union([lambda x: from_list(RoleElement, x), from_none], obj.get("audience"))
         last_modified = from_union([from_str, from_none], obj.get("lastModified"))
         priority = from_union([from_float, from_none], obj.get("priority"))
@@ -102,16 +102,17 @@ class Audiocontent(DataModelHelper):
     """The MIME type of the audio. Different providers may support different audio types."""
 
     type: AudiocontentType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Audiocontent":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         data = from_str(obj.get("data"))
         mime_type = from_str(obj.get("mimeType"))
         type = AudiocontentType(obj.get("type"))
@@ -145,7 +146,7 @@ class Basemetadata(DataModelHelper):
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -157,7 +158,8 @@ class Basemetadata(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Basemetadata":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         title = from_union([from_str, from_none], obj.get("title"))
         return Basemetadata(name, title)
@@ -178,16 +180,17 @@ class Blobresourcecontents(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Blobresourcecontents":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         blob = from_str(obj.get("blob"))
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -214,13 +217,14 @@ class BooleanschemaType(Enum):
 @dataclass
 class BooleanschemaClass(DataModelHelper):
     type: BooleanschemaType
-    default: bool | None = None
-    description: str | None = None
-    title: str | None = None
+    default: Optional[bool] = None
+    description: Optional[str] = None
+    title: Optional[str] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "BooleanschemaClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = BooleanschemaType(obj.get("type"))
         default = from_union([from_bool, from_none], obj.get("default"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -253,7 +257,7 @@ class PurpleMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -262,7 +266,8 @@ class PurpleMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PurpleMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return PurpleMeta(progress_token)
 
@@ -288,12 +293,13 @@ class Task(DataModelHelper):
     Include this in the `task` field of the request parameters.
     """
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Requested duration in milliseconds to retain task from creation."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Task":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         ttl = from_union([from_int, from_none], obj.get("ttl"))
         return Task(ttl)
 
@@ -311,14 +317,14 @@ class CalltoolrequestParams(DataModelHelper):
     name: str
     """The name of the tool."""
 
-    meta: PurpleMeta | None = None
+    meta: Optional[PurpleMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    arguments: dict[str, Any] | None = None
+    arguments: Optional[Dict[str, Any]] = None
     """Arguments to use for the tool call."""
 
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -329,7 +335,8 @@ class CalltoolrequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CalltoolrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         meta = from_union([PurpleMeta.from_dict, from_none], obj.get("_meta"))
         arguments = from_union(
@@ -356,14 +363,15 @@ class CalltoolrequestParams(DataModelHelper):
 class Calltoolrequest(DataModelHelper):
     """Used by the client to invoke a tool provided by the server."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: CalltoolrequestMethod
     params: CalltoolrequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Calltoolrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = CalltoolrequestMethod(obj.get("method"))
@@ -405,18 +413,18 @@ class IconElement(DataModelHelper):
     Consumers SHOULD take appropriate precautions when consuming SVGs as they can contain
     executable JavaScript.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """Optional MIME type override if the source MIME type is missing or generic.
     For example: `"image/png"`, `"image/jpeg"`, or `"image/svg+xml"`.
     """
-    sizes: list[str] | None = None
+    sizes: Optional[List[str]] = None
     """Optional array of strings that specify sizes at which the icon can be used.
     Each string should be in WxH format (e.g., `"48x48"`, `"96x96"`) or `"any"` for scalable
     formats like SVG.
     
     If not provided, the client should assume that the icon can be used at any size.
     """
-    theme: Theme | None = None
+    theme: Optional[Theme] = None
     """Optional specifier for the theme this icon is designed for. `light` indicates
     the icon is designed to be used with a light background, and `dark` indicates
     the icon is designed to be used with a dark background.
@@ -426,7 +434,8 @@ class IconElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "IconElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         src = from_str(obj.get("src"))
         mime_type = from_union([from_str, from_none], obj.get("mimeType"))
         sizes = from_union([lambda x: from_list(from_str, x), from_none], obj.get("sizes"))
@@ -450,23 +459,24 @@ class Resource(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """The text of the item. This must only be set if the item can actually be represented as
     text (not binary data).
     """
-    blob: str | None = None
+    blob: Optional[str] = None
     """A base64-encoded string representing the binary data of the item."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resource":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         mime_type = from_union([from_str, from_none], obj.get("mimeType"))
@@ -519,35 +529,35 @@ class ContentblockElement(DataModelHelper):
     """
 
     type: ContentblockType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """The text content of the message."""
 
-    data: str | None = None
+    data: Optional[str] = None
     """The base64-encoded image data.
     
     The base64-encoded audio data.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of the image. Different providers may support different image types.
     
     The MIME type of the audio. Different providers may support different audio types.
     
     The MIME type of this resource, if known.
     """
-    description: str | None = None
+    description: Optional[str] = None
     """A description of what this resource represents.
     
     This can be used by clients to improve the LLM's understanding of available resources. It
     can be thought of like a "hint" to the model.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -558,17 +568,17 @@ class ContentblockElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    name: str | None = None
+    name: Optional[str] = None
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    size: int | None = None
+    size: Optional[int] = None
     """The size of the raw resource content, in bytes (i.e., before base64 encoding or any
     tokenization), if known.
     
     This can be used by Hosts to display file sizes and estimate context window usage.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -577,14 +587,15 @@ class ContentblockElement(DataModelHelper):
     where `annotations.title` should be given precedence over using `name`,
     if present).
     """
-    uri: str | None = None
+    uri: Optional[str] = None
     """The URI of this resource."""
 
-    resource: Resource | None = None
+    resource: Optional[Resource] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ContentblockElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = ContentblockType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         annotations = from_union(
@@ -660,14 +671,14 @@ class ContentblockElement(DataModelHelper):
 class Calltoolresult(DataModelHelper):
     """The server's response to a tool call."""
 
-    content: list[ContentblockElement]
+    content: List[ContentblockElement]
     """A list of content objects that represent the unstructured result of the tool call."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    is_error: bool | None = None
+    is_error: Optional[bool] = None
     """Whether the tool call ended in an error.
     
     If not set, this is assumed to be false (the call was successful).
@@ -681,12 +692,13 @@ class Calltoolresult(DataModelHelper):
     server does not support tool calls, or any other exceptional conditions,
     should be reported as an MCP error response.
     """
-    structured_content: dict[str, Any] | None = None
+    structured_content: Optional[Dict[str, Any]] = None
     """An optional JSON object that represents the structured result of the tool call."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Calltoolresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         content = from_list(ContentblockElement.from_dict, obj.get("content"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         is_error = from_union([from_bool, from_none], obj.get("isError"))
@@ -719,15 +731,15 @@ class CancellednotificationMethod(Enum):
 class CancellednotificationParams(DataModelHelper):
     """Parameters for a `notifications/cancelled` notification."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    reason: str | None = None
+    reason: Optional[str] = None
     """An optional string describing the reason for the cancellation. This MAY be logged or
     presented to the user.
     """
-    request_id: int | str | None = None
+    request_id: Optional[Union[int, str]] = None
     """The ID of the request to cancel.
     
     This MUST correspond to the ID of a request previously issued in the same direction.
@@ -737,7 +749,8 @@ class CancellednotificationParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CancellednotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         reason = from_union([from_str, from_none], obj.get("reason"))
         request_id = from_union([from_int, from_str, from_none], obj.get("requestId"))
@@ -778,7 +791,8 @@ class Cancellednotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Cancellednotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = CancellednotificationMethod(obj.get("method"))
         params = CancellednotificationParams.from_dict(obj.get("params"))
@@ -796,12 +810,13 @@ class Cancellednotification(DataModelHelper):
 class ClientcapabilitiesElicitation(DataModelHelper):
     """Present if the client supports elicitation from the server."""
 
-    form: dict[str, Any] | None = None
-    url: dict[str, Any] | None = None
+    form: Optional[Dict[str, Any]] = None
+    url: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientcapabilitiesElicitation":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         form = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("form"))
         url = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("url"))
         return ClientcapabilitiesElicitation(form, url)
@@ -819,12 +834,13 @@ class ClientcapabilitiesElicitation(DataModelHelper):
 class Roots(DataModelHelper):
     """Present if the client supports listing roots."""
 
-    list_changed: bool | None = None
+    list_changed: Optional[bool] = None
     """Whether the client supports notifications for changes to the roots list."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Roots":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         list_changed = from_union([from_bool, from_none], obj.get("listChanged"))
         return Roots(list_changed)
 
@@ -839,16 +855,17 @@ class Roots(DataModelHelper):
 class ClientcapabilitiesSampling(DataModelHelper):
     """Present if the client supports sampling from an LLM."""
 
-    context: dict[str, Any] | None = None
+    context: Optional[Dict[str, Any]] = None
     """Whether the client supports context inclusion via includeContext parameter.
     If not declared, servers SHOULD only use `includeContext: "none"` (or omit it).
     """
-    tools: dict[str, Any] | None = None
+    tools: Optional[Dict[str, Any]] = None
     """Whether the client supports tool use via tools and toolChoice parameters."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientcapabilitiesSampling":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         context = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("context"))
         tools = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("tools"))
         return ClientcapabilitiesSampling(context, tools)
@@ -870,12 +887,13 @@ class ClientcapabilitiesSampling(DataModelHelper):
 class RequestsElicitation(DataModelHelper):
     """Task support for elicitation-related requests."""
 
-    create: dict[str, Any] | None = None
+    create: Optional[Dict[str, Any]] = None
     """Whether the client supports task-augmented elicitation/create requests."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestsElicitation":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         create = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("create"))
         return RequestsElicitation(create)
 
@@ -892,12 +910,13 @@ class RequestsElicitation(DataModelHelper):
 class RequestsSampling(DataModelHelper):
     """Task support for sampling-related requests."""
 
-    create_message: dict[str, Any] | None = None
+    create_message: Optional[Dict[str, Any]] = None
     """Whether the client supports task-augmented sampling/createMessage requests."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestsSampling":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         create_message = from_union(
             [lambda x: from_dict(lambda x: x, x), from_none], obj.get("createMessage")
         )
@@ -916,15 +935,16 @@ class RequestsSampling(DataModelHelper):
 class PurpleRequests(DataModelHelper):
     """Specifies which request types can be augmented with tasks."""
 
-    elicitation: RequestsElicitation | None = None
+    elicitation: Optional[RequestsElicitation] = None
     """Task support for elicitation-related requests."""
 
-    sampling: RequestsSampling | None = None
+    sampling: Optional[RequestsSampling] = None
     """Task support for sampling-related requests."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PurpleRequests":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         elicitation = from_union([RequestsElicitation.from_dict, from_none], obj.get("elicitation"))
         sampling = from_union([RequestsSampling.from_dict, from_none], obj.get("sampling"))
         return PurpleRequests(elicitation, sampling)
@@ -946,18 +966,19 @@ class PurpleRequests(DataModelHelper):
 class ClientcapabilitiesTasks(DataModelHelper):
     """Present if the client supports task-augmented requests."""
 
-    cancel: dict[str, Any] | None = None
+    cancel: Optional[Dict[str, Any]] = None
     """Whether this client supports tasks/cancel."""
 
-    list: dict[str, Any] | None = None
+    list: Optional[Dict[str, Any]] = None
     """Whether this client supports tasks/list."""
 
-    requests: PurpleRequests | None = None
+    requests: Optional[PurpleRequests] = None
     """Specifies which request types can be augmented with tasks."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientcapabilitiesTasks":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         cancel = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("cancel"))
         list = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("list"))
         requests = from_union([PurpleRequests.from_dict, from_none], obj.get("requests"))
@@ -984,24 +1005,25 @@ class Clientcapabilities(DataModelHelper):
     but this is not a closed set: any client can define its own, additional capabilities.
     """
 
-    elicitation: ClientcapabilitiesElicitation | None = None
+    elicitation: Optional[ClientcapabilitiesElicitation] = None
     """Present if the client supports elicitation from the server."""
 
-    experimental: dict[str, dict[str, Any]] | None = None
+    experimental: Optional[Dict[str, Dict[str, Any]]] = None
     """Experimental, non-standard capabilities that the client supports."""
 
-    roots: Roots | None = None
+    roots: Optional[Roots] = None
     """Present if the client supports listing roots."""
 
-    sampling: ClientcapabilitiesSampling | None = None
+    sampling: Optional[ClientcapabilitiesSampling] = None
     """Present if the client supports sampling from an LLM."""
 
-    tasks: ClientcapabilitiesTasks | None = None
+    tasks: Optional[ClientcapabilitiesTasks] = None
     """Present if the client supports task-augmented requests."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientcapabilities":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         elicitation = from_union(
             [ClientcapabilitiesElicitation.from_dict, from_none], obj.get("elicitation")
         )
@@ -1072,63 +1094,64 @@ class ClientnotificationParams(DataModelHelper):
     Data associated with a task.
     """
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    reason: str | None = None
+    reason: Optional[str] = None
     """An optional string describing the reason for the cancellation. This MAY be logged or
     presented to the user.
     """
-    request_id: int | str | None = None
+    request_id: Optional[Union[int, str]] = None
     """The ID of the request to cancel.
     
     This MUST correspond to the ID of a request previously issued in the same direction.
     This MUST be provided for cancelling non-task requests.
     This MUST NOT be used for cancelling tasks (use the `tasks/cancel` request instead).
     """
-    message: str | None = None
+    message: Optional[str] = None
     """An optional message describing the current progress."""
 
-    progress: float | None = None
+    progress: Optional[float] = None
     """The progress thus far. This should increase every time progress is made, even if the
     total is unknown.
     """
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """The progress token which was given in the initial request, used to associate this
     notification with the request that is proceeding.
     """
-    total: float | None = None
+    total: Optional[float] = None
     """Total number of items to process (or total progress required), if known."""
 
-    created_at: str | None = None
+    created_at: Optional[str] = None
     """ISO 8601 timestamp when the task was created."""
 
-    last_updated_at: str | None = None
+    last_updated_at: Optional[str] = None
     """ISO 8601 timestamp when the task was last updated."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status: Status | None = None
+    status: Optional[Status] = None
     """Current task state."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier."""
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientnotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         reason = from_union([from_str, from_none], obj.get("reason"))
         request_id = from_union([from_int, from_str, from_none], obj.get("requestId"))
@@ -1229,11 +1252,12 @@ class Clientnotification(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: ClientnotificationMethod
-    params: ClientnotificationParams | None = None
+    params: Optional[ClientnotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientnotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ClientnotificationMethod(obj.get("method"))
         params = from_union([ClientnotificationParams.from_dict, from_none], obj.get("params"))
@@ -1282,7 +1306,8 @@ class Argument(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Argument":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         value = from_str(obj.get("value"))
         return Argument(name, value)
@@ -1303,14 +1328,14 @@ class ClientInfo(DataModelHelper):
     fallback (if title isn't present).
     """
     version: str
-    description: str | None = None
+    description: Optional[str] = None
     """An optional human-readable description of what this implementation does.
     
     This can be used by clients or servers to provide context about their purpose
     and capabilities. For example, a server might describe the types of resources
     or tools it provides, while a client might describe its intended use case.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -1321,7 +1346,7 @@ class ClientInfo(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -1330,12 +1355,13 @@ class ClientInfo(DataModelHelper):
     where `annotations.title` should be given precedence over using `name`,
     if present).
     """
-    website_url: str | None = None
+    website_url: Optional[str] = None
     """An optional URL of the website for this implementation."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientInfo":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         version = from_str(obj.get("version"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -1367,12 +1393,13 @@ class ClientInfo(DataModelHelper):
 class Context(DataModelHelper):
     """Additional, optional context for completions"""
 
-    arguments: dict[str, str] | None = None
+    arguments: Optional[Dict[str, str]] = None
     """Previously-resolved variables in a URI template or prompt."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Context":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         arguments = from_union([lambda x: from_dict(from_str, x), from_none], obj.get("arguments"))
         return Context(arguments)
 
@@ -1414,7 +1441,7 @@ class FluffyMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -1423,7 +1450,8 @@ class FluffyMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "FluffyMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return FluffyMeta(progress_token)
 
@@ -1449,11 +1477,11 @@ class Ref(DataModelHelper):
     """
 
     type: RefType
-    name: str | None = None
+    name: Optional[str] = None
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -1462,12 +1490,13 @@ class Ref(DataModelHelper):
     where `annotations.title` should be given precedence over using `name`,
     if present).
     """
-    uri: str | None = None
+    uri: Optional[str] = None
     """The URI or URI template of the resource."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Ref":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = RefType(obj.get("type"))
         name = from_union([from_str, from_none], obj.get("name"))
         title = from_union([from_str, from_none], obj.get("title"))
@@ -1509,35 +1538,35 @@ class ClientrequestParams(DataModelHelper):
     Parameters for a `completion/complete` request.
     """
 
-    meta: FluffyMeta | None = None
+    meta: Optional[FluffyMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    capabilities: Clientcapabilities | None = None
-    client_info: ClientInfo | None = None
-    protocol_version: str | None = None
+    capabilities: Optional[Clientcapabilities] = None
+    client_info: Optional[ClientInfo] = None
+    protocol_version: Optional[str] = None
     """The latest version of the Model Context Protocol that the client supports. The client MAY
     decide to support older versions as well.
     """
-    cursor: str | None = None
+    cursor: Optional[str] = None
     """An opaque token representing the current pagination position.
     If provided, the server should return results starting after this cursor.
     """
-    uri: str | None = None
+    uri: Optional[str] = None
     """The URI of the resource. The URI can use any protocol; it is up to the server how to
     interpret it.
     """
-    arguments: dict[str, Any] | None = None
+    arguments: Optional[Dict[str, Any]] = None
     """Arguments to use for templating the prompt.
     
     Arguments to use for the tool call.
     """
-    name: str | None = None
+    name: Optional[str] = None
     """The name of the prompt or prompt template.
     
     The name of the tool.
     """
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -1545,29 +1574,30 @@ class ClientrequestParams(DataModelHelper):
     Task augmentation is subject to capability negotiation - receivers MUST declare support
     for task augmentation of specific request types in their capabilities.
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier to query.
     
     The task identifier to retrieve results for.
     
     The task identifier to cancel.
     """
-    level: Level | None = None
+    level: Optional[Level] = None
     """The level of logging that the client wants to receive from the server. The server should
     send all logs at this level and higher (i.e., more severe) to the client as
     notifications/message.
     """
-    argument: Argument | None = None
+    argument: Optional[Argument] = None
     """The argument's information"""
 
-    context: Context | None = None
+    context: Optional[Context] = None
     """Additional, optional context for completions"""
 
-    ref: Ref | None = None
+    ref: Optional[Ref] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ClientrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([FluffyMeta.from_dict, from_none], obj.get("_meta"))
         capabilities = from_union(
             [Clientcapabilities.from_dict, from_none], obj.get("capabilities")
@@ -1687,14 +1717,15 @@ class Clientrequest(DataModelHelper):
     A request from the client to the server, to ask for completion options.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ClientrequestMethod
-    params: ClientrequestParams | None = None
+    params: Optional[ClientrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ClientrequestMethod(obj.get("method"))
@@ -1747,7 +1778,7 @@ class ContentElement(DataModelHelper):
     """
 
     type: PurpleType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     
@@ -1763,51 +1794,51 @@ class ContentElement(DataModelHelper):
     See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """The text content of the message."""
 
-    data: str | None = None
+    data: Optional[str] = None
     """The base64-encoded image data.
     
     The base64-encoded audio data.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of the image. Different providers may support different image types.
     
     The MIME type of the audio. Different providers may support different audio types.
     """
-    id: str | None = None
+    id: Optional[str] = None
     """A unique identifier for this tool use.
     
     This ID is used to match tool results to their corresponding tool uses.
     """
-    input: dict[str, Any] | None = None
+    input: Optional[Dict[str, Any]] = None
     """The arguments to pass to the tool, conforming to the tool's input schema."""
 
-    name: str | None = None
+    name: Optional[str] = None
     """The name of the tool to call."""
 
-    content: list[ContentblockElement] | None = None
+    content: Optional[List[ContentblockElement]] = None
     """The unstructured result content of the tool use.
     
     This has the same format as CallToolResult.content and can include text, images,
     audio, resource links, and embedded resources.
     """
-    is_error: bool | None = None
+    is_error: Optional[bool] = None
     """Whether the tool use resulted in an error.
     
     If true, the content typically describes the error that occurred.
     Default: false
     """
-    structured_content: dict[str, Any] | None = None
+    structured_content: Optional[Dict[str, Any]] = None
     """An optional structured result object.
     
     If the tool defined an outputSchema, this SHOULD conform to that schema.
     """
-    tool_use_id: str | None = None
+    tool_use_id: Optional[str] = None
     """The ID of the tool use this result corresponds to.
     
     This MUST match the ID from a previous ToolUseContent.
@@ -1815,7 +1846,8 @@ class ContentElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ContentElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = PurpleType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         annotations = from_union(
@@ -1909,7 +1941,7 @@ class PurpleModelContextProtocol20250618_Schema(DataModelHelper):
     Omitted for out-of-band mode responses.
     """
 
-    meta: dict[str, Any] | list[str] | int | bool | str | None = None
+    meta: Optional[Union[Dict[str, Any], List[str], int, bool, str]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     
@@ -1925,52 +1957,52 @@ class PurpleModelContextProtocol20250618_Schema(DataModelHelper):
     See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | list[str] | int | bool | str | None = None
+    annotations: Optional[Union[AudiocontentAnnotations, List[str], int, bool, str]] = None
     """Optional annotations for the client."""
 
-    text: list[str] | int | bool | str | None = None
+    text: Optional[Union[List[str], int, bool, str]] = None
     """The text content of the message."""
 
-    type: list[str] | int | bool | str | None = None
-    data: list[str] | int | bool | str | None = None
+    type: Optional[Union[List[str], int, bool, str]] = None
+    data: Optional[Union[List[str], int, bool, str]] = None
     """The base64-encoded image data.
     
     The base64-encoded audio data.
     """
-    mime_type: list[str] | int | bool | str | None = None
+    mime_type: Optional[Union[List[str], int, bool, str]] = None
     """The MIME type of the image. Different providers may support different image types.
     
     The MIME type of the audio. Different providers may support different audio types.
     """
-    id: list[str] | int | bool | str | None = None
+    id: Optional[Union[List[str], int, bool, str]] = None
     """A unique identifier for this tool use.
     
     This ID is used to match tool results to their corresponding tool uses.
     """
-    input: dict[str, Any] | list[str] | int | bool | str | None = None
+    input: Optional[Union[Dict[str, Any], List[str], int, bool, str]] = None
     """The arguments to pass to the tool, conforming to the tool's input schema."""
 
-    name: list[str] | int | bool | str | None = None
+    name: Optional[Union[List[str], int, bool, str]] = None
     """The name of the tool to call."""
 
-    content: list[ContentblockElement | str] | int | bool | str | None = None
+    content: Optional[Union[List[Union[ContentblockElement, str]], int, bool, str]] = None
     """The unstructured result content of the tool use.
     
     This has the same format as CallToolResult.content and can include text, images,
     audio, resource links, and embedded resources.
     """
-    is_error: list[str] | int | bool | str | None = None
+    is_error: Optional[Union[List[str], int, bool, str]] = None
     """Whether the tool use resulted in an error.
     
     If true, the content typically describes the error that occurred.
     Default: false
     """
-    structured_content: dict[str, Any] | list[str] | int | bool | str | None = None
+    structured_content: Optional[Union[Dict[str, Any], List[str], int, bool, str]] = None
     """An optional structured result object.
     
     If the tool defined an outputSchema, this SHOULD conform to that schema.
     """
-    tool_use_id: list[str] | int | bool | str | None = None
+    tool_use_id: Optional[Union[List[str], int, bool, str]] = None
     """The ID of the tool use this result corresponds to.
     
     This MUST match the ID from a previous ToolUseContent.
@@ -1978,7 +2010,8 @@ class PurpleModelContextProtocol20250618_Schema(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PurpleModelContextProtocol20250618_Schema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union(
             [
                 lambda x: from_dict(lambda x: x, x),
@@ -2201,11 +2234,11 @@ class RootElement(DataModelHelper):
     This restriction may be relaxed in future versions of the protocol to allow
     other URI schemes.
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    name: str | None = None
+    name: Optional[str] = None
     """An optional name for the root. This can be used to provide a human-readable
     identifier for the root, which may be useful for display purposes or for
     referencing the root in other parts of the application.
@@ -2213,7 +2246,8 @@ class RootElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RootElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         name = from_union([from_str, from_none], obj.get("name"))
@@ -2247,22 +2281,23 @@ class TaskElement(DataModelHelper):
     task_id: str
     """The task identifier."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TaskElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         created_at = from_str(obj.get("createdAt"))
         last_updated_at = from_str(obj.get("lastUpdatedAt"))
         status = Status(obj.get("status"))
@@ -2314,50 +2349,50 @@ class Clientresult(DataModelHelper):
     The client's response to an elicitation request.
     """
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    created_at: str | None = None
+    created_at: Optional[str] = None
     """ISO 8601 timestamp when the task was created."""
 
-    last_updated_at: str | None = None
+    last_updated_at: Optional[str] = None
     """ISO 8601 timestamp when the task was last updated."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status: Status | None = None
+    status: Optional[Status] = None
     """Current task state."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier."""
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
-    tasks: list[TaskElement] | None = None
-    content: PurpleModelContextProtocol20250618_Schema | list[ContentElement] | None = None
+    tasks: Optional[List[TaskElement]] = None
+    content: Optional[Union[PurpleModelContextProtocol20250618_Schema, List[ContentElement]]] = None
     """The submitted form data, only present when action is "accept" and mode was "form".
     Contains values matching the requested schema.
     Omitted for out-of-band mode responses.
     """
-    model: str | None = None
+    model: Optional[str] = None
     """The name of the model that generated the message."""
 
-    role: RoleElement | None = None
-    stop_reason: str | None = None
+    role: Optional[RoleElement] = None
+    stop_reason: Optional[str] = None
     """The reason why sampling stopped, if known.
     
     Standard values:
@@ -2368,8 +2403,8 @@ class Clientresult(DataModelHelper):
     
     This field is an open string to allow for provider-specific stop reasons.
     """
-    roots: list[RootElement] | None = None
-    action: Action | None = None
+    roots: Optional[List[RootElement]] = None
+    action: Optional[Action] = None
     """The user action in response to the elicitation.
     - "accept": User submitted the form/confirmed the action
     - "decline": User explicitly decline the action
@@ -2378,7 +2413,8 @@ class Clientresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Clientresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         created_at = from_union([from_str, from_none], obj.get("createdAt"))
         last_updated_at = from_union([from_str, from_none], obj.get("lastUpdatedAt"))
@@ -2485,7 +2521,7 @@ class TentacledMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -2494,7 +2530,8 @@ class TentacledMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TentacledMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return TentacledMeta(progress_token)
 
@@ -2515,16 +2552,17 @@ class CompleterequestParams(DataModelHelper):
     """The argument's information"""
 
     ref: Ref
-    meta: TentacledMeta | None = None
+    meta: Optional[TentacledMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    context: Context | None = None
+    context: Optional[Context] = None
     """Additional, optional context for completions"""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CompleterequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         argument = Argument.from_dict(obj.get("argument"))
         ref = Ref.from_dict(obj.get("ref"))
         meta = from_union([TentacledMeta.from_dict, from_none], obj.get("_meta"))
@@ -2550,14 +2588,15 @@ class CompleterequestParams(DataModelHelper):
 class CompleterequestClass(DataModelHelper):
     """A request from the client to the server, to ask for completion options."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: CompleterequestMethod
     params: CompleterequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CompleterequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = CompleterequestMethod(obj.get("method"))
@@ -2575,21 +2614,22 @@ class CompleterequestClass(DataModelHelper):
 
 @dataclass
 class Completion(DataModelHelper):
-    values: list[str]
+    values: List[str]
     """An array of completion values. Must not exceed 100 items."""
 
-    has_more: bool | None = None
+    has_more: Optional[bool] = None
     """Indicates whether there are additional completion options beyond those provided in the
     current response, even if the exact total is unknown.
     """
-    total: int | None = None
+    total: Optional[int] = None
     """The total number of completion options available. This can exceed the number of values
     actually sent in the response.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Completion":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         values = from_list(from_str, obj.get("values"))
         has_more = from_union([from_bool, from_none], obj.get("hasMore"))
         total = from_union([from_int, from_none], obj.get("total"))
@@ -2610,14 +2650,15 @@ class Completeresult(DataModelHelper):
     """The server's response to a completion/complete request"""
 
     completion: Completion
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Completeresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         completion = Completion.from_dict(obj.get("completion"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return Completeresult(completion, meta)
@@ -2666,7 +2707,7 @@ class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
     """
 
     type: PurpleType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     
@@ -2682,51 +2723,51 @@ class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
     See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    text: str | None = None
+    text: Optional[str] = None
     """The text content of the message."""
 
-    data: str | None = None
+    data: Optional[str] = None
     """The base64-encoded image data.
     
     The base64-encoded audio data.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of the image. Different providers may support different image types.
     
     The MIME type of the audio. Different providers may support different audio types.
     """
-    id: str | None = None
+    id: Optional[str] = None
     """A unique identifier for this tool use.
     
     This ID is used to match tool results to their corresponding tool uses.
     """
-    input: dict[str, Any] | None = None
+    input: Optional[Dict[str, Any]] = None
     """The arguments to pass to the tool, conforming to the tool's input schema."""
 
-    name: str | None = None
+    name: Optional[str] = None
     """The name of the tool to call."""
 
-    content: list[ContentblockElement] | None = None
+    content: Optional[List[ContentblockElement]] = None
     """The unstructured result content of the tool use.
     
     This has the same format as CallToolResult.content and can include text, images,
     audio, resource links, and embedded resources.
     """
-    is_error: bool | None = None
+    is_error: Optional[bool] = None
     """Whether the tool use resulted in an error.
     
     If true, the content typically describes the error that occurred.
     Default: false
     """
-    structured_content: dict[str, Any] | None = None
+    structured_content: Optional[Dict[str, Any]] = None
     """An optional structured result object.
     
     If the tool defined an outputSchema, this SHOULD conform to that schema.
     """
-    tool_use_id: str | None = None
+    tool_use_id: Optional[str] = None
     """The ID of the tool use this result corresponds to.
     
     This MUST match the ID from a previous ToolUseContent.
@@ -2734,7 +2775,8 @@ class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "FluffyModelContextProtocol20250618_Schema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = PurpleType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         annotations = from_union(
@@ -2815,16 +2857,17 @@ class FluffyModelContextProtocol20250618_Schema(DataModelHelper):
 class SamplingmessageElement(DataModelHelper):
     """Describes a message issued to or received from an LLM API."""
 
-    content: FluffyModelContextProtocol20250618_Schema | list[ContentElement]
+    content: Union[FluffyModelContextProtocol20250618_Schema, List[ContentElement]]
     role: RoleElement
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SamplingmessageElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         content = from_union(
             [
                 FluffyModelContextProtocol20250618_Schema.from_dict,
@@ -2859,7 +2902,7 @@ class StickyMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -2868,7 +2911,8 @@ class StickyMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "StickyMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return StickyMeta(progress_token)
 
@@ -2889,7 +2933,7 @@ class ModelhintElement(DataModelHelper):
     to the client to interpret.
     """
 
-    name: str | None = None
+    name: Optional[str] = None
     """A hint for a model name.
     
     The client SHOULD treat this as a substring of a model name; for example:
@@ -2904,7 +2948,8 @@ class ModelhintElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ModelhintElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_union([from_str, from_none], obj.get("name"))
         return ModelhintElement(name)
 
@@ -2933,12 +2978,12 @@ class ModelpreferencesClass(DataModelHelper):
     balance them against other considerations.
     """
 
-    cost_priority: float | None = None
+    cost_priority: Optional[float] = None
     """How much to prioritize cost when selecting a model. A value of 0 means cost
     is not important, while a value of 1 means cost is the most important
     factor.
     """
-    hints: list[ModelhintElement] | None = None
+    hints: Optional[List[ModelhintElement]] = None
     """Optional hints to use for model selection.
     
     If multiple hints are specified, the client MUST evaluate them in order
@@ -2947,12 +2992,12 @@ class ModelpreferencesClass(DataModelHelper):
     The client SHOULD prioritize these hints over the numeric priorities, but
     MAY still use the priorities to select from ambiguous matches.
     """
-    intelligence_priority: float | None = None
+    intelligence_priority: Optional[float] = None
     """How much to prioritize intelligence and capabilities when selecting a
     model. A value of 0 means intelligence is not important, while a value of 1
     means intelligence is the most important factor.
     """
-    speed_priority: float | None = None
+    speed_priority: Optional[float] = None
     """How much to prioritize sampling speed (latency) when selecting a model. A
     value of 0 means speed is not important, while a value of 1 means speed is
     the most important factor.
@@ -2960,7 +3005,8 @@ class ModelpreferencesClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ModelpreferencesClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         cost_priority = from_union([from_float, from_none], obj.get("costPriority"))
         hints = from_union(
             [lambda x: from_list(ModelhintElement.from_dict, x), from_none], obj.get("hints")
@@ -3009,7 +3055,7 @@ class ToolChoice(DataModelHelper):
     Controls tool selection behavior for sampling requests.
     """
 
-    mode: ToolChoiceMode | None = None
+    mode: Optional[ToolChoiceMode] = None
     """Controls the tool use ability of the model:
     - "auto": Model decides whether to use tools (default)
     - "required": Model MUST use at least one tool before completing
@@ -3018,7 +3064,8 @@ class ToolChoice(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToolChoice":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         mode = from_union([ToolChoiceMode, from_none], obj.get("mode"))
         return ToolChoice(mode)
 
@@ -3047,7 +3094,7 @@ class ToolannotationsClass(DataModelHelper):
     received from untrusted servers.
     """
 
-    destructive_hint: bool | None = None
+    destructive_hint: Optional[bool] = None
     """If true, the tool may perform destructive updates to its environment.
     If false, the tool performs only additive updates.
     
@@ -3055,7 +3102,7 @@ class ToolannotationsClass(DataModelHelper):
     
     Default: true
     """
-    idempotent_hint: bool | None = None
+    idempotent_hint: Optional[bool] = None
     """If true, calling the tool repeatedly with the same arguments
     will have no additional effect on its environment.
     
@@ -3063,7 +3110,7 @@ class ToolannotationsClass(DataModelHelper):
     
     Default: false
     """
-    open_world_hint: bool | None = None
+    open_world_hint: Optional[bool] = None
     """If true, this tool may interact with an "open world" of external
     entities. If false, the tool's domain of interaction is closed.
     For example, the world of a web search tool is open, whereas that
@@ -3071,17 +3118,18 @@ class ToolannotationsClass(DataModelHelper):
     
     Default: true
     """
-    read_only_hint: bool | None = None
+    read_only_hint: Optional[bool] = None
     """If true, the tool does not modify its environment.
     
     Default: false
     """
-    title: str | None = None
+    title: Optional[str] = None
     """A human-readable title for the tool."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToolannotationsClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         destructive_hint = from_union([from_bool, from_none], obj.get("destructiveHint"))
         idempotent_hint = from_union([from_bool, from_none], obj.get("idempotentHint"))
         open_world_hint = from_union([from_bool, from_none], obj.get("openWorldHint"))
@@ -3130,7 +3178,7 @@ class Execution(DataModelHelper):
     Execution-related properties for a tool.
     """
 
-    task_support: TaskSupport | None = None
+    task_support: Optional[TaskSupport] = None
     """Indicates whether this tool supports task-augmented execution.
     This allows clients to handle long-running operations through polling
     the task system.
@@ -3144,7 +3192,8 @@ class Execution(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Execution":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         task_support = from_union([TaskSupport, from_none], obj.get("taskSupport"))
         return Execution(task_support)
 
@@ -3166,13 +3215,14 @@ class InputSchema(DataModelHelper):
     """A JSON Schema object defining the expected parameters for the tool."""
 
     type: InputSchemaType
-    schema: str | None = None
-    properties: dict[str, dict[str, Any]] | None = None
-    required: list[str] | None = None
+    schema: Optional[str] = None
+    properties: Optional[Dict[str, Dict[str, Any]]] = None
+    required: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InputSchema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = InputSchemaType(obj.get("type"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
         properties = from_union(
@@ -3209,13 +3259,14 @@ class OutputSchema(DataModelHelper):
     """
 
     type: InputSchemaType
-    schema: str | None = None
-    properties: dict[str, dict[str, Any]] | None = None
-    required: list[str] | None = None
+    schema: Optional[str] = None
+    properties: Optional[Dict[str, Dict[str, Any]]] = None
+    required: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "OutputSchema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = InputSchemaType(obj.get("type"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
         properties = from_union(
@@ -3253,25 +3304,25 @@ class ToolElement(DataModelHelper):
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: ToolannotationsClass | None = None
+    annotations: Optional[ToolannotationsClass] = None
     """Optional additional tool information.
     
     Display name precedence order is: title, annotations.title, then name.
     """
-    description: str | None = None
+    description: Optional[str] = None
     """A human-readable description of the tool.
     
     This can be used by clients to improve the LLM's understanding of available tools. It can
     be thought of like a "hint" to the model.
     """
-    execution: Execution | None = None
+    execution: Optional[Execution] = None
     """Execution-related properties for this tool."""
 
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -3282,14 +3333,14 @@ class ToolElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    output_schema: OutputSchema | None = None
+    output_schema: Optional[OutputSchema] = None
     """An optional JSON Schema object defining the structure of the tool's output returned in
     the structuredContent field of a CallToolResult.
     
     Defaults to JSON Schema 2020-12 when no explicit $schema is provided.
     Currently restricted to type: "object" at the root level.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -3301,7 +3352,8 @@ class ToolElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToolElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         input_schema = InputSchema.from_dict(obj.get("inputSchema"))
         name = from_str(obj.get("name"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -3367,12 +3419,12 @@ class CreatemessagerequestParams(DataModelHelper):
     
     The client MAY choose to sample fewer tokens than the requested maximum.
     """
-    messages: list[SamplingmessageElement]
-    meta: StickyMeta | None = None
+    messages: List[SamplingmessageElement]
+    meta: Optional[StickyMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    include_context: IncludeContext | None = None
+    include_context: Optional[IncludeContext] = None
     """A request to include context from one or more MCP servers (including the caller), to be
     attached to the prompt.
     The client MAY ignore this request.
@@ -3382,20 +3434,20 @@ class CreatemessagerequestParams(DataModelHelper):
     declares ClientCapabilities.sampling.context. These values may be removed in future spec
     releases.
     """
-    metadata: dict[str, Any] | None = None
+    metadata: Optional[Dict[str, Any]] = None
     """Optional metadata to pass through to the LLM provider. The format of this metadata is
     provider-specific.
     """
-    model_preferences: ModelpreferencesClass | None = None
+    model_preferences: Optional[ModelpreferencesClass] = None
     """The server's preferences for which model to select. The client MAY ignore these
     preferences.
     """
-    stop_sequences: list[str] | None = None
-    system_prompt: str | None = None
+    stop_sequences: Optional[List[str]] = None
+    system_prompt: Optional[str] = None
     """An optional system prompt the server wants to use for sampling. The client MAY modify or
     omit this prompt.
     """
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -3403,14 +3455,14 @@ class CreatemessagerequestParams(DataModelHelper):
     Task augmentation is subject to capability negotiation - receivers MUST declare support
     for task augmentation of specific request types in their capabilities.
     """
-    temperature: float | None = None
-    tool_choice: ToolChoice | None = None
+    temperature: Optional[float] = None
+    tool_choice: Optional[ToolChoice] = None
     """Controls how the model uses tools.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
     Default is `{ mode: "auto" }`.
     """
-    tools: list[ToolElement] | None = None
+    tools: Optional[List[ToolElement]] = None
     """Tools that the model may use during generation.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
@@ -3418,7 +3470,8 @@ class CreatemessagerequestParams(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CreatemessagerequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         max_tokens = from_int(obj.get("maxTokens"))
         messages = from_list(SamplingmessageElement.from_dict, obj.get("messages"))
         meta = from_union([StickyMeta.from_dict, from_none], obj.get("_meta"))
@@ -3499,14 +3552,15 @@ class Createmessagerequest(DataModelHelper):
     approve it.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: CreatemessagerequestMethod
     params: CreatemessagerequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Createmessagerequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = CreatemessagerequestMethod(obj.get("method"))
@@ -3530,16 +3584,16 @@ class CreatemessageresultClass(DataModelHelper):
     it.
     """
 
-    content: FluffyModelContextProtocol20250618_Schema | list[ContentElement]
+    content: Union[FluffyModelContextProtocol20250618_Schema, List[ContentElement]]
     model: str
     """The name of the model that generated the message."""
 
     role: RoleElement
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    stop_reason: str | None = None
+    stop_reason: Optional[str] = None
     """The reason why sampling stopped, if known.
     
     Standard values:
@@ -3553,7 +3607,8 @@ class CreatemessageresultClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CreatemessageresultClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         content = from_union(
             [
                 FluffyModelContextProtocol20250618_Schema.from_dict,
@@ -3597,7 +3652,7 @@ class IndigoMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -3606,7 +3661,8 @@ class IndigoMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "IndigoMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return IndigoMeta(progress_token)
 
@@ -3641,7 +3697,8 @@ class AnyOf(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "AnyOf":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         const = from_str(obj.get("const"))
         title = from_str(obj.get("title"))
         return AnyOf(const, title)
@@ -3664,16 +3721,17 @@ class Items(DataModelHelper):
     Schema for array items with enum options and display labels.
     """
 
-    enum: list[str] | None = None
+    enum: Optional[List[str]] = None
     """Array of enum values to choose from."""
 
-    type: ItemsType | None = None
-    any_of: list[AnyOf] | None = None
+    type: Optional[ItemsType] = None
+    any_of: Optional[List[AnyOf]] = None
     """Array of enum options with values and display labels."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Items":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         enum = from_union([lambda x: from_list(from_str, x), from_none], obj.get("enum"))
         type = from_union([ItemsType, from_none], obj.get("type"))
         any_of = from_union([lambda x: from_list(AnyOf.from_dict, x), from_none], obj.get("anyOf"))
@@ -3702,7 +3760,8 @@ class OneOf(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "OneOf":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         const = from_str(obj.get("const"))
         title = from_str(obj.get("title"))
         return OneOf(const, title)
@@ -3740,45 +3799,46 @@ class PrimitiveschemadefinitionValue(DataModelHelper):
     """
 
     type: PrimitiveschemadefinitionType
-    default: list[str] | int | bool | str | None = None
+    default: Optional[Union[List[str], int, bool, str]] = None
     """Optional default value."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """Optional description for the enum field."""
 
-    format: Format | None = None
-    max_length: int | None = None
-    min_length: int | None = None
-    title: str | None = None
+    format: Optional[Format] = None
+    max_length: Optional[int] = None
+    min_length: Optional[int] = None
+    title: Optional[str] = None
     """Optional title for the enum field."""
 
-    maximum: int | None = None
-    minimum: int | None = None
-    enum: list[str] | None = None
+    maximum: Optional[int] = None
+    minimum: Optional[int] = None
+    enum: Optional[List[str]] = None
     """Array of enum values to choose from."""
 
-    one_of: list[OneOf] | None = None
+    one_of: Optional[List[OneOf]] = None
     """Array of enum options with values and display labels."""
 
-    items: Items | None = None
+    items: Optional[Items] = None
     """Schema for the array items.
     
     Schema for array items with enum options and display labels.
     """
-    max_items: int | None = None
+    max_items: Optional[int] = None
     """Maximum number of items to select."""
 
-    min_items: int | None = None
+    min_items: Optional[int] = None
     """Minimum number of items to select."""
 
-    enum_names: list[str] | None = None
+    enum_names: Optional[List[str]] = None
     """(Legacy) Display names for enum values.
     Non-standard according to JSON schema 2020-12.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PrimitiveschemadefinitionValue":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = PrimitiveschemadefinitionType(obj.get("type"))
         default = from_union(
             [lambda x: from_list(from_str, x), from_int, from_bool, from_str, from_none],
@@ -3862,14 +3922,15 @@ class RequestedSchema(DataModelHelper):
     Only top-level properties are allowed, without nesting.
     """
 
-    properties: dict[str, PrimitiveschemadefinitionValue]
+    properties: Dict[str, PrimitiveschemadefinitionValue]
     type: InputSchemaType
-    schema: str | None = None
-    required: list[str] | None = None
+    schema: Optional[str] = None
+    required: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestedSchema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         properties = from_dict(PrimitiveschemadefinitionValue.from_dict, obj.get("properties"))
         type = InputSchemaType(obj.get("type"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
@@ -3908,18 +3969,18 @@ class ElicitrequestParams(DataModelHelper):
     
     The message to present to the user describing what information is being requested.
     """
-    meta: IndigoMeta | None = None
+    meta: Optional[IndigoMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    elicitation_id: str | None = None
+    elicitation_id: Optional[str] = None
     """The ID of the elicitation, which must be unique within the context of the server.
     The client MUST treat this ID as an opaque value.
     """
-    mode: ParamsMode | None = None
+    mode: Optional[ParamsMode] = None
     """The elicitation mode."""
 
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -3927,17 +3988,18 @@ class ElicitrequestParams(DataModelHelper):
     Task augmentation is subject to capability negotiation - receivers MUST declare support
     for task augmentation of specific request types in their capabilities.
     """
-    url: str | None = None
+    url: Optional[str] = None
     """The URL that the user should navigate to."""
 
-    requested_schema: RequestedSchema | None = None
+    requested_schema: Optional[RequestedSchema] = None
     """A restricted subset of JSON Schema.
     Only top-level properties are allowed, without nesting.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ElicitrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         message = from_str(obj.get("message"))
         meta = from_union([IndigoMeta.from_dict, from_none], obj.get("_meta"))
         elicitation_id = from_union([from_str, from_none], obj.get("elicitationId"))
@@ -3973,14 +4035,15 @@ class ElicitrequestParams(DataModelHelper):
 class Elicitrequest(DataModelHelper):
     """A request from the server to elicit additional information from the user via the client."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ElicitrequestMethod
     params: ElicitrequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Elicitrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ElicitrequestMethod(obj.get("method"))
@@ -4006,11 +4069,11 @@ class ElicitresultClass(DataModelHelper):
     - "decline": User explicitly decline the action
     - "cancel": User dismissed without making an explicit choice
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    content: dict[str, list[str] | int | bool | str] | None = None
+    content: Optional[Dict[str, Union[List[str], int, bool, str]]] = None
     """The submitted form data, only present when action is "accept" and mode was "form".
     Contains values matching the requested schema.
     Omitted for out-of-band mode responses.
@@ -4018,7 +4081,8 @@ class ElicitresultClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ElicitresultClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         action = Action(obj.get("action"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         content = from_union(
@@ -4072,16 +4136,17 @@ class EmbeddedresourceClass(DataModelHelper):
 
     resource: Resource
     type: EmbeddedresourceType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "EmbeddedresourceClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         resource = Resource.from_dict(obj.get("resource"))
         type = EmbeddedresourceType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -4107,14 +4172,15 @@ class EmbeddedresourceClass(DataModelHelper):
 
 @dataclass
 class EmptyresultClass(DataModelHelper):
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "EmptyresultClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return EmptyresultClass(meta)
 
@@ -4147,40 +4213,41 @@ class EnumschemaClass(DataModelHelper):
     """
 
     type: EnumschemaType
-    default: str | list[str] | None = None
+    default: Optional[Union[str, List[str]]] = None
     """Optional default value."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """Optional description for the enum field."""
 
-    enum: list[str] | None = None
+    enum: Optional[List[str]] = None
     """Array of enum values to choose from."""
 
-    title: str | None = None
+    title: Optional[str] = None
     """Optional title for the enum field."""
 
-    one_of: list[OneOf] | None = None
+    one_of: Optional[List[OneOf]] = None
     """Array of enum options with values and display labels."""
 
-    items: Items | None = None
+    items: Optional[Items] = None
     """Schema for the array items.
     
     Schema for array items with enum options and display labels.
     """
-    max_items: int | None = None
+    max_items: Optional[int] = None
     """Maximum number of items to select."""
 
-    min_items: int | None = None
+    min_items: Optional[int] = None
     """Minimum number of items to select."""
 
-    enum_names: list[str] | None = None
+    enum_names: Optional[List[str]] = None
     """(Legacy) Display names for enum values.
     Non-standard according to JSON schema 2020-12.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "EnumschemaClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = EnumschemaType(obj.get("type"))
         default = from_union(
             [from_str, lambda x: from_list(from_str, x), from_none], obj.get("default")
@@ -4237,7 +4304,7 @@ class IndecentMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -4246,7 +4313,8 @@ class IndecentMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "IndecentMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return IndecentMeta(progress_token)
 
@@ -4266,16 +4334,17 @@ class GetpromptrequestParams(DataModelHelper):
     name: str
     """The name of the prompt or prompt template."""
 
-    meta: IndecentMeta | None = None
+    meta: Optional[IndecentMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    arguments: dict[str, str] | None = None
+    arguments: Optional[Dict[str, str]] = None
     """Arguments to use for templating the prompt."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "GetpromptrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         meta = from_union([IndecentMeta.from_dict, from_none], obj.get("_meta"))
         arguments = from_union([lambda x: from_dict(from_str, x), from_none], obj.get("arguments"))
@@ -4299,14 +4368,15 @@ class GetpromptrequestParams(DataModelHelper):
 class GetpromptrequestClass(DataModelHelper):
     """Used by the client to get a prompt provided by the server."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: GetpromptrequestMethod
     params: GetpromptrequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "GetpromptrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = GetpromptrequestMethod(obj.get("method"))
@@ -4335,7 +4405,8 @@ class PromptmessageElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PromptmessageElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         content = ContentblockElement.from_dict(obj.get("content"))
         role = RoleElement(obj.get("role"))
         return PromptmessageElement(content, role)
@@ -4351,17 +4422,18 @@ class PromptmessageElement(DataModelHelper):
 class Getpromptresult(DataModelHelper):
     """The server's response to a prompts/get request from the client."""
 
-    messages: list[PromptmessageElement]
-    meta: dict[str, Any] | None = None
+    messages: List[PromptmessageElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    description: str | None = None
+    description: Optional[str] = None
     """An optional description for the prompt."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Getpromptresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         messages = from_list(PromptmessageElement.from_dict, obj.get("messages"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -4394,16 +4466,17 @@ class ImagecontentClass(DataModelHelper):
     """The MIME type of the image. Different providers may support different image types."""
 
     type: ImagecontentType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ImagecontentClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         data = from_str(obj.get("data"))
         mime_type = from_str(obj.get("mimeType"))
         type = ImagecontentType(obj.get("type"))
@@ -4435,14 +4508,15 @@ class InitializednotificationMethod(Enum):
 
 @dataclass
 class InitializednotificationParams(DataModelHelper):
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializednotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return InitializednotificationParams(meta)
 
@@ -4461,11 +4535,12 @@ class InitializednotificationClass(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: InitializednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializednotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = InitializednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -4492,7 +4567,7 @@ class HilariousMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -4501,7 +4576,8 @@ class HilariousMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "HilariousMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return HilariousMeta(progress_token)
 
@@ -4524,14 +4600,15 @@ class InitializerequestParams(DataModelHelper):
     """The latest version of the Model Context Protocol that the client supports. The client MAY
     decide to support older versions as well.
     """
-    meta: HilariousMeta | None = None
+    meta: Optional[HilariousMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializerequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         capabilities = Clientcapabilities.from_dict(obj.get("capabilities"))
         client_info = ClientInfo.from_dict(obj.get("clientInfo"))
         protocol_version = from_str(obj.get("protocolVersion"))
@@ -4556,14 +4633,15 @@ class InitializerequestClass(DataModelHelper):
     begin initialization.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: InitializerequestMethod
     params: InitializerequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "InitializerequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = InitializerequestMethod(obj.get("method"))
@@ -4583,12 +4661,13 @@ class InitializerequestClass(DataModelHelper):
 class Prompts(DataModelHelper):
     """Present if the server offers any prompt templates."""
 
-    list_changed: bool | None = None
+    list_changed: Optional[bool] = None
     """Whether this server supports notifications for changes to the prompt list."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Prompts":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         list_changed = from_union([from_bool, from_none], obj.get("listChanged"))
         return Prompts(list_changed)
 
@@ -4603,15 +4682,16 @@ class Prompts(DataModelHelper):
 class Resources(DataModelHelper):
     """Present if the server offers any resources to read."""
 
-    list_changed: bool | None = None
+    list_changed: Optional[bool] = None
     """Whether this server supports notifications for changes to the resource list."""
 
-    subscribe: bool | None = None
+    subscribe: Optional[bool] = None
     """Whether this server supports subscribing to resource updates."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resources":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         list_changed = from_union([from_bool, from_none], obj.get("listChanged"))
         subscribe = from_union([from_bool, from_none], obj.get("subscribe"))
         return Resources(list_changed, subscribe)
@@ -4629,12 +4709,13 @@ class Resources(DataModelHelper):
 class RequestsTools(DataModelHelper):
     """Task support for tool-related requests."""
 
-    call: dict[str, Any] | None = None
+    call: Optional[Dict[str, Any]] = None
     """Whether the server supports task-augmented tools/call requests."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RequestsTools":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         call = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("call"))
         return RequestsTools(call)
 
@@ -4649,12 +4730,13 @@ class RequestsTools(DataModelHelper):
 class FluffyRequests(DataModelHelper):
     """Specifies which request types can be augmented with tasks."""
 
-    tools: RequestsTools | None = None
+    tools: Optional[RequestsTools] = None
     """Task support for tool-related requests."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "FluffyRequests":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         tools = from_union([RequestsTools.from_dict, from_none], obj.get("tools"))
         return FluffyRequests(tools)
 
@@ -4671,18 +4753,19 @@ class FluffyRequests(DataModelHelper):
 class ServercapabilitiesTasks(DataModelHelper):
     """Present if the server supports task-augmented requests."""
 
-    cancel: dict[str, Any] | None = None
+    cancel: Optional[Dict[str, Any]] = None
     """Whether this server supports tasks/cancel."""
 
-    list: dict[str, Any] | None = None
+    list: Optional[Dict[str, Any]] = None
     """Whether this server supports tasks/list."""
 
-    requests: FluffyRequests | None = None
+    requests: Optional[FluffyRequests] = None
     """Specifies which request types can be augmented with tasks."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ServercapabilitiesTasks":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         cancel = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("cancel"))
         list = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("list"))
         requests = from_union([FluffyRequests.from_dict, from_none], obj.get("requests"))
@@ -4707,12 +4790,13 @@ class ServercapabilitiesTasks(DataModelHelper):
 class ServercapabilitiesTools(DataModelHelper):
     """Present if the server offers any tools to call."""
 
-    list_changed: bool | None = None
+    list_changed: Optional[bool] = None
     """Whether this server supports notifications for changes to the tool list."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ServercapabilitiesTools":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         list_changed = from_union([from_bool, from_none], obj.get("listChanged"))
         return ServercapabilitiesTools(list_changed)
 
@@ -4730,30 +4814,31 @@ class Capabilities(DataModelHelper):
     capabilities.
     """
 
-    completions: dict[str, Any] | None = None
+    completions: Optional[Dict[str, Any]] = None
     """Present if the server supports argument autocompletion suggestions."""
 
-    experimental: dict[str, dict[str, Any]] | None = None
+    experimental: Optional[Dict[str, Dict[str, Any]]] = None
     """Experimental, non-standard capabilities that the server supports."""
 
-    logging: dict[str, Any] | None = None
+    logging: Optional[Dict[str, Any]] = None
     """Present if the server supports sending log messages to the client."""
 
-    prompts: Prompts | None = None
+    prompts: Optional[Prompts] = None
     """Present if the server offers any prompt templates."""
 
-    resources: Resources | None = None
+    resources: Optional[Resources] = None
     """Present if the server offers any resources to read."""
 
-    tasks: ServercapabilitiesTasks | None = None
+    tasks: Optional[ServercapabilitiesTasks] = None
     """Present if the server supports task-augmented requests."""
 
-    tools: ServercapabilitiesTools | None = None
+    tools: Optional[ServercapabilitiesTools] = None
     """Present if the server offers any tools to call."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Capabilities":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         completions = from_union(
             [lambda x: from_dict(lambda x: x, x), from_none], obj.get("completions")
         )
@@ -4813,11 +4898,11 @@ class Initializeresult(DataModelHelper):
     it MUST disconnect.
     """
     server_info: ClientInfo
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    instructions: str | None = None
+    instructions: Optional[str] = None
     """Instructions describing how to use the server and its features.
     
     This can be used by clients to improve the LLM's understanding of available tools,
@@ -4827,7 +4912,8 @@ class Initializeresult(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Initializeresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         capabilities = Capabilities.from_dict(obj.get("capabilities"))
         protocol_version = from_str(obj.get("protocolVersion"))
         server_info = ClientInfo.from_dict(obj.get("serverInfo"))
@@ -4865,7 +4951,8 @@ class Error(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Error":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         code = from_int(obj.get("code"))
         message = from_str(obj.get("message"))
         data = obj.get("data")
@@ -4886,11 +4973,12 @@ class Jsonrpcerror(DataModelHelper):
 
     error: Error
     jsonrpc: Jsonrpc
-    id: int | str | None = None
+    id: Optional[Union[int, str]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcerror":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         error = Error.from_dict(obj.get("error"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         id = from_union([from_int, from_str, from_none], obj.get("id"))
@@ -4920,15 +5008,16 @@ class Jsonrpcmessage(DataModelHelper):
     """
 
     jsonrpc: Jsonrpc
-    id: int | str | None = None
-    method: str | None = None
-    params: dict[str, Any] | None = None
-    result: EmptyresultClass | None = None
-    error: Error | None = None
+    id: Optional[Union[int, str]] = None
+    method: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
+    result: Optional[EmptyresultClass] = None
+    error: Optional[Error] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcmessage":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         id = from_union([from_int, from_str, from_none], obj.get("id"))
         method = from_union([from_str, from_none], obj.get("method"))
@@ -4963,11 +5052,12 @@ class JsonrpcnotificationClass(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: str
-    params: dict[str, Any] | None = None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "JsonrpcnotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = from_str(obj.get("method"))
         params = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("params"))
@@ -4988,14 +5078,15 @@ class JsonrpcnotificationClass(DataModelHelper):
 class JsonrpcrequestClass(DataModelHelper):
     """A request that expects a response."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: str
-    params: dict[str, Any] | None = None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "JsonrpcrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = from_str(obj.get("method"))
@@ -5024,13 +5115,14 @@ class Jsonrpcresponse(DataModelHelper):
     """
 
     jsonrpc: Jsonrpc
-    id: int | str | None = None
-    result: EmptyresultClass | None = None
-    error: Error | None = None
+    id: Optional[Union[int, str]] = None
+    result: Optional[EmptyresultClass] = None
+    error: Optional[Error] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Jsonrpcresponse":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         id = from_union([from_int, from_str, from_none], obj.get("id"))
         result = from_union([EmptyresultClass.from_dict, from_none], obj.get("result"))
@@ -5061,7 +5153,7 @@ class AmbitiousMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -5070,7 +5162,8 @@ class AmbitiousMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "AmbitiousMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return AmbitiousMeta(progress_token)
 
@@ -5087,18 +5180,19 @@ class AmbitiousMeta(DataModelHelper):
 class ListpromptsrequestParams(DataModelHelper):
     """Common parameters for paginated requests."""
 
-    meta: AmbitiousMeta | None = None
+    meta: Optional[AmbitiousMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    cursor: str | None = None
+    cursor: Optional[str] = None
     """An opaque token representing the current pagination position.
     If provided, the server should return results starting after this cursor.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListpromptsrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([AmbitiousMeta.from_dict, from_none], obj.get("_meta"))
         cursor = from_union([from_str, from_none], obj.get("cursor"))
         return ListpromptsrequestParams(meta, cursor)
@@ -5118,14 +5212,15 @@ class ListpromptsrequestParams(DataModelHelper):
 class ListpromptsrequestClass(DataModelHelper):
     """Sent from the client to request a list of prompts and prompt templates the server has."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListpromptsrequestMethod
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListpromptsrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListpromptsrequestMethod(obj.get("method"))
@@ -5152,13 +5247,13 @@ class PromptargumentElement(DataModelHelper):
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    description: str | None = None
+    description: Optional[str] = None
     """A human-readable description of the argument."""
 
-    required: bool | None = None
+    required: Optional[bool] = None
     """Whether this argument must be provided."""
 
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -5170,7 +5265,8 @@ class PromptargumentElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PromptargumentElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         description = from_union([from_str, from_none], obj.get("description"))
         required = from_union([from_bool, from_none], obj.get("required"))
@@ -5197,17 +5293,17 @@ class PromptElement(DataModelHelper):
     """Intended for programmatic or logical use, but used as a display name in past specs or
     fallback (if title isn't present).
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    arguments: list[PromptargumentElement] | None = None
+    arguments: Optional[List[PromptargumentElement]] = None
     """A list of arguments to use for templating the prompt."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """An optional description of what this prompt provides"""
 
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -5218,7 +5314,7 @@ class PromptElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -5230,7 +5326,8 @@ class PromptElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PromptElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         arguments = from_union(
@@ -5271,19 +5368,20 @@ class PromptElement(DataModelHelper):
 class Listpromptsresult(DataModelHelper):
     """The server's response to a prompts/list request from the client."""
 
-    prompts: list[PromptElement]
-    meta: dict[str, Any] | None = None
+    prompts: List[PromptElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listpromptsresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         prompts = from_list(PromptElement.from_dict, obj.get("prompts"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         next_cursor = from_union([from_str, from_none], obj.get("nextCursor"))
@@ -5309,14 +5407,15 @@ class ListresourcesrequestMethod(Enum):
 class ListresourcesrequestClass(DataModelHelper):
     """Sent from the client to request a list of resources the server has."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListresourcesrequestMethod
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListresourcesrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListresourcesrequestMethod(obj.get("method"))
@@ -5346,20 +5445,20 @@ class ResourceElement(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """A description of what this resource represents.
     
     This can be used by clients to improve the LLM's understanding of available resources. It
     can be thought of like a "hint" to the model.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -5370,16 +5469,16 @@ class ResourceElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
-    size: int | None = None
+    size: Optional[int] = None
     """The size of the raw resource content, in bytes (i.e., before base64 encoding or any
     tokenization), if known.
     
     This can be used by Hosts to display file sizes and estimate context window usage.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -5391,7 +5490,8 @@ class ResourceElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourceElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -5440,19 +5540,20 @@ class ResourceElement(DataModelHelper):
 class Listresourcesresult(DataModelHelper):
     """The server's response to a resources/list request from the client."""
 
-    resources: list[ResourceElement]
-    meta: dict[str, Any] | None = None
+    resources: List[ResourceElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listresourcesresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         resources = from_list(ResourceElement.from_dict, obj.get("resources"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         next_cursor = from_union([from_str, from_none], obj.get("nextCursor"))
@@ -5478,14 +5579,15 @@ class ListresourcetemplatesrequestMethod(Enum):
 class ListresourcetemplatesrequestClass(DataModelHelper):
     """Sent from the client to request a list of resource templates the server has."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListresourcetemplatesrequestMethod
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListresourcetemplatesrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListresourcetemplatesrequestMethod(obj.get("method"))
@@ -5515,20 +5617,20 @@ class ResourcetemplateElement(DataModelHelper):
     uri_template: str
     """A URI template (according to RFC 6570) that can be used to construct resource URIs."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """A description of what this template is for.
     
     This can be used by clients to improve the LLM's understanding of available resources. It
     can be thought of like a "hint" to the model.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -5539,11 +5641,11 @@ class ResourcetemplateElement(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type for all resources that match this template. This should only be included if
     all resources matching this template have the same type.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -5555,7 +5657,8 @@ class ResourcetemplateElement(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourcetemplateElement":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         uri_template = from_str(obj.get("uriTemplate"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -5601,19 +5704,20 @@ class ResourcetemplateElement(DataModelHelper):
 class Listresourcetemplatesresult(DataModelHelper):
     """The server's response to a resources/templates/list request from the client."""
 
-    resource_templates: list[ResourcetemplateElement]
-    meta: dict[str, Any] | None = None
+    resource_templates: List[ResourcetemplateElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listresourcetemplatesresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         resource_templates = from_list(
             ResourcetemplateElement.from_dict, obj.get("resourceTemplates")
         )
@@ -5645,7 +5749,7 @@ class CunningMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -5654,7 +5758,8 @@ class CunningMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "CunningMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return CunningMeta(progress_token)
 
@@ -5671,14 +5776,15 @@ class CunningMeta(DataModelHelper):
 class ListrootsrequestParams(DataModelHelper):
     """Common params for any request."""
 
-    meta: CunningMeta | None = None
+    meta: Optional[CunningMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListrootsrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([CunningMeta.from_dict, from_none], obj.get("_meta"))
         return ListrootsrequestParams(meta)
 
@@ -5700,14 +5806,15 @@ class Listrootsrequest(DataModelHelper):
     structure or access specific locations that the client has permission to read from.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListrootsrequestMethod
-    params: ListrootsrequestParams | None = None
+    params: Optional[ListrootsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listrootsrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListrootsrequestMethod(obj.get("method"))
@@ -5733,15 +5840,16 @@ class ListrootsresultClass(DataModelHelper):
     or file that the server can operate on.
     """
 
-    roots: list[RootElement]
-    meta: dict[str, Any] | None = None
+    roots: List[RootElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListrootsresultClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         roots = from_list(RootElement.from_dict, obj.get("roots"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return ListrootsresultClass(roots, meta)
@@ -5764,14 +5872,15 @@ class ListtoolsrequestMethod(Enum):
 class ListtoolsrequestClass(DataModelHelper):
     """Sent from the client to request a list of tools the server has."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ListtoolsrequestMethod
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ListtoolsrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ListtoolsrequestMethod(obj.get("method"))
@@ -5794,19 +5903,20 @@ class ListtoolsrequestClass(DataModelHelper):
 class Listtoolsresult(DataModelHelper):
     """The server's response to a tools/list request from the client."""
 
-    tools: list[ToolElement]
-    meta: dict[str, Any] | None = None
+    tools: List[ToolElement]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Listtoolsresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         tools = from_list(ToolElement.from_dict, obj.get("tools"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         next_cursor = from_union([from_str, from_none], obj.get("nextCursor"))
@@ -5839,16 +5949,17 @@ class LoggingmessagenotificationParams(DataModelHelper):
     level: Level
     """The severity of this log message."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    logger: str | None = None
+    logger: Optional[str] = None
     """An optional name of the logger issuing this message."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "LoggingmessagenotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         data = obj.get("data")
         level = Level(obj.get("level"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -5881,7 +5992,8 @@ class Loggingmessagenotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Loggingmessagenotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = LoggingmessagenotificationMethod(obj.get("method"))
         params = LoggingmessagenotificationParams.from_dict(obj.get("params"))
@@ -5898,11 +6010,12 @@ class Loggingmessagenotification(DataModelHelper):
 @dataclass
 class Notification(DataModelHelper):
     method: str
-    params: dict[str, Any] | None = None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Notification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         method = from_str(obj.get("method"))
         params = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("params"))
         return Notification(method, params)
@@ -5925,15 +6038,16 @@ class NumberschemaType(Enum):
 @dataclass
 class NumberschemaClass(DataModelHelper):
     type: NumberschemaType
-    default: int | None = None
-    description: str | None = None
-    maximum: int | None = None
-    minimum: int | None = None
-    title: str | None = None
+    default: Optional[int] = None
+    description: Optional[str] = None
+    maximum: Optional[int] = None
+    minimum: Optional[int] = None
+    title: Optional[str] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "NumberschemaClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = NumberschemaType(obj.get("type"))
         default = from_union([from_int, from_none], obj.get("default"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -5960,14 +6074,15 @@ class NumberschemaClass(DataModelHelper):
 
 @dataclass
 class Paginatedrequest(DataModelHelper):
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: str
-    params: ListpromptsrequestParams | None = None
+    params: Optional[ListpromptsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Paginatedrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = from_str(obj.get("method"))
@@ -5988,18 +6103,19 @@ class Paginatedrequest(DataModelHelper):
 
 @dataclass
 class Paginatedresult(DataModelHelper):
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Paginatedresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         next_cursor = from_union([from_str, from_none], obj.get("nextCursor"))
         return Paginatedresult(meta, next_cursor)
@@ -6025,14 +6141,15 @@ class PingrequestClass(DataModelHelper):
     alive. The receiver must promptly respond, or else may be disconnected.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: PingrequestMethod
-    params: ListrootsrequestParams | None = None
+    params: Optional[ListrootsrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PingrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = PingrequestMethod(obj.get("method"))
@@ -6063,23 +6180,24 @@ class ProgressnotificationParams(DataModelHelper):
     """The progress thus far. This should increase every time progress is made, even if the
     total is unknown.
     """
-    progress_token: int | str
+    progress_token: Union[int, str]
     """The progress token which was given in the initial request, used to associate this
     notification with the request that is proceeding.
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    message: str | None = None
+    message: Optional[str] = None
     """An optional message describing the current progress."""
 
-    total: float | None = None
+    total: Optional[float] = None
     """Total number of items to process (or total progress required), if known."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ProgressnotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress = from_float(obj.get("progress"))
         progress_token = from_union([from_int, from_str], obj.get("progressToken"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -6114,7 +6232,8 @@ class ProgressnotificationClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ProgressnotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ProgressnotificationMethod(obj.get("method"))
         params = ProgressnotificationParams.from_dict(obj.get("params"))
@@ -6141,11 +6260,12 @@ class Promptlistchangednotification(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: PromptlistchangednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Promptlistchangednotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = PromptlistchangednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -6175,7 +6295,7 @@ class PromptreferenceClass(DataModelHelper):
     fallback (if title isn't present).
     """
     type: PromptreferenceType
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -6187,7 +6307,8 @@ class PromptreferenceClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PromptreferenceClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         type = PromptreferenceType(obj.get("type"))
         title = from_union([from_str, from_none], obj.get("title"))
@@ -6212,7 +6333,7 @@ class MagentaMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -6221,7 +6342,8 @@ class MagentaMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "MagentaMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return MagentaMeta(progress_token)
 
@@ -6242,14 +6364,15 @@ class ReadresourcerequestParams(DataModelHelper):
     """The URI of the resource. The URI can use any protocol; it is up to the server how to
     interpret it.
     """
-    meta: MagentaMeta | None = None
+    meta: Optional[MagentaMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ReadresourcerequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([MagentaMeta.from_dict, from_none], obj.get("_meta"))
         return ReadresourcerequestParams(uri, meta)
@@ -6266,14 +6389,15 @@ class ReadresourcerequestParams(DataModelHelper):
 class ReadresourcerequestClass(DataModelHelper):
     """Sent from the client to the server, to read a specific resource URI."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ReadresourcerequestMethod
     params: ReadresourcerequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ReadresourcerequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ReadresourcerequestMethod(obj.get("method"))
@@ -6293,15 +6417,16 @@ class ReadresourcerequestClass(DataModelHelper):
 class Readresourceresult(DataModelHelper):
     """The server's response to a resources/read request from the client."""
 
-    contents: list[Resource]
-    meta: dict[str, Any] | None = None
+    contents: List[Resource]
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Readresourceresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         contents = from_list(Resource.from_dict, obj.get("contents"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return Readresourceresult(contents, meta)
@@ -6319,11 +6444,12 @@ class Readresourceresult(DataModelHelper):
 @dataclass
 class Request(DataModelHelper):
     method: str
-    params: dict[str, Any] | None = None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Request":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         method = from_str(obj.get("method"))
         params = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("params"))
         return Request(method, params)
@@ -6345,16 +6471,17 @@ class Resourcecontents(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resourcecontents":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         mime_type = from_union([from_str, from_none], obj.get("mimeType"))
@@ -6393,20 +6520,20 @@ class ResourcelinkClass(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
-    description: str | None = None
+    description: Optional[str] = None
     """A description of what this resource represents.
     
     This can be used by clients to improve the LLM's understanding of available resources. It
     can be thought of like a "hint" to the model.
     """
-    icons: list[IconElement] | None = None
+    icons: Optional[List[IconElement]] = None
     """Optional set of sized icons that the client can display in a user interface.
     
     Clients that support rendering icons MUST support at least the following MIME types:
@@ -6417,16 +6544,16 @@ class ResourcelinkClass(DataModelHelper):
     - `image/svg+xml` - SVG images (scalable but requires security precautions)
     - `image/webp` - WebP images (modern, efficient format)
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
-    size: int | None = None
+    size: Optional[int] = None
     """The size of the raw resource content, in bytes (i.e., before base64 encoding or any
     tokenization), if known.
     
     This can be used by Hosts to display file sizes and estimate context window usage.
     """
-    title: str | None = None
+    title: Optional[str] = None
     """Intended for UI and end-user contexts — optimized to be human-readable and easily
     understood,
     even by those unfamiliar with domain-specific terminology.
@@ -6438,7 +6565,8 @@ class ResourcelinkClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourcelinkClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         name = from_str(obj.get("name"))
         type = ResourcelinkType(obj.get("type"))
         uri = from_str(obj.get("uri"))
@@ -6498,11 +6626,12 @@ class Resourcelistchangednotification(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: ResourcelistchangednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resourcelistchangednotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ResourcelistchangednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -6533,7 +6662,8 @@ class ResourcetemplatereferenceClass(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourcetemplatereferenceClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = ResourcetemplatereferenceType(obj.get("type"))
         uri = from_str(obj.get("uri"))
         return ResourcetemplatereferenceClass(type, uri)
@@ -6557,14 +6687,15 @@ class ResourceupdatednotificationParams(DataModelHelper):
     """The URI of the resource that has been updated. This might be a sub-resource of the one
     that the client actually subscribed to.
     """
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ResourceupdatednotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         return ResourceupdatednotificationParams(uri, meta)
@@ -6592,7 +6723,8 @@ class Resourceupdatednotification(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Resourceupdatednotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ResourceupdatednotificationMethod(obj.get("method"))
         params = ResourceupdatednotificationParams.from_dict(obj.get("params"))
@@ -6620,11 +6752,12 @@ class RootslistchangednotificationClass(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: RootslistchangednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RootslistchangednotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = RootslistchangednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -6668,80 +6801,81 @@ class ServernotificationParams(DataModelHelper):
     Parameters for a `notifications/message` notification.
     """
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    reason: str | None = None
+    reason: Optional[str] = None
     """An optional string describing the reason for the cancellation. This MAY be logged or
     presented to the user.
     """
-    request_id: int | str | None = None
+    request_id: Optional[Union[int, str]] = None
     """The ID of the request to cancel.
     
     This MUST correspond to the ID of a request previously issued in the same direction.
     This MUST be provided for cancelling non-task requests.
     This MUST NOT be used for cancelling tasks (use the `tasks/cancel` request instead).
     """
-    message: str | None = None
+    message: Optional[str] = None
     """An optional message describing the current progress."""
 
-    progress: float | None = None
+    progress: Optional[float] = None
     """The progress thus far. This should increase every time progress is made, even if the
     total is unknown.
     """
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """The progress token which was given in the initial request, used to associate this
     notification with the request that is proceeding.
     """
-    total: float | None = None
+    total: Optional[float] = None
     """Total number of items to process (or total progress required), if known."""
 
-    uri: str | None = None
+    uri: Optional[str] = None
     """The URI of the resource that has been updated. This might be a sub-resource of the one
     that the client actually subscribed to.
     """
-    created_at: str | None = None
+    created_at: Optional[str] = None
     """ISO 8601 timestamp when the task was created."""
 
-    last_updated_at: str | None = None
+    last_updated_at: Optional[str] = None
     """ISO 8601 timestamp when the task was last updated."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status: Status | None = None
+    status: Optional[Status] = None
     """Current task state."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier."""
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
     data: Any = None
     """The data to be logged, such as a string message or an object. Any JSON serializable type
     is allowed here.
     """
-    level: Level | None = None
+    level: Optional[Level] = None
     """The severity of this log message."""
 
-    logger: str | None = None
+    logger: Optional[str] = None
     """An optional name of the logger issuing this message."""
 
-    elicitation_id: str | None = None
+    elicitation_id: Optional[str] = None
     """The ID of the elicitation that completed."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ServernotificationParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         reason = from_union([from_str, from_none], obj.get("reason"))
         request_id = from_union([from_int, from_str, from_none], obj.get("requestId"))
@@ -6877,11 +7011,12 @@ class Servernotification(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: ServernotificationMethod
-    params: ServernotificationParams | None = None
+    params: Optional[ServernotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Servernotification":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ServernotificationMethod(obj.get("method"))
         params = from_union([ServernotificationParams.from_dict, from_none], obj.get("params"))
@@ -6915,7 +7050,7 @@ class FriskyMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -6924,7 +7059,8 @@ class FriskyMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "FriskyMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return FriskyMeta(progress_token)
 
@@ -6955,22 +7091,22 @@ class ServerrequestParams(DataModelHelper):
     in the client.
     """
 
-    meta: FriskyMeta | None = None
+    meta: Optional[FriskyMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier to query.
     
     The task identifier to retrieve results for.
     
     The task identifier to cancel.
     """
-    cursor: str | None = None
+    cursor: Optional[str] = None
     """An opaque token representing the current pagination position.
     If provided, the server should return results starting after this cursor.
     """
-    include_context: IncludeContext | None = None
+    include_context: Optional[IncludeContext] = None
     """A request to include context from one or more MCP servers (including the caller), to be
     attached to the prompt.
     The client MAY ignore this request.
@@ -6980,26 +7116,26 @@ class ServerrequestParams(DataModelHelper):
     declares ClientCapabilities.sampling.context. These values may be removed in future spec
     releases.
     """
-    max_tokens: int | None = None
+    max_tokens: Optional[int] = None
     """The requested maximum number of tokens to sample (to prevent runaway completions).
     
     The client MAY choose to sample fewer tokens than the requested maximum.
     """
-    messages: list[SamplingmessageElement] | None = None
-    metadata: dict[str, Any] | None = None
+    messages: Optional[List[SamplingmessageElement]] = None
+    metadata: Optional[Dict[str, Any]] = None
     """Optional metadata to pass through to the LLM provider. The format of this metadata is
     provider-specific.
     """
-    model_preferences: ModelpreferencesClass | None = None
+    model_preferences: Optional[ModelpreferencesClass] = None
     """The server's preferences for which model to select. The client MAY ignore these
     preferences.
     """
-    stop_sequences: list[str] | None = None
-    system_prompt: str | None = None
+    stop_sequences: Optional[List[str]] = None
+    system_prompt: Optional[str] = None
     """An optional system prompt the server wants to use for sampling. The client MAY modify or
     omit this prompt.
     """
-    task: Task | None = None
+    task: Optional[Task] = None
     """If specified, the caller is requesting task-augmented execution for this request.
     The request will return a CreateTaskResult immediately, and the actual result can be
     retrieved later via tasks/result.
@@ -7007,41 +7143,42 @@ class ServerrequestParams(DataModelHelper):
     Task augmentation is subject to capability negotiation - receivers MUST declare support
     for task augmentation of specific request types in their capabilities.
     """
-    temperature: float | None = None
-    tool_choice: ToolChoice | None = None
+    temperature: Optional[float] = None
+    tool_choice: Optional[ToolChoice] = None
     """Controls how the model uses tools.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
     Default is `{ mode: "auto" }`.
     """
-    tools: list[ToolElement] | None = None
+    tools: Optional[List[ToolElement]] = None
     """Tools that the model may use during generation.
     The client MUST return an error if this field is provided but
     ClientCapabilities.sampling.tools is not declared.
     """
-    elicitation_id: str | None = None
+    elicitation_id: Optional[str] = None
     """The ID of the elicitation, which must be unique within the context of the server.
     The client MUST treat this ID as an opaque value.
     """
-    message: str | None = None
+    message: Optional[str] = None
     """The message to present to the user explaining why the interaction is needed.
     
     The message to present to the user describing what information is being requested.
     """
-    mode: ParamsMode | None = None
+    mode: Optional[ParamsMode] = None
     """The elicitation mode."""
 
-    url: str | None = None
+    url: Optional[str] = None
     """The URL that the user should navigate to."""
 
-    requested_schema: RequestedSchema | None = None
+    requested_schema: Optional[RequestedSchema] = None
     """A restricted subset of JSON Schema.
     Only top-level properties are allowed, without nesting.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ServerrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([FriskyMeta.from_dict, from_none], obj.get("_meta"))
         task_id = from_union([from_str, from_none], obj.get("taskId"))
         cursor = from_union([from_str, from_none], obj.get("cursor"))
@@ -7183,14 +7320,15 @@ class Serverrequest(DataModelHelper):
     A request from the server to elicit additional information from the user via the client.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: ServerrequestMethod
-    params: ServerrequestParams | None = None
+    params: Optional[ServerrequestParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Serverrequest":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ServerrequestMethod(obj.get("method"))
@@ -7242,41 +7380,41 @@ class Serverresult(DataModelHelper):
     The server's response to a completion/complete request
     """
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    capabilities: Capabilities | None = None
-    instructions: str | None = None
+    capabilities: Optional[Capabilities] = None
+    instructions: Optional[str] = None
     """Instructions describing how to use the server and its features.
     
     This can be used by clients to improve the LLM's understanding of available tools,
     resources, etc. It can be thought of like a "hint" to the model. For example, this
     information MAY be added to the system prompt.
     """
-    protocol_version: str | None = None
+    protocol_version: Optional[str] = None
     """The version of the Model Context Protocol that the server wants to use. This may not
     match the version that the client requested. If the client cannot support this version,
     it MUST disconnect.
     """
-    server_info: ClientInfo | None = None
-    next_cursor: str | None = None
+    server_info: Optional[ClientInfo] = None
+    next_cursor: Optional[str] = None
     """An opaque token representing the pagination position after the last returned result.
     If present, there may be more results available.
     """
-    resources: list[ResourceElement] | None = None
-    resource_templates: list[ResourcetemplateElement] | None = None
-    contents: list[Resource] | None = None
-    prompts: list[PromptElement] | None = None
-    description: str | None = None
+    resources: Optional[List[ResourceElement]] = None
+    resource_templates: Optional[List[ResourcetemplateElement]] = None
+    contents: Optional[List[Resource]] = None
+    prompts: Optional[List[PromptElement]] = None
+    description: Optional[str] = None
     """An optional description for the prompt."""
 
-    messages: list[PromptmessageElement] | None = None
-    tools: list[ToolElement] | None = None
-    content: list[ContentblockElement] | None = None
+    messages: Optional[List[PromptmessageElement]] = None
+    tools: Optional[List[ToolElement]] = None
+    content: Optional[List[ContentblockElement]] = None
     """A list of content objects that represent the unstructured result of the tool call."""
 
-    is_error: bool | None = None
+    is_error: Optional[bool] = None
     """Whether the tool call ended in an error.
     
     If not set, this is assumed to be false (the call was successful).
@@ -7290,40 +7428,41 @@ class Serverresult(DataModelHelper):
     server does not support tool calls, or any other exceptional conditions,
     should be reported as an MCP error response.
     """
-    structured_content: dict[str, Any] | None = None
+    structured_content: Optional[Dict[str, Any]] = None
     """An optional JSON object that represents the structured result of the tool call."""
 
-    created_at: str | None = None
+    created_at: Optional[str] = None
     """ISO 8601 timestamp when the task was created."""
 
-    last_updated_at: str | None = None
+    last_updated_at: Optional[str] = None
     """ISO 8601 timestamp when the task was last updated."""
 
-    poll_interval: int | None = None
+    poll_interval: Optional[int] = None
     """Suggested polling interval in milliseconds."""
 
-    status: Status | None = None
+    status: Optional[Status] = None
     """Current task state."""
 
-    status_message: str | None = None
+    status_message: Optional[str] = None
     """Optional human-readable message describing the current task state.
     This can provide context for any status, including:
     - Reasons for "cancelled" status
     - Summaries for "completed" status
     - Diagnostic information for "failed" status (e.g., error details, what went wrong)
     """
-    task_id: str | None = None
+    task_id: Optional[str] = None
     """The task identifier."""
 
-    ttl: int | None = None
+    ttl: Optional[int] = None
     """Actual retention duration from creation in milliseconds, null for unlimited."""
 
-    tasks: list[TaskElement] | None = None
-    completion: Completion | None = None
+    tasks: Optional[List[TaskElement]] = None
+    completion: Optional[Completion] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Serverresult":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
         capabilities = from_union([Capabilities.from_dict, from_none], obj.get("capabilities"))
         instructions = from_union([from_str, from_none], obj.get("instructions"))
@@ -7492,7 +7631,7 @@ class MischievousMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -7501,7 +7640,8 @@ class MischievousMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "MischievousMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return MischievousMeta(progress_token)
 
@@ -7523,14 +7663,15 @@ class SetlevelrequestParams(DataModelHelper):
     send all logs at this level and higher (i.e., more severe) to the client as
     notifications/message.
     """
-    meta: MischievousMeta | None = None
+    meta: Optional[MischievousMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SetlevelrequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         level = Level(obj.get("level"))
         meta = from_union([MischievousMeta.from_dict, from_none], obj.get("_meta"))
         return SetlevelrequestParams(level, meta)
@@ -7549,14 +7690,15 @@ class SetlevelrequestParams(DataModelHelper):
 class SetlevelrequestClass(DataModelHelper):
     """A request from the client to the server, to enable or adjust logging."""
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: SetlevelrequestMethod
     params: SetlevelrequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SetlevelrequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = SetlevelrequestMethod(obj.get("method"))
@@ -7575,16 +7717,17 @@ class SetlevelrequestClass(DataModelHelper):
 @dataclass
 class StringschemaClass(DataModelHelper):
     type: ItemsType
-    default: str | None = None
-    description: str | None = None
-    format: Format | None = None
-    max_length: int | None = None
-    min_length: int | None = None
-    title: str | None = None
+    default: Optional[str] = None
+    description: Optional[str] = None
+    format: Optional[Format] = None
+    max_length: Optional[int] = None
+    min_length: Optional[int] = None
+    title: Optional[str] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "StringschemaClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         type = ItemsType(obj.get("type"))
         default = from_union([from_str, from_none], obj.get("default"))
         description = from_union([from_str, from_none], obj.get("description"))
@@ -7622,7 +7765,7 @@ class BraggadociousMeta(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -7631,7 +7774,8 @@ class BraggadociousMeta(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "BraggadociousMeta":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return BraggadociousMeta(progress_token)
 
@@ -7652,14 +7796,15 @@ class SubscriberequestParams(DataModelHelper):
     """The URI of the resource. The URI can use any protocol; it is up to the server how to
     interpret it.
     """
-    meta: BraggadociousMeta | None = None
+    meta: Optional[BraggadociousMeta] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SubscriberequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([BraggadociousMeta.from_dict, from_none], obj.get("_meta"))
         return SubscriberequestParams(uri, meta)
@@ -7680,14 +7825,15 @@ class SubscriberequestClass(DataModelHelper):
     a particular resource changes.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: SubscriberequestMethod
     params: SubscriberequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SubscriberequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = SubscriberequestMethod(obj.get("method"))
@@ -7715,16 +7861,17 @@ class TextcontentClass(DataModelHelper):
     """The text content of the message."""
 
     type: TextcontentType
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    annotations: AudiocontentAnnotations | None = None
+    annotations: Optional[AudiocontentAnnotations] = None
     """Optional annotations for the client."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TextcontentClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         text = from_str(obj.get("text"))
         type = TextcontentType(obj.get("type"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -7757,16 +7904,17 @@ class TextresourcecontentsClass(DataModelHelper):
     uri: str
     """The URI of this resource."""
 
-    meta: dict[str, Any] | None = None
+    meta: Optional[Dict[str, Any]] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
-    mime_type: str | None = None
+    mime_type: Optional[str] = None
     """The MIME type of this resource, if known."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TextresourcecontentsClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         text = from_str(obj.get("text"))
         uri = from_str(obj.get("uri"))
         meta = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("_meta"))
@@ -7799,11 +7947,12 @@ class ToollistchangednotificationClass(DataModelHelper):
 
     jsonrpc: Jsonrpc
     method: ToollistchangednotificationMethod
-    params: InitializednotificationParams | None = None
+    params: Optional[InitializednotificationParams] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ToollistchangednotificationClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = ToollistchangednotificationMethod(obj.get("method"))
         params = from_union([InitializednotificationParams.from_dict, from_none], obj.get("params"))
@@ -7830,7 +7979,7 @@ class Meta1(DataModelHelper):
     `_meta` usage.
     """
 
-    progress_token: int | str | None = None
+    progress_token: Optional[Union[int, str]] = None
     """If specified, the caller is requesting out-of-band progress notifications for this
     request (as represented by notifications/progress). The value of this parameter is an
     opaque token that will be attached to any subsequent notifications. The receiver is not
@@ -7839,7 +7988,8 @@ class Meta1(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Meta1":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         progress_token = from_union([from_int, from_str, from_none], obj.get("progressToken"))
         return Meta1(progress_token)
 
@@ -7860,14 +8010,15 @@ class UnsubscriberequestParams(DataModelHelper):
     """The URI of the resource. The URI can use any protocol; it is up to the server how to
     interpret it.
     """
-    meta: Meta1 | None = None
+    meta: Optional[Meta1] = None
     """See [General fields: `_meta`](/specification/2025-11-25/basic/index#meta) for notes on
     `_meta` usage.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnsubscriberequestParams":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         uri = from_str(obj.get("uri"))
         meta = from_union([Meta1.from_dict, from_none], obj.get("_meta"))
         return UnsubscriberequestParams(uri, meta)
@@ -7886,14 +8037,15 @@ class UnsubscriberequestClass(DataModelHelper):
     server. This should follow a previous resources/subscribe request.
     """
 
-    id: int | str
+    id: Union[int, str]
     jsonrpc: Jsonrpc
     method: UnsubscriberequestMethod
     params: UnsubscriberequestParams
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnsubscriberequestClass":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_union([from_int, from_str], obj.get("id"))
         jsonrpc = Jsonrpc(obj.get("jsonrpc"))
         method = UnsubscriberequestMethod(obj.get("method"))
@@ -7912,100 +8064,101 @@ class UnsubscriberequestClass(DataModelHelper):
 @dataclass
 class ModelContextProtocolTypesSchema(DataModelHelper):
     annotations: AudiocontentAnnotations
-    audiocontent: Audiocontent | None = None
-    basemetadata: Basemetadata | None = None
-    blobresourcecontents: Blobresourcecontents | None = None
-    booleanschema: BooleanschemaClass | None = None
-    calltoolrequest: Calltoolrequest | None = None
-    calltoolresult: Calltoolresult | None = None
-    cancellednotification: Cancellednotification | None = None
-    clientcapabilities: Clientcapabilities | None = None
-    clientnotification: Clientnotification | None = None
-    clientrequest: Clientrequest | None = None
-    clientresult: Clientresult | None = None
-    completerequest: CompleterequestClass | None = None
-    completeresult: Completeresult | None = None
-    contentblock: ContentblockElement | None = None
-    createmessagerequest: Createmessagerequest | None = None
-    createmessageresult: CreatemessageresultClass | None = None
-    cursor: str | None = None
-    elicitrequest: Elicitrequest | None = None
-    elicitresult: ElicitresultClass | None = None
-    embeddedresource: EmbeddedresourceClass | None = None
-    emptyresult: EmptyresultClass | None = None
-    enumschema: EnumschemaClass | None = None
-    getpromptrequest: GetpromptrequestClass | None = None
-    getpromptresult: Getpromptresult | None = None
-    imagecontent: ImagecontentClass | None = None
-    implementation: ClientInfo | None = None
-    initializednotification: InitializednotificationClass | None = None
-    initializerequest: InitializerequestClass | None = None
-    initializeresult: Initializeresult | None = None
-    jsonrpcerror: Jsonrpcerror | None = None
-    jsonrpcmessage: Jsonrpcmessage | None = None
-    jsonrpcnotification: JsonrpcnotificationClass | None = None
-    jsonrpcrequest: JsonrpcrequestClass | None = None
-    jsonrpcresponse: Jsonrpcresponse | None = None
-    listpromptsrequest: ListpromptsrequestClass | None = None
-    listpromptsresult: Listpromptsresult | None = None
-    listresourcesrequest: ListresourcesrequestClass | None = None
-    listresourcesresult: Listresourcesresult | None = None
-    listresourcetemplatesrequest: ListresourcetemplatesrequestClass | None = None
-    listresourcetemplatesresult: Listresourcetemplatesresult | None = None
-    listrootsrequest: Listrootsrequest | None = None
-    listrootsresult: ListrootsresultClass | None = None
-    listtoolsrequest: ListtoolsrequestClass | None = None
-    listtoolsresult: Listtoolsresult | None = None
-    logginglevel: Level | None = None
-    loggingmessagenotification: Loggingmessagenotification | None = None
-    modelhint: ModelhintElement | None = None
-    modelpreferences: ModelpreferencesClass | None = None
-    notification: Notification | None = None
-    numberschema: NumberschemaClass | None = None
-    paginatedrequest: Paginatedrequest | None = None
-    paginatedresult: Paginatedresult | None = None
-    pingrequest: PingrequestClass | None = None
-    primitiveschemadefinition: PrimitiveschemadefinitionValue | None = None
-    progressnotification: ProgressnotificationClass | None = None
-    progresstoken: int | str | None = None
-    prompt: PromptElement | None = None
-    promptargument: PromptargumentElement | None = None
-    promptlistchangednotification: Promptlistchangednotification | None = None
-    promptmessage: PromptmessageElement | None = None
-    promptreference: PromptreferenceClass | None = None
-    readresourcerequest: ReadresourcerequestClass | None = None
-    readresourceresult: Readresourceresult | None = None
-    request: Request | None = None
-    requestid: int | str | None = None
-    resource: ResourceElement | None = None
-    resourcecontents: Resourcecontents | None = None
-    resourcelink: ResourcelinkClass | None = None
-    resourcelistchangednotification: Resourcelistchangednotification | None = None
-    resourcetemplate: ResourcetemplateElement | None = None
-    resourcetemplatereference: ResourcetemplatereferenceClass | None = None
-    resourceupdatednotification: Resourceupdatednotification | None = None
-    result: EmptyresultClass | None = None
-    role: RoleElement | None = None
-    root: RootElement | None = None
-    rootslistchangednotification: RootslistchangednotificationClass | None = None
-    samplingmessage: SamplingmessageElement | None = None
-    servercapabilities: Capabilities | None = None
-    servernotification: Servernotification | None = None
-    serverrequest: Serverrequest | None = None
-    serverresult: Serverresult | None = None
-    setlevelrequest: SetlevelrequestClass | None = None
-    stringschema: StringschemaClass | None = None
-    subscriberequest: SubscriberequestClass | None = None
-    textcontent: TextcontentClass | None = None
-    textresourcecontents: TextresourcecontentsClass | None = None
-    tool: ToolElement | None = None
-    toolannotations: ToolannotationsClass | None = None
-    toollistchangednotification: ToollistchangednotificationClass | None = None
-    unsubscriberequest: UnsubscriberequestClass | None = None
+    audiocontent: Optional[Audiocontent] = None
+    basemetadata: Optional[Basemetadata] = None
+    blobresourcecontents: Optional[Blobresourcecontents] = None
+    booleanschema: Optional[BooleanschemaClass] = None
+    calltoolrequest: Optional[Calltoolrequest] = None
+    calltoolresult: Optional[Calltoolresult] = None
+    cancellednotification: Optional[Cancellednotification] = None
+    clientcapabilities: Optional[Clientcapabilities] = None
+    clientnotification: Optional[Clientnotification] = None
+    clientrequest: Optional[Clientrequest] = None
+    clientresult: Optional[Clientresult] = None
+    completerequest: Optional[CompleterequestClass] = None
+    completeresult: Optional[Completeresult] = None
+    contentblock: Optional[ContentblockElement] = None
+    createmessagerequest: Optional[Createmessagerequest] = None
+    createmessageresult: Optional[CreatemessageresultClass] = None
+    cursor: Optional[str] = None
+    elicitrequest: Optional[Elicitrequest] = None
+    elicitresult: Optional[ElicitresultClass] = None
+    embeddedresource: Optional[EmbeddedresourceClass] = None
+    emptyresult: Optional[EmptyresultClass] = None
+    enumschema: Optional[EnumschemaClass] = None
+    getpromptrequest: Optional[GetpromptrequestClass] = None
+    getpromptresult: Optional[Getpromptresult] = None
+    imagecontent: Optional[ImagecontentClass] = None
+    implementation: Optional[ClientInfo] = None
+    initializednotification: Optional[InitializednotificationClass] = None
+    initializerequest: Optional[InitializerequestClass] = None
+    initializeresult: Optional[Initializeresult] = None
+    jsonrpcerror: Optional[Jsonrpcerror] = None
+    jsonrpcmessage: Optional[Jsonrpcmessage] = None
+    jsonrpcnotification: Optional[JsonrpcnotificationClass] = None
+    jsonrpcrequest: Optional[JsonrpcrequestClass] = None
+    jsonrpcresponse: Optional[Jsonrpcresponse] = None
+    listpromptsrequest: Optional[ListpromptsrequestClass] = None
+    listpromptsresult: Optional[Listpromptsresult] = None
+    listresourcesrequest: Optional[ListresourcesrequestClass] = None
+    listresourcesresult: Optional[Listresourcesresult] = None
+    listresourcetemplatesrequest: Optional[ListresourcetemplatesrequestClass] = None
+    listresourcetemplatesresult: Optional[Listresourcetemplatesresult] = None
+    listrootsrequest: Optional[Listrootsrequest] = None
+    listrootsresult: Optional[ListrootsresultClass] = None
+    listtoolsrequest: Optional[ListtoolsrequestClass] = None
+    listtoolsresult: Optional[Listtoolsresult] = None
+    logginglevel: Optional[Level] = None
+    loggingmessagenotification: Optional[Loggingmessagenotification] = None
+    modelhint: Optional[ModelhintElement] = None
+    modelpreferences: Optional[ModelpreferencesClass] = None
+    notification: Optional[Notification] = None
+    numberschema: Optional[NumberschemaClass] = None
+    paginatedrequest: Optional[Paginatedrequest] = None
+    paginatedresult: Optional[Paginatedresult] = None
+    pingrequest: Optional[PingrequestClass] = None
+    primitiveschemadefinition: Optional[PrimitiveschemadefinitionValue] = None
+    progressnotification: Optional[ProgressnotificationClass] = None
+    progresstoken: Optional[Union[int, str]] = None
+    prompt: Optional[PromptElement] = None
+    promptargument: Optional[PromptargumentElement] = None
+    promptlistchangednotification: Optional[Promptlistchangednotification] = None
+    promptmessage: Optional[PromptmessageElement] = None
+    promptreference: Optional[PromptreferenceClass] = None
+    readresourcerequest: Optional[ReadresourcerequestClass] = None
+    readresourceresult: Optional[Readresourceresult] = None
+    request: Optional[Request] = None
+    requestid: Optional[Union[int, str]] = None
+    resource: Optional[ResourceElement] = None
+    resourcecontents: Optional[Resourcecontents] = None
+    resourcelink: Optional[ResourcelinkClass] = None
+    resourcelistchangednotification: Optional[Resourcelistchangednotification] = None
+    resourcetemplate: Optional[ResourcetemplateElement] = None
+    resourcetemplatereference: Optional[ResourcetemplatereferenceClass] = None
+    resourceupdatednotification: Optional[Resourceupdatednotification] = None
+    result: Optional[EmptyresultClass] = None
+    role: Optional[RoleElement] = None
+    root: Optional[RootElement] = None
+    rootslistchangednotification: Optional[RootslistchangednotificationClass] = None
+    samplingmessage: Optional[SamplingmessageElement] = None
+    servercapabilities: Optional[Capabilities] = None
+    servernotification: Optional[Servernotification] = None
+    serverrequest: Optional[Serverrequest] = None
+    serverresult: Optional[Serverresult] = None
+    setlevelrequest: Optional[SetlevelrequestClass] = None
+    stringschema: Optional[StringschemaClass] = None
+    subscriberequest: Optional[SubscriberequestClass] = None
+    textcontent: Optional[TextcontentClass] = None
+    textresourcecontents: Optional[TextresourcecontentsClass] = None
+    tool: Optional[ToolElement] = None
+    toolannotations: Optional[ToolannotationsClass] = None
+    toollistchangednotification: Optional[ToollistchangednotificationClass] = None
+    unsubscriberequest: Optional[UnsubscriberequestClass] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ModelContextProtocolTypesSchema":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         annotations = AudiocontentAnnotations.from_dict(obj.get("annotations"))
         audiocontent = from_union([Audiocontent.from_dict, from_none], obj.get("audiocontent"))
         basemetadata = from_union([Basemetadata.from_dict, from_none], obj.get("basemetadata"))

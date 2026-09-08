@@ -6,14 +6,13 @@
 # =============================================================================
 
 from dataclasses import dataclass
-from typing import Any, TypeVar
-
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_float,
     to_class,
     to_float,
 )
+from typing import Any, TypeVar, Type, cast
 
 T = TypeVar("T")
 
@@ -27,7 +26,8 @@ class GeoCoordinate(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "GeoCoordinate":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         latitude = from_float(obj.get("latitude"))
         longitude = from_float(obj.get("longitude"))
         return GeoCoordinate(latitude, longitude)

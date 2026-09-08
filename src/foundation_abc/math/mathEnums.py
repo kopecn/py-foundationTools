@@ -1,7 +1,7 @@
 """Shared Math-domain enumerations.
 
 Hand-written leaf module (depends on nothing in this package) so both the
-generated ``MathTypes.py`` and the hand-written Tier-2 ABC module
+generated ``MathTypes.py`` and the hand-written structural protocol module
 (``precisionTimeABC.py``) can import these without a circular import. Values
 mirror the JSON Schemas under
 ``schema/schemas/Math/`` (``NumericSign``, ``Timescale``, ``ReferenceFrame``);

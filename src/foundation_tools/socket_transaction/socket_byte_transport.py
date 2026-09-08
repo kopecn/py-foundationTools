@@ -38,7 +38,7 @@ class SocketByteTransport(PeripheralByteTransport):
                 asyncio.open_connection(self._host, self._port),
                 timeout=self._connect_timeout,
             )
-        except (OSError, asyncio.TimeoutError, TimeoutError) as error:
+        except (OSError, asyncio.TimeoutError) as error:
             raise ConnectionError(
                 f"Failed to connect to {self._host}:{self._port}: {error}"
             ) from error

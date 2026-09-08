@@ -29,9 +29,7 @@ async def running_server(handler: ServerHandler) -> AsyncIterator[tuple[str, int
     completes (see module docstring).
     """
 
-    async def _closing_handler(
-        reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ) -> None:
+    async def _closing_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
             await handler(reader, writer)
         finally:

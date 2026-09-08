@@ -298,7 +298,9 @@ class TestRequestWithModelEmptyPayloadSkipsParser:
 
         transport = FakeTransport()
         async with _make_socket_transact(transport) as st:
-            with patch.object(st._router, "request", new=AsyncMock(return_value=b"")):  # noqa: SLF001
+            with patch.object(
+                st._router, "request", new=AsyncMock(return_value=b"")
+            ):  # noqa: SLF001
                 result = await st.request_with_model(b"query", GeoCoordinate, timeout=1.0)
 
         assert result.success is True

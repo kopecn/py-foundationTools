@@ -1,34 +1,24 @@
 #!/usr/bin/env python3
 """Math-domain post-processor for quicktype output (MathTypes.py).
 
-The Math family uses a 3-tier architecture (see .claude/specs/mathTypeTiers.md):
-the generated ``XxxxType`` dataclass is the Tier-1 data carrier that inherits both
-its hand-written Tier-2 ``XxxxLike`` ABC (from ``foundation_abc.math``, ABC first
-in the base list) and ``DataModelHelper`` directly (the ABCs themselves are
-stdlib-only — see Plan 21 — so the generated class is the sole place the two
-combine). quicktype does not know about any of that, so this script rewrites its
-raw output to fit it. It is Math-specific on purpose (per-class distinct parents,
-enum extraction, literal field defaults); the shared reuse libraries stay generic
-for the other generators.
+The generated ``XxxxType`` dataclasses are schema-faithful data carriers. They
+inherit ``DataModelHelper`` for the repository's common IO surface and satisfy
+the storage-independent protocols in ``foundation_abc.math`` structurally; they
+do not inherit those protocols. This avoids colliding dataclass fields with
+abstract property descriptors.
 
 Transforms applied, in order:
   1. Strip quicktype's inline helper defs; import the equivalents from
      foundationTypes.data_model_helper.
   2. Strip the generated enum classes (NumericSign / Timescale / ReferenceFrame);
      import them from foundation_abc.math.mathEnums (single source of truth, also
-     avoids a circular import with the Tier-2 modules).
-  3. Reparent each ``class XxxxType:`` to ``class XxxxType(XxxxLike, DataModelHelper):``
-     (ABC first, per the MRO rule in mathTypeTiers.md) and inject the matching
-     ``from foundation_abc.math.<module> import XxxxLike`` plus
-     ``from foundationTypes.data_model_helper import DataModelHelper``.
-  4. Give every field a literal class-level default so the inherited abstract
-     ``@property`` accessor is satisfied (a data descriptor otherwise blocks
-     instantiation): scalars -> 0.0 / 0 / NumericSign.ZERO; lists become
-     ``Sequence[...] = ()``; nested single objects become ``... | None = None``;
-     fields quicktype already defaulted (Optional[...] = None) are left alone.
+     avoids a circular import with the structural protocol modules).
+  3. Reparent each ``class XxxxType:`` to ``class XxxxType(DataModelHelper):``
+     and import ``DataModelHelper``. Required fields remain exactly as quicktype
+     emitted them: non-optional and without constructor defaults.
 
 from_dict (@staticmethod -> @classmethod) and to_dict return-type widening are
-left to the shared run_ruff / normalize_generated pass, as for every generator.
+left to the shared run_black / normalize_generated pass, as for every generator.
 """
 
 from __future__ import annotations
@@ -51,81 +41,11 @@ HELPERS = [
 ]
 ENUMS = ["NumericSign", "ReferenceFrame", "Timescale"]
 
-# Type (public name) -> (module basename, Like class). Module basename is the
-# lowercase-first of the Like class name (the type name minus "Type", plus "Like"),
-# except Quaternion/Position/SpatialTransform (share spatialABCs),
-# PrecisionTimeInterval/PrecisionTimestamp (share precisionTimeABC),
-# UnitSphericalArc/UnitSphericalSmallCircle (share sphericalABCs), and every
-# waveform type (share waveformABCs).
-TYPE_TO_LIKE = {
-    "QuaternionType": ("spatialABCs", "QuaternionABC"),
-    "PositionType": ("spatialABCs", "PositionABC"),
-    "SpatialTransformType": ("spatialABCs", "SpatialTransformABC"),
-    "PrecisionTimeIntervalType": ("precisionTimeABC", "PrecisionTimeIntervalABC"),
-    "PrecisionTimestampType": ("precisionTimeABC", "PrecisionTimestampABC"),
-    "UnitSphericalArcType": ("sphericalABCs", "UnitSphericalArcABC"),
-    "UnitSphericalSmallCircleType": ("sphericalABCs", "UnitSphericalSmallCircleABC"),
-    "PositionWaveformType": ("waveformABCs", "PositionWaveformABC"),
-    "QuaternionWaveformType": ("waveformABCs", "QuaternionWaveformABC"),
-    "SpatialTransformWaveformType": ("waveformABCs", "WaveformSpatialABC"),
-    "ScalarWaveformType": ("waveformABCs", "Waveform1dABC"),
-    "UnitSphericalArcWaveformType": ("waveformABCs", "WaveformUnitSphericalArcABC"),
-    "UnitSphericalSmallCircleWaveformType": (
-        "waveformABCs",
-        "WaveformUnitSphericalSmallCircleABC",
-    ),
-}
-
-# Scalar field types -> literal default that clears the inherited abstract accessor.
-SCALAR_DEFAULTS = {"float": "0.0", "int": "0", "NumericSign": "NumericSign.ZERO"}
-
 
 def strip_block(content: str, header_regex: str) -> str:
     """Remove a top-level ``def``/``class`` block and its indented/blank body."""
     pattern = re.compile(rf"(?m)^{header_regex}[^\n]*\n(?:[ \t][^\n]*\n|\n)*")
     return pattern.sub("", content)
-
-
-def field_default(field_type: str) -> str:
-    """Return the ``  = ...`` (or ``| None = None`` / ``Sequence[...] = ()``)
-    suffix/rewrite for a required field of ``field_type``."""
-    field_type = field_type.strip()
-    if field_type in SCALAR_DEFAULTS:
-        return f"{field_type} = {SCALAR_DEFAULTS[field_type]}"
-    list_match = re.fullmatch(r"List\[(.+)\]", field_type)
-    if list_match:
-        return f"Sequence[{list_match.group(1)}] = ()"
-    # Nested single-object carrier (e.g. PositionType). A literal `None`
-    # default is the only thing that clears the inherited abstract `@property`
-    # accessor (default_factory does not), but it makes the field Optional, which
-    # is an incompatible override of the non-Optional Tier-2 accessor. That
-    # Optionality is a codegen-only tax (from_dict always supplies the value), so
-    # silence the override check here rather than pollute the Tier-2 contract.
-    return f"{field_type} | None = None  # type: ignore[assignment]"
-
-
-def inject_defaults(content: str) -> str:
-    """Add a literal default to every required field of every XxxxType dataclass."""
-    lines = content.split("\n")
-    out: list[str] = []
-    in_fields = False
-    for line in lines:
-        if re.match(r"^class \w+Type\(", line) or re.match(r"^class \w+Type:", line):
-            in_fields = True
-            out.append(line)
-            continue
-        if in_fields:
-            # field section ends at the first method / decorator / dedent.
-            if re.match(r"^    (@|def )", line) or (line and not line.startswith(" ")):
-                in_fields = False
-            else:
-                m = re.match(r"^    (\w+): (.+)$", line)
-                if m and " = " not in line and not m.group(2).lstrip().startswith('"'):
-                    name, ftype = m.group(1), m.group(2)
-                    out.append(f"    {name}: {field_default(ftype)}")
-                    continue
-        out.append(line)
-    return "\n".join(out)
 
 
 def main(path: str) -> None:
@@ -138,33 +58,20 @@ def main(path: str) -> None:
     for e in ENUMS:
         content = strip_block(content, rf"class {e}\(Enum\):")
 
-    # Reparent each XxxxType to its Like (ABC first, per the MRO rule in
-    # mathTypeTiers.md) plus DataModelHelper, and collect the Like imports needed.
-    like_imports: list[str] = []
-    for type_name, (module, like) in TYPE_TO_LIKE.items():
-        new, n = re.subn(
-            rf"(?m)^class {type_name}:$", f"class {type_name}({like}, DataModelHelper):", content
-        )
-        if n:
-            content = new
-            like_imports.append(f"from foundation_abc.math.{module} import {like}")
-
-    content = inject_defaults(content)
+    content = re.sub(
+        r"(?m)^class (\w+Type):$",
+        r"class \1(DataModelHelper):",
+        content,
+    )
 
     # Build the import block injected right after quicktype's own import section.
     helper_block = ""
     if present_helpers:
         items = ",\n    ".join(present_helpers)
         helper_block = f"from foundationTypes.data_model_helper import (\n    {items},\n)\n"
-    # DataModelHelper is a direct base of every XxxxType now (dual inheritance,
-    # ABC first) rather than reaching them transitively through the ABC, so it
-    # needs its own class import regardless of which from_*/to_* helpers are used.
     dmh_block = "from foundationTypes.data_model_helper import DataModelHelper\n"
     enum_block = "from foundation_abc.math.mathEnums import " + ", ".join(ENUMS) + "\n"
-    seq_block = "from collections.abc import Sequence\n"
-    injected = (
-        seq_block + helper_block + dmh_block + enum_block + "\n".join(sorted(like_imports)) + "\n"
-    )
+    injected = helper_block + dmh_block + enum_block
 
     # Insert after the last top-level `from ... import ...` / `import ...` line
     # in the header (quicktype groups them at the top).

@@ -5,10 +5,8 @@
 # To modify, update the source schema in schema/schemas/ and re-run codegen.
 # =============================================================================
 
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypeVar
-
+from dataclasses import dataclass
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_float,
@@ -19,6 +17,7 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
+from typing import Optional, Any, TypeVar, Type, cast
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
@@ -72,11 +71,12 @@ class ChArUcoBoard(DataModelHelper):
     squares_y: int
     """Number of chessboard squares down the board."""
 
-    dictionary: ArucoDictionary | None = None
+    dictionary: Optional[ArucoDictionary] = None
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ChArUcoBoard":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         marker_length = from_float(obj.get("marker_length"))
         square_length = from_float(obj.get("square_length"))
         squares_x = from_int(obj.get("squares_x"))
@@ -112,18 +112,19 @@ class ChArUcoRenderOptions(DataModelHelper):
     image_width: int
     """Width of the generated image in pixels."""
 
-    border_bits: int | None = None
+    border_bits: Optional[int] = None
     """Width of the black border surrounding each ArUco marker, expressed in marker cells."""
 
-    dpi: int | None = None
+    dpi: Optional[int] = None
     """Target print resolution in dots per inch."""
 
-    margin_size: int | None = None
+    margin_size: Optional[int] = None
     """White border around the board, measured in pixels."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ChArUcoRenderOptions":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         image_height = from_int(obj.get("image_height"))
         image_width = from_int(obj.get("image_width"))
         border_bits = from_union([from_int, from_none], obj.get("border_bits"))
@@ -160,7 +161,8 @@ class ChArUcoConfig(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ChArUcoConfig":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         board = ChArUcoBoard.from_dict(obj.get("board"))
         render = ChArUcoRenderOptions.from_dict(obj.get("render"))
         return ChArUcoConfig(board, render)

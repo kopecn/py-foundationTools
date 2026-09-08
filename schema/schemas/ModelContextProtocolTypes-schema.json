@@ -274,7 +274,7 @@
         },
         "unsubscriberequest": {
             "$ref": "MCP/ModelContextProtocol-2025-06-18-schema.json#/$defs/UnsubscribeRequest"
-        },
+        }
     },
     "required": [
         "annotations"

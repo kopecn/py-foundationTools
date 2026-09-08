@@ -73,10 +73,10 @@ import json
 
 # Create and serialize coordinates
 coord = GeoCoordinate(latitude=40.7128, longitude=-74.0060)
-coord.saveToFile(Path("location.json"))
+coord.save_to_file(Path("location.json"))
 
 # Load from file
-loaded_coord = GeoCoordinate.loadFromFile(Path("location.json"))
+loaded_coord = GeoCoordinate.load_from_file(Path("location.json"))
 print(f"Location: {loaded_coord.latitude}, {loaded_coord.longitude}")
 ```
 
@@ -92,12 +92,14 @@ safe_percentage = clamp(user_input, 0.0, 100.0)
 ### Mathematical Data Types
 ```python
 import math
-from foundationTypes.mathTypes.UnitSphericalSmallCircle import UnitSphericalSmallCircle
-from foundationTypes.mathTypes.UnitSphericalArc import UnitSphericalArc
-from foundationTypes.mathTypes.QuaternionType import QuaternionType
+from foundationTypes.mathTypes.MathTypes import (
+    QuaternionType,
+    UnitSphericalArcType,
+    UnitSphericalSmallCircleType,
+)
 
 # Create a small circle on a unit sphere
-circle = UnitSphericalSmallCircle(
+circle = UnitSphericalSmallCircleType(
     azimuth=0.0,              # Longitudinal position (0 to 2*pi)
     polar=math.pi / 4,        # Latitudinal position (-pi/2 to pi/2)
     radius_angle=math.pi / 6  # Angular radius
@@ -106,18 +108,18 @@ circle = UnitSphericalSmallCircle(
 # Serialize to JSON
 circle_dict = circle.to_dict()
 # Save to file
-circle.saveToFile(Path("circle.json"))
+circle.save_to_file(Path("circle.json"))
 
 # Create an arc on a unit sphere
-arc = UnitSphericalArc(
+arc = UnitSphericalArcType(
     arc_length=math.pi / 2,  # Arc length in radians
     azimuth=math.pi / 4,     # Starting longitudinal position
     orient=0.0,              # Rotational orientation
     polar=0.0                # Starting latitudinal position
 )
 
-# Use QuaternionType as base for custom quaternion implementations
-# (Subclass and implement the abstract methods)
+# QuaternionType is a concrete DataModelHelper dataclass; construct directly
+quat = QuaternionType(w=1.0, x=0.0, y=0.0, z=0.0)
 ```
 
 ## Development Workflows
@@ -126,7 +128,7 @@ This project includes a comprehensive Makefile to streamline development workflo
 
 ### 🚀 Quick Development Setup
 ```bash
-make devInstall    # Install development dependencies
+make installDev    # Install development dependencies
 make e             # Install package in editable mode
 ```
 
@@ -135,42 +137,35 @@ make e             # Install package in editable mode
 make test          # Run tests in current environment
 make testInEnv     # Run tests in isolated virtual environment
 make uv-fullCheck  # Run complete quality checks (lint + typecheck + test)
-make lint          # Run pylint on source code
+make uv-lint       # Run ruff linter
 make uv-typecheck  # Run mypy type checking
-make format        # Format code with black
+make uv-format     # Format code with ruff
 ```
 
 ### 📦 Building & Distribution
 ```bash
 make build         # Build source and wheel distributions
-make dist          # Create distribution packages
 make version       # Display current version
-make tag           # Create and push git tag for current version
 ```
 
 ### 🚀 Release Management
 ```bash
-make releaseTest   # Upload to TestPyPI for testing
-make release       # Upload to PyPI (production)
+make release-test  # Dry-run publish to TestPyPI (clean tree only)
+make release       # Refuse local upload; print the CI-driven release procedure
 ```
 
 ### 🧹 Cleanup
 ```bash
 make clean         # Remove all build, test, and Python artifacts
-make cleanBuild    # Remove only build artifacts
-make cleanTest     # Remove only test outputs
-```
-
-### 📖 Documentation
-```bash
-make docs          # Build HTML documentation with Sphinx
+make clean-build   # Remove only build artifacts
+make clean-test    # Remove only test outputs
 ```
 
 ### 🔄 Version Management
 ```bash
-make bumpPatch     # Increment patch version (x.x.X)
-make bumpMinor     # Increment minor version (x.X.x)
-make bumpMajor     # Increment major version (X.x.x)
+make bump-patch    # Increment patch version (x.x.X)
+make bump-minor    # Increment minor version (x.X.x)
+make bump-major    # Increment major version (X.x.x)
 ```
 
 ## Design Philosophy
@@ -183,5 +178,5 @@ make bumpMajor     # Increment major version (X.x.x)
 
 ## Requirements
 
-- Python >= 3.10
+- Python >= 3.11
 - No external dependencies

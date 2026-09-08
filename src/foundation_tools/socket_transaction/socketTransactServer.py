@@ -176,7 +176,7 @@ class SocketTransactServer:
             try:
                 writer.write(codec.encode(payload))
                 await writer.drain()
-            except (ConnectionError, RuntimeError, OSError) as error:
+            except (RuntimeError, OSError) as error:
                 _log.warning(
                     "broadcast failed on one connection — continuing",
                     extra={"error": str(error)},
@@ -186,9 +186,7 @@ class SocketTransactServer:
     # MARK: - Private — connection handling
     # -----------------------------------------------------------------------
 
-    async def _on_connect(
-        self, reader: "_StreamReaderLike", writer: "_StreamWriterLike"
-    ) -> None:
+    async def _on_connect(self, reader: "_StreamReaderLike", writer: "_StreamWriterLike") -> None:
         # Track this connection's reader-loop task so `stop()` can cancel and
         # await it — without this, the loop below outlives teardown for any
         # client that hasn't sent EOF (Server Compliance Requirement 7).
@@ -203,7 +201,7 @@ class SocketTransactServer:
             while True:
                 try:
                     data = await reader.read(self._read_size)
-                except (ConnectionError, OSError):
+                except OSError:
                     break
                 if data == b"":
                     break
@@ -261,7 +259,7 @@ class SocketTransactServer:
         try:
             writer.write(codec.encode(reply_payload))
             await writer.drain()
-        except (ConnectionError, RuntimeError, OSError) as error:
+        except (RuntimeError, OSError) as error:
             _log.warning(
                 "failed to send reply — connection likely closed",
                 extra={"error": str(error)},
