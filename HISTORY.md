@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-09-08
+
 ### Added
--
+- `foundationTypes/presentationTypes` presentation models (deck, slides, layouts, color theme) and the `foundation_tools/presentation` resolvers (layout, theme, image-fit, units, migration).
+- `foundation_tools/file_tools` path helpers (`find_matching_paths`).
+
+### Changed
+- Renamed `foundation_physics` → `foundation_science`; constants reworked onto the `Constant` float subclass with registry-based discovery.
+- Hardened `StandardizedLogger` compatibility and safety.
 
 ### Fixed
-- Generated `from_dict` methods now raise `TypeError` (via `normalize_generated.sh`'s new third normalization pass) instead of a bare `assert isinstance(obj, dict)` — the prior form escaped `from_union`'s catch tuple and was silently disabled under `python -O`. All 190 occurrences across every generated model were rewritten by re-running `make codegen-all`; `from_union` itself is unchanged.
-- Math codegen now preserves JSON Schema requiredness in direct constructors. Generated carriers inherit `DataModelHelper` directly and satisfy the independent Math protocols structurally, removing fabricated scalar/list defaults, required-object `None` defaults, and assignment suppressions.
+- Generated `from_dict` now raises `TypeError` instead of a bare `assert` (was silently disabled under `python -O`).
+- Math codegen preserves JSON Schema requiredness in direct constructors.
+- Socket transaction: router frame-processing containment, request-registration atomicity, framing-codec config validation.
+- `CLITransact` async cancellation cleanup.
 
 ## [0.0.4] - 2026-08-14
 
@@ -78,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release on PyPI.
 
-[Unreleased]: https://github.com/kopecn/py-foundationTools/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/kopecn/py-foundationTools/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/kopecn/py-foundationTools/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/kopecn/py-foundationTools/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/kopecn/py-foundationTools/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/kopecn/py-foundationTools/compare/70ebd16...v0.0.2
