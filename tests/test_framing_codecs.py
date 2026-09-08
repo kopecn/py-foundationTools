@@ -61,6 +61,15 @@ class TestDelimiterCodec:
         encoded = codec.encode(b"hello") + codec.encode(b"world")
         assert codec.feed(encoded) == [b"hello", b"world"]
 
+    def test_empty_delimiter_rejected(self) -> None:
+        with pytest.raises(ValueError, match="delimiter"):
+            DelimiterCodec(delimiter=b"")
+
+    def test_single_byte_delimiter_is_valid(self) -> None:
+        codec = DelimiterCodec(delimiter=b"|")
+        encoded = codec.encode(b"hello") + codec.encode(b"world")
+        assert codec.feed(encoded) == [b"hello", b"world"]
+
 
 class TestLengthPrefixedCodec:
     def test_single_frame_round_trip(self) -> None:
@@ -117,6 +126,38 @@ class TestLengthPrefixedCodec:
         encoded = codec.encode(b"hi")
         assert encoded == (2).to_bytes(2, "big") + b"hi"
         assert codec.feed(encoded) == [b"hi"]
+
+    def test_zero_prefix_width_rejected(self) -> None:
+        with pytest.raises(ValueError, match="prefix_width"):
+            LengthPrefixedCodec(prefix_width=0)
+
+    def test_negative_prefix_width_rejected(self) -> None:
+        with pytest.raises(ValueError, match="prefix_width"):
+            LengthPrefixedCodec(prefix_width=-1)
+
+    def test_prefix_width_of_one_is_valid(self) -> None:
+        codec = LengthPrefixedCodec(prefix_width=1)
+        encoded = codec.encode(b"hi")
+        assert encoded == (2).to_bytes(1, "big") + b"hi"
+        assert codec.feed(encoded) == [b"hi"]
+
+    def test_negative_max_frame_size_rejected(self) -> None:
+        with pytest.raises(ValueError, match="max_frame_size"):
+            LengthPrefixedCodec(max_frame_size=-1)
+
+    def test_unrepresentable_max_frame_size_rejected(self) -> None:
+        with pytest.raises(ValueError, match="max_frame_size"):
+            LengthPrefixedCodec(prefix_width=1, max_frame_size=256)
+
+    def test_max_frame_size_equal_to_max_representable_is_valid(self) -> None:
+        codec = LengthPrefixedCodec(prefix_width=1, max_frame_size=255)
+        encoded = codec.encode(b"x" * 255)
+        assert codec.feed(encoded) == [b"x" * 255]
+
+    def test_max_frame_size_zero_is_valid(self) -> None:
+        codec = LengthPrefixedCodec(max_frame_size=0)
+        encoded = codec.encode(b"")
+        assert codec.feed(encoded) == [b""]
 
 
 class TestWireBridgeRoundTrip:

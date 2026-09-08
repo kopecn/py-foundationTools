@@ -37,6 +37,10 @@ class DelimiterCodec:
     """
 
     def __init__(self, delimiter: bytes = b"\n") -> None:
+        if len(delimiter) == 0:
+            raise ValueError(
+                "delimiter must be non-empty; an empty delimiter never terminates a frame"
+            )
         self._delimiter = delimiter
         self._buffer = bytearray()
 
@@ -84,9 +88,19 @@ class LengthPrefixedCodec:
         *,
         max_frame_size: int | None = None,
     ) -> None:
+        if prefix_width < 1:
+            raise ValueError(f"prefix_width must be a positive integer; got {prefix_width}")
         self._prefix_width = prefix_width
         self._byteorder = byteorder
         self._max_representable = (1 << (prefix_width * 8)) - 1
+        if max_frame_size is not None:
+            if max_frame_size < 0:
+                raise ValueError(f"max_frame_size must be non-negative; got {max_frame_size}")
+            if max_frame_size > self._max_representable:
+                raise ValueError(
+                    f"max_frame_size {max_frame_size} exceeds the {prefix_width}-byte "
+                    f"prefix's max representable value of {self._max_representable}"
+                )
         self._max_frame_size = (
             max_frame_size if max_frame_size is not None else self._max_representable
         )

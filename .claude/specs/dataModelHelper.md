@@ -3,8 +3,8 @@ spec: DataModelHelper
 scope: project
 status: implemented
 applies_to: src/foundationTypes/data_model_helper.py
-last_updated: 2026-07-09
-semver: 0.1.1
+last_updated: 2026-08-23
+semver: 0.2.0
 author: Nicholas Bergantz
 ---
 
@@ -148,6 +148,22 @@ def from_dict(obj: Any) -> DataModelHelper
 - MUST validate input structure.
 - MUST construct a fully initialized model.
 - SHOULD raise an exception on invalid data.
+- **MUST reject non-dict input with `TypeError`, not `AssertionError`.** A generated
+  `from_dict` begins with the statement form of the base module's own `from_dict`
+  converter check:
+
+  ```python
+  if not isinstance(obj, dict):
+      raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+  ```
+
+  Quicktype's raw output uses a bare `assert isinstance(obj, dict)` instead; that form
+  is unsafe for two reasons — it raises `AssertionError`, which sits outside
+  `from_union`'s catch tuple below, and `python -O` strips `assert` statements
+  entirely, silently disabling the check under optimized runtime. The codegen
+  pipeline's `normalize_generated.sh` rewrites every occurrence to the `TypeError`
+  form (contract detail in [`schemaCodegen.md`](schemaCodegen.md)); a hand-written
+  `from_dict` implementing this contract SHOULD use the identical guard.
 
 ### `to_dict()`
 
@@ -288,7 +304,7 @@ The module provides helper functions for generated serializers:
 | `from_bool(x)` | Validates and returns a boolean. |
 | `from_list(f, x)` | Applies converter `f` to every item. |
 | `from_dict(f, x)` | Applies converter `f` to every value. |
-| `from_union([a, b], value)` | Attempts converters in order until one succeeds. |
+| `from_union([a, b], value)` | Attempts converters in order until one succeeds. Catches only `(TypeError, ValueError, KeyError)` — deliberately narrow, and unchanged by fix-08. Widening it to also catch `AssertionError` would have papered over generated `from_dict`'s guard raising the wrong exception type instead of fixing the guard, and would blind union dispatch to a genuine `AssertionError` raised by a real programming defect inside a nested `from_dict`. Every generated dict-type guard now raises `TypeError` (see `from_dict()` above), so the narrow tuple already covers the legitimate case — an absent `Optional[Model]` field falling through to `from_none`. |
 | `to_enum(MyEnum, value)` | Converts an enum instance to its wire value. |
 | `to_class(MyModel, value)` | Converts a model instance using `to_dict()`. |
 | `from_none(x)` | Validates a null value. |

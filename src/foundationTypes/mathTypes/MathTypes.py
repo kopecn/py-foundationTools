@@ -5,25 +5,10 @@
 # To modify, update the source schema in schema/schemas/ and re-run codegen.
 # =============================================================================
 
-from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any, Optional, List, TypeVar, Type, cast, Callable
 from enum import Enum
-from typing import Any, TypeVar
-
-from foundation_abc.math.mathEnums import NumericSign, ReferenceFrame, Timescale
-from foundation_abc.math.precisionTimeABC import PrecisionTimeIntervalABC, PrecisionTimestampABC
-from foundation_abc.math.spatialABCs import PositionABC, QuaternionABC, SpatialTransformABC
-from foundation_abc.math.sphericalABCs import UnitSphericalArcABC, UnitSphericalSmallCircleABC
-from foundation_abc.math.waveformABCs import (
-    PositionWaveformABC,
-    QuaternionWaveformABC,
-    Waveform1dABC,
-    WaveformSpatialABC,
-    WaveformUnitSphericalArcABC,
-    WaveformUnitSphericalSmallCircleABC,
-)
 from foundationTypes.data_model_helper import (
-    DataModelHelper,
     from_float,
     from_int,
     from_list,
@@ -33,13 +18,15 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
+from foundationTypes.data_model_helper import DataModelHelper
+from foundation_abc.math.mathEnums import NumericSign, ReferenceFrame, Timescale
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
 
 
 @dataclass
-class QuaternionType(QuaternionABC, DataModelHelper):
+class QuaternionType(DataModelHelper):
     """A quaternion representation of a 3D rotation: a scalar (real) part w and a vector
     (imaginary) part x, y, z. The schema does not enforce unit length; normalization is the
     concern of the downstream math implementation.
@@ -47,21 +34,22 @@ class QuaternionType(QuaternionABC, DataModelHelper):
     The quaternion orientation component of the pose.
     """
 
-    w: float = 0.0
+    w: float
     """The scalar (real) component of the quaternion."""
 
-    x: float = 0.0
+    x: float
     """The x component of the quaternion's vector (imaginary) part."""
 
-    y: float = 0.0
+    y: float
     """The y component of the quaternion's vector (imaginary) part."""
 
-    z: float = 0.0
+    z: float
     """The z component of the quaternion's vector (imaginary) part."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "QuaternionType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         w = from_float(obj.get("w"))
         x = from_float(obj.get("x"))
         y = from_float(obj.get("y"))
@@ -78,25 +66,26 @@ class QuaternionType(QuaternionABC, DataModelHelper):
 
 
 @dataclass
-class PositionType(PositionABC, DataModelHelper):
+class PositionType(DataModelHelper):
     """A 3D Cartesian position vector using right-handed (x, y, z) coordinates, in a
     caller-defined consistent length unit.
 
     The Cartesian position component of the pose.
     """
 
-    x: float = 0.0
+    x: float
     """The x-axis (first Cartesian) component of the position."""
 
-    y: float = 0.0
+    y: float
     """The y-axis (second Cartesian) component of the position."""
 
-    z: float = 0.0
+    z: float
     """The z-axis (third Cartesian) component of the position."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PositionType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         x = from_float(obj.get("x"))
         y = from_float(obj.get("y"))
         z = from_float(obj.get("z"))
@@ -111,20 +100,21 @@ class PositionType(PositionABC, DataModelHelper):
 
 
 @dataclass
-class SpatialTransformType(SpatialTransformABC, DataModelHelper):
+class SpatialTransformType(DataModelHelper):
     """A full 6-degree-of-freedom rigid body state: a Cartesian position composed with a
     quaternion orientation.
     """
 
-    orientation: QuaternionType | None = None  # type: ignore[assignment]
+    orientation: QuaternionType
     """The quaternion orientation component of the pose."""
 
-    position: PositionType | None = None  # type: ignore[assignment]
+    position: PositionType
     """The Cartesian position component of the pose."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SpatialTransformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         orientation = QuaternionType.from_dict(obj.get("orientation"))
         position = PositionType.from_dict(obj.get("position"))
         return SpatialTransformType(orientation, position)
@@ -137,26 +127,27 @@ class SpatialTransformType(SpatialTransformABC, DataModelHelper):
 
 
 @dataclass
-class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
+class PrecisionTimeIntervalType(DataModelHelper):
     """A time interval with attosecond precision. Stores seconds and attoseconds as unsigned
     integers with an explicit sign, avoiding floating-point precision loss over large spans.
 
     The fixed interval between consecutive samples.
     """
 
-    attoseconds: int = 0
+    attoseconds: int
     """The sub-second component in attoseconds (10^-18 s). Valid range: 0 to
     999_999_999_999_999_999.
     """
-    seconds: int = 0
+    seconds: int
     """The whole-seconds component of the interval (unsigned)."""
 
-    sign: NumericSign = NumericSign.ZERO
+    sign: NumericSign
     """The sign of the time interval."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PrecisionTimeIntervalType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         attoseconds = from_int(obj.get("attoseconds"))
         seconds = from_int(obj.get("seconds"))
         sign = NumericSign(obj.get("sign"))
@@ -171,7 +162,7 @@ class PrecisionTimeIntervalType(PrecisionTimeIntervalABC, DataModelHelper):
 
 
 @dataclass
-class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
+class PrecisionTimestampType(DataModelHelper):
     """An absolute timestamp with attosecond precision. Stores seconds and attoseconds as
     unsigned integers with an explicit sign. Optionally carries a timescale, reference frame,
     and measurement uncertainty (in attoseconds).
@@ -179,30 +170,31 @@ class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
     The timestamp of the first sample.
     """
 
-    attoseconds: int = 0
+    attoseconds: int
     """The sub-second component in attoseconds (10^-18 s). Valid range: 0 to
     999_999_999_999_999_999.
     """
-    seconds: int = 0
+    seconds: int
     """The whole-seconds component of the timestamp (unsigned)."""
 
-    sign: NumericSign = NumericSign.ZERO
+    sign: NumericSign
     """The sign of the timestamp."""
 
-    reference_frame: ReferenceFrame | None = None
+    reference_frame: Optional[ReferenceFrame] = None
     """The reference frame for the timestamp (e.g. 'EarthCenter', 'SolarSystemBarycenter')."""
 
-    timescale: Timescale | None = None
+    timescale: Optional[Timescale] = None
     """The timescale of the timestamp (e.g. 'TAI', 'UTC', 'GPS')."""
 
-    uncertainty: int | None = None
+    uncertainty: Optional[int] = None
     """The measurement uncertainty of the timestamp, expressed as a non-negative magnitude in
     attoseconds (10^-18 s).
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PrecisionTimestampType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         attoseconds = from_int(obj.get("attoseconds"))
         seconds = from_int(obj.get("seconds"))
         sign = NumericSign(obj.get("sign"))
@@ -232,23 +224,24 @@ class PrecisionTimestampType(PrecisionTimestampABC, DataModelHelper):
 
 
 @dataclass
-class PositionWaveformType(PositionWaveformABC, DataModelHelper):
+class PositionWaveformType(DataModelHelper):
     """A uniformly-sampled time series of 3D Cartesian positions, anchored at a start timestamp
     and sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    positions: Sequence[PositionType] = ()
+    positions: List[PositionType]
     """The uniformly-sampled position values, in chronological order."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "PositionWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         positions = from_list(PositionType.from_dict, obj.get("positions"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
@@ -263,23 +256,24 @@ class PositionWaveformType(PositionWaveformABC, DataModelHelper):
 
 
 @dataclass
-class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
+class QuaternionWaveformType(DataModelHelper):
     """A uniformly-sampled time series of quaternion orientations, anchored at a start timestamp
     and sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    quaternions: Sequence[QuaternionType] = ()
+    quaternions: List[QuaternionType]
     """The uniformly-sampled orientation values, in chronological order."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "QuaternionWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         quaternions = from_list(QuaternionType.from_dict, obj.get("quaternions"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
@@ -294,27 +288,28 @@ class QuaternionWaveformType(QuaternionWaveformABC, DataModelHelper):
 
 
 @dataclass
-class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
+class SpatialTransformWaveformType(DataModelHelper):
     """A uniformly-sampled time series of 6-DOF poses, represented as parallel position and
     quaternion arrays (not an array of SpatialTransform), anchored at a start timestamp and
     sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    positions: Sequence[PositionType] = ()
+    positions: List[PositionType]
     """The uniformly-sampled position values, in chronological order, parallel to quaternions."""
 
-    quaternions: Sequence[QuaternionType] = ()
+    quaternions: List[QuaternionType]
     """The uniformly-sampled orientation values, in chronological order, parallel to positions."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SpatialTransformWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         positions = from_list(PositionType.from_dict, obj.get("positions"))
         quaternions = from_list(QuaternionType.from_dict, obj.get("quaternions"))
@@ -331,23 +326,24 @@ class SpatialTransformWaveformType(WaveformSpatialABC, DataModelHelper):
 
 
 @dataclass
-class ScalarWaveformType(Waveform1dABC, DataModelHelper):
+class ScalarWaveformType(DataModelHelper):
     """A uniformly-sampled time series of a single scalar signal, anchored at a start timestamp
     and sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
-    waveform: Sequence[float] = ()
+    waveform: List[float]
     """The uniformly-sampled scalar values, in chronological order."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "ScalarWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
         waveform = from_list(from_float, obj.get("waveform"))
@@ -362,24 +358,24 @@ class ScalarWaveformType(Waveform1dABC, DataModelHelper):
 
 
 @dataclass
-class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
+class UnitSphericalArcType(DataModelHelper):
     """Represents an arc on a unit sphere in spherical coordinates using physics convention.
     This arc is formed by a spherical reference point and then projected from that start
     point along the unit circle for the length of the arc in radians.
     """
 
-    arc_length: float = 0.0
+    arc_length: float
     """The arc length in radians (-2*pi to 2*pi."""
 
-    azimuth: float = 0.0
+    azimuth: float
     """Azimuthal angle in radians (0 to 2*pi).  Represents the longitudinal position around the
     sphere.
     """
-    orient: float = 0.0
+    orient: float
     """The rotated orientation about the vector from the sphere's origin through the start point
     in radians (-pi to pi.
     """
-    polar: float = 0.0
+    polar: float
     """Polar angle (colatitude/zenith angle) in radians (0 to pi), measured from the positive
     z-axis following ISO 80000-2:2019 physics convention. 0 is the north pole (+z axis), pi/2
     is the equator (xy-plane), and pi is the south pole (-z axis).
@@ -387,7 +383,8 @@ class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnitSphericalArcType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         arc_length = from_float(obj.get("arcLength"))
         azimuth = from_float(obj.get("azimuth"))
         orient = from_float(obj.get("orient"))
@@ -404,23 +401,24 @@ class UnitSphericalArcType(UnitSphericalArcABC, DataModelHelper):
 
 
 @dataclass
-class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC, DataModelHelper):
+class UnitSphericalArcWaveformType(DataModelHelper):
     """A uniformly-sampled time series of UnitSphericalArc samples, anchored at a start
     timestamp and sampled at a fixed interval.
     """
 
-    arcs: Sequence[UnitSphericalArcType] = ()
+    arcs: List[UnitSphericalArcType]
     """The uniformly-sampled arc values, in chronological order."""
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnitSphericalArcWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         arcs = from_list(UnitSphericalArcType.from_dict, obj.get("arcs"))
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))
@@ -435,30 +433,31 @@ class UnitSphericalArcWaveformType(WaveformUnitSphericalArcABC, DataModelHelper)
 
 
 @dataclass
-class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper):
+class UnitSphericalSmallCircleType(DataModelHelper):
     """Represents a small circle on a unit sphere in spherical coordinates using physics
     convention.  A small circle is formed by intersecting the sphere with a plane that does
     notpass through the sphere's center, creating a circular path at a constantangular
     distance from a reference point.
     """
 
-    azimuth: float = 0.0
+    azimuth: float
     """Azimuthal angle in radians (0 to 2*pi).  Represents the longitudinal position around the
     sphere.
     """
-    polar: float = 0.0
+    polar: float
     """Polar angle (colatitude/zenith angle) in radians (0 to pi), measured from the positive
     z-axis following ISO 80000-2:2019 physics convention. 0 is the north pole (+z axis), pi/2
     is the equator (xy-plane), and pi is the south pole (-z axis).
     """
-    radius_angle: float = 0.0
+    radius_angle: float
     """Angular radius of the small circle in radians.  Represents the angular distance from the
     center point.
     """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnitSphericalSmallCircleType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         azimuth = from_float(obj.get("azimuth"))
         polar = from_float(obj.get("polar"))
         radius_angle = from_float(obj.get("radiusAngle"))
@@ -473,23 +472,24 @@ class UnitSphericalSmallCircleType(UnitSphericalSmallCircleABC, DataModelHelper)
 
 
 @dataclass
-class UnitSphericalSmallCircleWaveformType(WaveformUnitSphericalSmallCircleABC, DataModelHelper):
+class UnitSphericalSmallCircleWaveformType(DataModelHelper):
     """A uniformly-sampled time series of UnitSphericalSmallCircle samples, anchored at a start
     timestamp and sampled at a fixed interval.
     """
 
-    dt: PrecisionTimeIntervalType | None = None  # type: ignore[assignment]
+    dt: PrecisionTimeIntervalType
     """The fixed interval between consecutive samples."""
 
-    small_circles: Sequence[UnitSphericalSmallCircleType] = ()
+    small_circles: List[UnitSphericalSmallCircleType]
     """The uniformly-sampled small-circle values, in chronological order."""
 
-    t0: PrecisionTimestampType | None = None  # type: ignore[assignment]
+    t0: PrecisionTimestampType
     """The timestamp of the first sample."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "UnitSphericalSmallCircleWaveformType":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         dt = PrecisionTimeIntervalType.from_dict(obj.get("dt"))
         small_circles = from_list(UnitSphericalSmallCircleType.from_dict, obj.get("smallCircles"))
         t0 = PrecisionTimestampType.from_dict(obj.get("t0"))

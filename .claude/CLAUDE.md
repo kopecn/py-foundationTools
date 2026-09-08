@@ -4,36 +4,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`pyFoundationTools` is a zero-dependency Python library (>= 3.10) that extends the standard library with reusable utilities. The **zero external runtime dependencies** rule is a core design constraint: `[project].dependencies` must stay empty. Anything added there breaks the project's stated purpose. Tooling-only deps go under `[project.optional-dependencies].dev`.
+`pyFoundationTools` is a zero-dependency Python library (>= 3.11) that extends the standard library with reusable utilities. The **zero external runtime dependencies** rule is a core design constraint: `[project].dependencies` must stay empty. Anything added there breaks the project's stated purpose. Tooling-only deps go under `[project.optional-dependencies].dev`.
 
 ## Commands
 
-All workflows go through the Makefile (`make help` lists them). The `uv-` prefixed
-targets are the primary path (self-contained via `uv run --no-project`, no
-pre-existing `.venv` required); bare targets are the pip-based fallback. Key ones:
+All workflows go through the Makefile (`make help` lists them). **pip / flake8 / black
+are the first-class toolchain**: the bare targets (`make lint` / `format` / `typecheck` /
+`fullCheck`) are the primary path. The `uv-` prefixed targets are a **second-class** uv
+runner over the same first-class tools (self-contained via `uv run --no-project`, no
+pre-existing `.venv` required); **ruff and ty are second-class** — installed and available,
+but not wired into any gate. Key ones:
 
-- `make uv-fullCheck` — CI gate: `uv-lint` + `uv-typecheck` + `uv-test`. Run this before considering work done.
-- `make uv-lint` — ruff check (read-only, non-zero exit for CI)
-- `make uv-format` — `ruff format` + `ruff check --fix --unsafe-fixes` (mutating)
-- `make uv-typecheck` — strict `mypy` over `src/` + `tests/`. `ty` is a dev
-  dependency but is intentionally **not** wired into this gate yet (pre-release).
-- `make uv-test` — sync deps then run pytest on `DEFAULT_PYTHON`
+- `make fullCheck` — FIRST-CLASS gate: `lint` (flake8) + `typecheck` (mypy) + `test` (pytest). Run this before considering work done.
+- `make lint` — flake8 check (read-only, non-zero exit for CI)
+- `make format` — black (mutating)
+- `make typecheck` — strict `mypy` over `src/` + `tests/`. `ty` is a second-class dev
+  dependency and is intentionally **not** wired into this gate.
 - `make test` — run pytest directly in the current environment (no sync)
+- `make uv-fullCheck` / `uv-lint` / `uv-format` / `uv-typecheck` / `uv-test` — the same
+  checks run through the second-class uv runner (what CI currently invokes).
 - `pytest tests/testfoundationMath.py` — run a single test file
 - `pytest tests/testfoundationMath.py::test_clamp` — run a single test
 - `make testInEnv` — run tests in an isolated throwaway venv (installs from pyproject, validates packaging path)
 - `make installDev` or `make e` — pip-based editable install for development
 
-Linting/formatting is **ruff** (line-length 100, double quotes; rule set E/F/I/UP/B). The README references `pylint`/`black`/`make docs` (Sphinx) but the Makefile has migrated to ruff and has no working docs target — trust the Makefile, not the README, for tooling.
+Linting is **flake8** and formatting is **black** (both line-length 100; flake8-bugbear supplies the `B` checks; config in `.flake8` and `[tool.black]`). flake8 does **not** enforce ruff's `UP`/pyupgrade — that rule class was dropped in the swap. `ruff`/`ty` remain installed as second-class tools (ruff config kept under `[tool.ruff]`) but are not part of the gate. The README's `pylint`/`make docs` (Sphinx) references are stale; trust the Makefile for tooling.
 
 ## Package Architecture
 
-Source uses a `src/` layout with **four independently-importable top-level packages** (not nested under one namespace, auto-discovered by setuptools under `package-dir = {"" = "src"}`). `pyFoundationTools` is the distribution name in `pyproject.toml`, not a package directory.
+Source uses a `src/` layout with **five independently-importable top-level packages** (not nested under one namespace, auto-discovered by setuptools under `package-dir = {"" = "src"}`). `pyFoundationTools` is the distribution name in `pyproject.toml`, not a package directory.
 
 - `foundationTypes` — data models + the serialization base class (the heart of the library)
 - `foundation_math` — pure-Python math utilities (e.g. `clamp`)
-- `foundation_abc` — abstract base interfaces shared across device/transport implementations; `foundation_abc/math/` holds the stdlib-only Math-domain `XxxxLike` ABCs (`spatialABCs.py`, `sphericalABCs.py`, `waveformABCs.py`, `precisionTimeABC.py`) plus their `mathEnums.py` enums — see [`.claude/specs/mathTypeTiers.md`](specs/mathTypeTiers.md)
-- `foundation_tools` — runtime utilities: the structured logger plus the full transaction/transport stack (`cli_transaction/`, `builders/`, `policies/`, `socket_transaction/`, all implemented) per [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md)
+- `foundation_abc` — interfaces shared across implementations; `foundation_abc/math/` holds stdlib-only structural Math protocols (`spatialABCs.py`, `sphericalABCs.py`, `waveformABCs.py`, `precisionTimeABC.py`) plus their shared `mathEnums.py` enums — see [`.claude/specs/mathTypeTiers.md`](specs/mathTypeTiers.md)
+- `foundation_tools` — runtime utilities: the structured logger, the filesystem/path helpers in `file_tools/` (`find_matching_paths` and its `DEFAULT_EXTENSIONS`/`ANY_EXTENSION`/`DEFAULT_EXCLUDED_PATTERNS` defaults — no dedicated spec), plus the full transaction/transport stack (`cli_transaction/`, `builders/`, `policies/`, `socket_transaction/`, all implemented) per [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md)
+- `foundation_science` — SI physical constants under `foundation_science/constants/`. Every value is a `Constant` (`constant.py`), a `float` subclass carrying `unit`, `std_uncertainty` (always k=1), `distribution`, and `source`; arithmetic returns a plain `float` and drops the metadata by design. `std_uncertainty` is three-state and `None` (unknown) is **not** `0.0` (exact by definition) — `__new__` raises `ValueError` on an incoherent pairing. Grouped substance-major: `universal.py` (`R_UNIVERSAL`), `standards/isa.py` (`ISA`), `materials/dry_air.py` (`DryAir`), `materials/jet_a1.py` (`JetA1`); `registry.py` discovers them by introspection for the CI audit. Scalar constants only — tables and force-field parameter sets are out of scope, and the `metrology` propagation layer is deferred. See [`.claude/specs/physicalConstants.md`](specs/physicalConstants.md)
 
 Import paths are the package name directly, e.g. `from foundationTypes.data_model_helper import DataModelHelper`, **not** `from pyFoundationTools.foundationTypes...`.
 
@@ -50,7 +55,7 @@ The full contract for this class is specified in [`.claude/specs/dataModelHelper
 
 ### Schema-driven model generation (do not hand-edit generated models)
 
-Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, and `foundationTypes/standardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
+Models under `foundationTypes/commonTypes/`, `foundationTypes/mathTypes/`, `foundationTypes/cvTypes/`, and `foundationTypes/standardizedLoggerConfig/` are generated from JSON Schema, not written by hand. The pipeline lives in `schema/`:
 
 1. JSON Schema in `schema/schemas/`
 2. A per-model shell script in `schema/scripts/` (e.g. `generateGeoCoordinate.sh`) runs `quicktype` (`--lang py --src-lang schema --no-pydantic-base-model`), then `sed`-injects the `DataModelHelper` base class and import, then formats.
@@ -68,7 +73,7 @@ The full codegen contract — the golden script template (`generateDiskUsage.sh`
 
 The full behavioral contract — the stateless classmethod surface, execution-mode selection, semantic success evaluation, total exception containment, the corrected async timeout escalation (`terminate → kill`), the model-extension layer, and the formalized "learned behaviors" — is specified in [`.claude/specs/cliTransact.md`](specs/cliTransact.md). The CLITransact kernel and all sibling layers (`SSHTransact`, `RsyncTransact`, retry/backoff) are implemented. Consult the spec before extending the module.
 
-The kernel is Layer 1 of the umbrella [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md), which defines the full 4-layer stack (kernel → command builders → execution policies → transport transactions), the policy-ownership rule, the public-surface rule, and the `DataModelHelper` wire-serialization bridge. Sibling contracts, all implemented: [`.claude/specs/sshTransact.md`](specs/sshTransact.md), [`.claude/specs/rsyncTransact.md`](specs/rsyncTransact.md) (rsync command construction, SSH transport injection, option precedence, Windows/MSYS2 preset), and the asyncio socket family [`.claude/specs/socketTransact.md`](specs/socketTransact.md) (client `SocketTransact` and server `SocketTransactServer`). Consult the relevant spec before extending any of them; the step-by-step build is decomposed in `.claude/action-plan/`.
+The kernel is Layer 1 of the umbrella [`.claude/specs/transport_transaction_architecture.md`](specs/transport_transaction_architecture.md), which defines the full 4-layer stack (kernel → command builders → execution policies → transport transactions), the policy-ownership rule, the public-surface rule, and the `DataModelHelper` wire-serialization bridge. Sibling contracts, all implemented: [`.claude/specs/sshTransact.md`](specs/sshTransact.md), [`.claude/specs/rsyncTransact.md`](specs/rsyncTransact.md) (rsync command construction, SSH transport injection, option precedence, Windows/MSYS2 preset), and the asyncio socket family [`.claude/specs/socketTransact.md`](specs/socketTransact.md) (client `SocketTransact` and server `SocketTransactServer`). Consult the relevant spec before extending any of them; the step-by-step build that produced it is archived in `.claude/archive/action-plan/`.
 
 ### PeripheralByteTransport ABC
 

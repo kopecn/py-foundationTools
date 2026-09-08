@@ -7,7 +7,7 @@
 # generated model, regardless of which generate script produced it — conforming
 # (golden template), legacy/non-conforming, or not-yet-written. Both paths call
 # this script:
-#   - codegen.sh's run_ruff applies it per-file (correct output when a single
+#   - codegen.sh's run_black applies it per-file (correct output when a single
 #     generate script is run on its own).
 #   - `make codegen-all` applies it once over the whole generated tree as a final
 #     guaranteed sweep (poka-yoke: a sloppy or future script cannot escape it).
@@ -42,6 +42,32 @@
 # `Any` form, seen *after* the first defaulted field in the same class are
 # rewritten to `= None`. Fields that are still in the leading defaultless
 # run are left untouched.
+#
+# 3. Bare `assert isinstance(obj, dict)` dict-type guard at the top of every
+# generated `from_dict`. Quicktype emits this as its sole input-type check,
+# which raises `AssertionError` — an exception type `from_union`'s narrow
+# `(TypeError, ValueError, KeyError)` catch does not see, and one that
+# `python -O` strips entirely (assertions are removed under optimization, so
+# the guard silently vanishes and a non-dict input proceeds into the method
+# body instead of failing fast). Rewritten to the statement form of the same
+# check `data_model_helper.py`'s own `from_dict` converter already uses:
+#     if not isinstance(obj, dict):
+#         raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+# preserving the original line's indentation. `from_union` is intentionally
+# left unchanged — its narrow tuple is correct once every guard raises
+# `TypeError` (see fix-08).
+#
+# Deviation from the bare `type(obj).__name__` spelling: several generated
+# `from_dict` bodies (any model with a JSON field literally named "type",
+# e.g. quicktype's `Region`/`ContentBlock`/MCP reference classes) later
+# assign a same-scope local `type = ...`. Python's function-wide scoping
+# rule makes any bare `type` reference within that function resolve to the
+# local, not the builtin, regardless of textual position — so a guard using
+# `type(obj)` would raise `UnboundLocalError` instead of `TypeError` (ruff
+# flags this statically as F823). `obj.__class__.__name__` produces an
+# identical string for every value this guard ever sees (dict, list, str,
+# int, float, bool, None, or any DataModelHelper instance) without
+# referencing the shadowable name, so the emitted message is unchanged.
 #
 # Idempotent: re-running is a no-op. Safe on hand-written files — both
 # patterns only match quicktype's generated forms, which hand-authored
@@ -81,6 +107,20 @@ classmethod_replacement = r"\1@classmethod\n\1def from_dict(cls, obj: Any) -> "
 # Bare, defaultless `name: Any` dataclass field, but only once a preceding
 # field in the same class has already introduced a default.
 field_line_pattern = re.compile(r"^( +)(\w+): (.+)$")
+
+# quicktype's bare dict-type guard -> explicit TypeError, matching
+# data_model_helper.py's own `from_dict` converter. Anchored to the exact
+# generated line (no trailing content) so it never matches an unrelated
+# hand-written `assert isinstance(...)` call.
+guard_pattern = re.compile(r"(?m)^([ \t]+)assert isinstance\(obj, dict\)[ \t]*$")
+
+
+def guard_replacement(m: "re.Match[str]") -> str:
+    indent = m.group(1)
+    return (
+        f"{indent}if not isinstance(obj, dict):\n"
+        f'{indent}    raise TypeError(f"Expected dict, got {{obj.__class__.__name__}}")'
+    )
 
 
 def fix_trailing_untyped_fields(content: str) -> tuple[str, int]:
@@ -155,6 +195,11 @@ for path in sys.argv[1:]:
         content = new
         changed = True
         print(f"defaulted {n} untyped required field(s) (Any -> Any = None): {path}")
+    new, n = guard_pattern.subn(guard_replacement, content)
+    if n:
+        content = new
+        changed = True
+        print(f"rewrote {n} bare dict-type guard(s) -> TypeError: {path}")
     if changed:
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(content)

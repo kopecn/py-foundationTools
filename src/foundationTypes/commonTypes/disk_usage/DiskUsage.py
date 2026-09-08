@@ -6,14 +6,13 @@
 # =============================================================================
 
 from dataclasses import dataclass
-from typing import Any, TypeVar
-
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_list,
     from_str,
     to_class,
 )
+from typing import Any, List, TypeVar, Callable, Type, cast
 
 T = TypeVar("T")
 
@@ -43,7 +42,8 @@ class DiskUsageEntry(DataModelHelper):
 
     @classmethod
     def from_dict(cls, obj: Any) -> "DiskUsageEntry":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         available = from_str(obj.get("available"))
         filesystem = from_str(obj.get("filesystem"))
         mounted_on = from_str(obj.get("mounted_on"))
@@ -67,11 +67,12 @@ class DiskUsageEntry(DataModelHelper):
 class DiskUsage(DataModelHelper):
     """Collection of disk usage entries parsed from df -h output"""
 
-    entries: list[DiskUsageEntry]
+    entries: List[DiskUsageEntry]
 
     @classmethod
     def from_dict(cls, obj: Any) -> "DiskUsage":
-        assert isinstance(obj, dict)
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         entries = from_list(DiskUsageEntry.from_dict, obj.get("entries"))
         return DiskUsage(entries)
 

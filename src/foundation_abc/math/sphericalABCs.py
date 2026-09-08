@@ -1,19 +1,17 @@
-"""Tier-2 shared abstractions for arcs and small circles on a unit sphere.
+"""Structural interfaces for arcs and small circles on a unit sphere.
 
 See ``.claude/specs/mathTypeTiers.md``. :class:`UnitSphericalArcABC` and
-:class:`UnitSphericalSmallCircleABC` are the shared accessor + serialization
-contracts (inherited by the codegen ``UnitSphericalArcType`` /
-``UnitSphericalSmallCircleType``). Angles follow ISO 80000-2:2019 physics
-convention. The math contracts are in
-:mod:`foundationTypes.mathTypes.unitSphericalArcMathLike` and
-:mod:`foundationTypes.mathTypes.unitSphericalSmallCircleMathLike`.
+:class:`UnitSphericalSmallCircleABC` are structural accessor + serialization
+protocols. Code-generated carriers satisfy them without inheritance. Angles
+follow ISO 80000-2:2019 physics convention. Spherical operations belong in
+higher-level implementations, not here.
 """
 
-from abc import ABC, abstractmethod
-from typing import Any
+from abc import abstractmethod
+from typing import Any, Protocol
 
 
-class UnitSphericalArcABC(ABC):
+class UnitSphericalArcABC(Protocol):
     """Shared abstraction for a unit-sphere arc.
 
     An arc is a spherical reference point projected along the unit circle for a
@@ -40,13 +38,9 @@ class UnitSphericalArcABC(ABC):
     def polar(self) -> float:
         """Polar angle (colatitude) in radians (0 to pi), from the +z axis."""
 
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "azimuth": self.azimuth,
-            "arcLength": self.arc_length,
-            "orient": self.orient,
-            "polar": self.polar,
-        }
+        """Serialize this arc."""
 
     @classmethod
     @abstractmethod
@@ -54,7 +48,7 @@ class UnitSphericalArcABC(ABC):
         """Construct from an arc dict (camelCase wire keys)."""
 
 
-class UnitSphericalSmallCircleABC(ABC):
+class UnitSphericalSmallCircleABC(Protocol):
     """Shared abstraction for a unit-sphere small circle.
 
     A small circle is the sphere intersected with a plane not through its
@@ -77,12 +71,9 @@ class UnitSphericalSmallCircleABC(ABC):
     def radius_angle(self) -> float:
         """Angular radius of the small circle in radians."""
 
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "azimuth": self.azimuth,
-            "polar": self.polar,
-            "radiusAngle": self.radius_angle,
-        }
+        """Serialize this small circle."""
 
     @classmethod
     @abstractmethod

@@ -2,9 +2,9 @@
 spec: TransportTransactionArchitecture
 scope: project
 status: accepted
-applies_to: src/foundation_tools/
-last_updated: 2026-07-09
-semver: 0.4.1
+applies_to: src/foundation_tools/cli_transaction/, src/foundation_tools/builders/, src/foundation_tools/policies/, src/foundation_tools/socket_transaction/
+last_updated: 2026-08-15
+semver: 0.4.2
 author: Nicholas Bergantz
 ---
 

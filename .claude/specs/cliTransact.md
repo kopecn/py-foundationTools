@@ -3,8 +3,8 @@ spec: CLITransact
 scope: project
 status: implemented
 applies_to: src/foundation_tools/cli_transaction/cliTransact.py
-last_updated: 2026-07-09
-semver: 0.4.0
+last_updated: 2026-09-05
+semver: 0.5.0
 author: Nicholas Bergantz
 ---
 
@@ -111,16 +111,33 @@ Extends `CLITransactResult` with `model: T | None = None`, where `T` is bound to
 ## Command Input Contract
 
 All public APIs accept `str | list[str]`. The input *type* selects the execution mode —
-a deliberate, core invariant (usability over strict safety enforcement, with an
-injection warning in the docstrings):
+a deliberate, core invariant:
+
+- **`str` = a shell command.** This is the primary API layer: callers construct and
+  concatenate the command string themselves, and it is run through an **explicit,
+  fixed shell invocation** — `bash -c` by default. Shell interpretation still applies
+  (injection risk; the caller owns quoting), noted in the docstrings.
+- **`list[str]` = direct argv**, executed with no shell interpretation. Remains
+  available for callers who want it.
 
 | input | sync mode | async mode |
 | --- | --- | --- |
-| `str` | `subprocess.run(..., shell=True)` | `bash -c "<command>"` |
-| `list[str]` | direct exec, no shell | `create_subprocess_exec(*cmd)`, no shell |
+| `str` | `subprocess.run(["bash", "-c", <command>], shell=False)` | `create_subprocess_exec("bash", "-c", <command>)` |
+| `list[str]` | `subprocess.run(<cmd>, shell=False)`, no shell | `create_subprocess_exec(*cmd)`, no shell |
 
-The async string path uses an explicit `bash -c` rather than `shell=True` for
-containment consistency.
+Both paths build the argv through one shared helper (`_build_argv`), so a `str`
+command has **identical execution semantics (syntax, portability, security) on sync
+and async** — a hard requirement.
+
+- The sync path does **not** use `subprocess.run(shell=True)` with the platform
+  default shell. `bash` is an intentional supported dependency of this project.
+- An **explicit shell override** is available: the keyword-only `shell` parameter
+  (e.g. `shell=["zsh", "-c"]`) on every public method. It is an explicit
+  parameter/configuration value, threaded through the short-lived instance
+  alongside `success_marker`.
+- **Prohibited:** selecting the shell from the ambient environment (e.g. `$SHELL`)
+  or platform default; any automatic fallback between the `str` and `list[str]`
+  modes.
 
 ## Public API
 
@@ -287,8 +304,11 @@ requirements. They encode real-world automation assumptions.
    a valid empty string — reduces downstream noise and ambiguity.
 3. **Validation failure returns a result, not an exception.** Uniform return objects for
    all failure modes keep orchestration/pipeline layers free of `try/except`.
-4. **Shell vs exec is inferred from input type.** `str ⇒ shell`, `list ⇒ exec`. A
-   deliberate convenience footgun, mitigated by docstring warnings.
+4. **Shell vs exec is selected by input type.** `str ⇒ shell command`,
+   `list ⇒ direct argv`. A `str` is still shell-interpreted (injection risk,
+   mitigated by docstring warnings), but through an explicit fixed shell — not
+   `subprocess`'s implicit `shell=True` / platform default. The two input types
+   never fall back to each other.
 5. **Async timeout uses a forceful cleanup cascade.** Graceful `terminate()` first,
    escalate to `kill()` only if ignored — real subprocesses sometimes ignore signals.
 6. **Timeout is a result, not control flow.** Timeouts are normal outcomes for batch /
@@ -299,8 +319,11 @@ requirements. They encode real-world automation assumptions.
    interpreting corrupted or partial output.
 9. **Parsing errors are advisory.** They append to stderr and never change the execution
    success flag — execution truth over structured convenience.
-10. **Async forces an explicit shell (`bash -c`).** More controlled than the sync
-    implicit `shell=True`; the two paths stay semantically equivalent.
+10. **Both paths force an explicit shell (`bash -c` by default).** Sync and async
+    wrap a `str` command in the same explicit, fixed shell invocation (overridable
+    via the `shell` parameter). Neither uses `subprocess`'s implicit `shell=True`
+    or a shell read from the ambient environment / platform default, so the two
+    paths are semantically equivalent for the same `str` command.
 11. **A result object always exists.** No `None` returns, no exceptions to the caller —
     control-flow flattening that makes pipelines composable.
 12. **`-1` is the universal framework sentinel.** It distinguishes framework-level
@@ -310,6 +333,8 @@ requirements. They encode real-world automation assumptions.
 ## Key Behavioral Guarantees
 
 - Same command → same result shape across sync/async.
+- The same `str` command → identical execution semantics (shell, syntax,
+  portability, security) across sync/async.
 - No exception ever escapes the class (`BaseException` excepted by design).
 - Output is always normalized or `None`.
 - Model parsing never affects execution success.
@@ -368,3 +393,8 @@ A compliant `CLITransact` MUST:
 8. Support only a `str`/`list[str]` `wire_invoke` for the model-class invocation
    form; raise on a `type[DataModelHelper]` `wire_invoke` rather than inventing a
    meaning for it.
+9. Run a `str` command through an explicit, fixed shell invocation (`bash -c` by
+   default, or the explicit `shell` override) — identically on the sync and async
+   paths — and a `list[str]` command as direct argv with no shell. Never select
+   the shell from the ambient environment or platform default, and never fall
+   back between the `str` and `list[str]` modes.

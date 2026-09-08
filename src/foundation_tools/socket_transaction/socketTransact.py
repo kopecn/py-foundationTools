@@ -203,9 +203,7 @@ class SocketTransact:
 
         if base_result.success and base_result.payload:
             try:
-                extended_result.model = model_type.from_wire(
-                    base_result.payload.decode("utf-8")
-                )
+                extended_result.model = model_type.from_wire(base_result.payload.decode("utf-8"))
             except Exception as parse_error:  # pylint: disable=broad-exception-caught
                 extended_result.error = (
                     f"{base_result.error or ''}\nModel parsing failed: {parse_error}"

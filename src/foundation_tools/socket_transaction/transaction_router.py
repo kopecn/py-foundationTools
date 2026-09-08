@@ -73,9 +73,7 @@ class TransactionRouter:
         self._read_size = read_size
         self._poll_timeout = poll_timeout
         self._pending: dict[str, asyncio.Future[bytes]] = {}
-        self._unsolicited: asyncio.Queue[bytes | None] = asyncio.Queue(
-            maxsize=unsolicited_maxsize
-        )
+        self._unsolicited: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=unsolicited_maxsize)
         self._reader_task: asyncio.Task[None] | None = None
         self._closed = False
 
@@ -119,16 +117,23 @@ class TransactionRouter:
         """
         if tx_id is not None:
             resolved_tx_id = tx_id
-            future = self._register(resolved_tx_id)
-            frame = payload
+            needs_injection = False
         else:
             resolved_tx_id = self._generate()
-            future = self._register(resolved_tx_id)
-            frame = self._inject(payload, resolved_tx_id)
+            needs_injection = True
 
+        # Order preserved from the contract: generate -> register future ->
+        # inject -> encode -> send. Frame preparation (inject + encode) and the
+        # pending registration are one rollback-safe unit: registration happens
+        # before the first awaited send so a fast reply cannot race ahead of
+        # correlation, and any failure before the reply-await (a raising
+        # injector/codec, a transport send failure, or cancellation) removes the
+        # pending entry completely rather than orphaning a future in ``_pending``.
+        future = self._register(resolved_tx_id)
         try:
+            frame = self._inject(payload, resolved_tx_id) if needs_injection else payload
             await self._transport.send(self._codec.encode(frame))
-        except Exception:
+        except BaseException:
             self._pending.pop(resolved_tx_id, None)
             raise
 
@@ -175,7 +180,7 @@ class TransactionRouter:
                 data = await self._transport.receive(self._read_size, timeout=self._poll_timeout)
             except TimeoutError:
                 continue  # idle tick — no data yet, not an error
-            except (ConnectionError, RuntimeError, OSError) as error:
+            except (RuntimeError, OSError) as error:
                 self._teardown(ConnectionClosedError(f"transport error: {error}"))
                 return
 
@@ -183,8 +188,17 @@ class TransactionRouter:
                 self._teardown(ConnectionClosedError("peer closed the connection"))
                 return
 
-            for frame in self._codec.feed(data):
-                self._dispatch(frame)
+            try:
+                for frame in self._codec.feed(data):
+                    self._dispatch(frame)
+            except Exception as error:
+                # Codec feeding or tx_id extraction failures (both invoked above)
+                # must not escape the reader task uncontained — route through the
+                # same teardown path as a transport-level connection loss. `Exception`
+                # (not `BaseException`) deliberately excludes `asyncio.CancelledError`
+                # so task cancellation still propagates instead of being swallowed.
+                self._teardown(ConnectionClosedError(f"frame processing error: {error}"))
+                return
 
     def _dispatch(self, frame: bytes) -> None:
         tx_id = self._extract(frame)

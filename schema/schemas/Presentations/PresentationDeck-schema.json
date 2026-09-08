@@ -1,0 +1,280 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PresentationDeck",
+  "description": "Presentation content consisting of ordered slides referencing reusable slide layouts.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "slides"
+  ],
+  "properties": {
+    "metadata": {
+      "$ref": "PresentationMetadata-schema.json"
+    },
+    "slides": {
+      "type": "array",
+      "description": "Ordered slides making up the deck.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/slide"
+      }
+    }
+  },
+  "definitions": {
+    "slide": {
+      "type": "object",
+      "description": "A single slide referencing a reusable layout and carrying its content blocks.",
+      "required": [
+        "number",
+        "layout"
+      ],
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based slide position within the deck."
+        },
+        "id": {
+          "type": "string",
+          "description": "Optional stable identifier for the slide."
+        },
+        "layout": {
+          "type": "string",
+          "description": "ID of a reusable slide layout."
+        },
+        "title": {
+          "type": "string",
+          "description": "Slide title. Optional so a divider or full-bleed slide can omit one. When present it binds to the reserved region id 'title' on the slide's layout; a missing region is an authoring error."
+        },
+        "subtitle": {
+          "type": "string",
+          "default": "",
+          "description": "Optional slide subtitle. When present it binds to the reserved region id 'subtitle' on the slide's layout; a missing region is an authoring error."
+        },
+        "content": {
+          "type": "array",
+          "description": "Content blocks placed into the slide's layout regions.",
+          "items": {
+            "$ref": "#/definitions/contentBlock"
+          },
+          "default": []
+        },
+        "notes": {
+          "type": "string",
+          "default": "",
+          "description": "Speaker notes or agent instructions specific to this slide."
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the slide is excluded from the rendered deck."
+        }
+      }
+    },
+    "contentBlock": {
+      "type": "object",
+      "description": "A single piece of slide content placed into a named layout region.",
+      "required": [
+        "region",
+        "type"
+      ],
+      "properties": {
+        "region": {
+          "type": "string",
+          "description": "Layout region that receives this content. Must not be a reserved region id ('title', 'subtitle'), which are filled by the slide's own title and subtitle."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "text",
+            "bullets",
+            "metric",
+            "table",
+            "chart",
+            "mermaid",
+            "image"
+          ],
+          "default": "text",
+          "description": "Content block kind. Each arm has a payload capable of expressing it and a renderer capable of drawing it, except 'mermaid': a schema-only nucleation point that stores diagram source with no renderer yet (see 'mermaidSource')."
+        },
+        "text": {
+          "type": "string",
+          "default": "",
+          "description": "Body text for a 'text' block."
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/textRun"
+          },
+          "default": [],
+          "description": "Inline emphasis runs for a 'text' block that needs mixed formatting. When present the renderer uses these instead of the flat 'text' string."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Bullet items for a 'bullets' block."
+        },
+        "bulletLevels": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "default": [],
+          "description": "Optional indent level per entry in 'items', 0 (outermost) to 4. Shorter than 'items' leaves the remaining bullets at level 0."
+        },
+        "value": {
+          "type": "string",
+          "default": "",
+          "description": "Pre-formatted headline value for a 'metric' block, e.g. '$4.2M' or '+12%'. A string so number formatting and locale stay a renderer concern."
+        },
+        "label": {
+          "type": "string",
+          "default": "",
+          "description": "Caption naming what a 'metric' block measures."
+        },
+        "delta": {
+          "type": "string",
+          "default": "",
+          "description": "Optional change indicator for a 'metric' block, e.g. '+3.1pp QoQ'. Empty when the metric shows no comparison."
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Optional column headers for a 'table' block. Empty for a headerless table."
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default": [],
+          "description": "Row-major cells for a 'table' block. Every cell is a pre-formatted string; ragged rows are an authoring error the consumer reports."
+        },
+        "chartKind": {
+          "type": "string",
+          "enum": [
+            "bar",
+            "line"
+          ],
+          "description": "Chart kind for a 'chart' block. Placeholder set; an arm is added only once it is renderable downstream."
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Shared x-axis category labels for a 'chart' block."
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/chartSeries"
+          },
+          "default": [],
+          "description": "One or more named data series for a 'chart' block."
+        },
+        "mermaidSource": {
+          "type": "string",
+          "default": "",
+          "description": "Raw Mermaid diagram source text for a 'mermaid' block. This repository stores the source only; it does not parse, lay out, or render Mermaid diagrams. Rendering, if ever added, is a downstream (clerical-tools) concern."
+        },
+        "source": {
+          "type": "string",
+          "default": "",
+          "description": "Filesystem path to the image file for an 'image' block."
+        },
+        "style": {
+          "type": "object",
+          "description": "Optional style overrides for this content block.",
+          "properties": {
+            "color": {
+              "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+              "default": "text",
+              "description": "Semantic color resolved from PresentationColorTheme."
+            },
+            "fontSize": {
+              "type": "number",
+              "description": "Font size override in points."
+            },
+            "bold": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether the content renders bold."
+            },
+            "align": {
+              "type": "string",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ],
+              "default": "left",
+              "description": "Horizontal text alignment."
+            }
+          }
+        }
+      }
+    },
+    "textRun": {
+      "type": "object",
+      "description": "A run of body text with uniform inline emphasis.",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The run's literal text."
+        },
+        "bold": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the run renders bold."
+        },
+        "italic": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the run renders italic."
+        }
+      }
+    },
+    "chartSeries": {
+      "type": "object",
+      "description": "A named series of numeric values aligned to the chart's categories.",
+      "required": [
+        "name",
+        "values"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Series label for the legend."
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "Numeric values, one per category."
+        },
+        "color": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Optional semantic series color resolved from PresentationColorTheme."
+        }
+      }
+    }
+  }
+}

@@ -11,13 +11,11 @@ set -euo pipefail
 # exactly one .py file). Supersedes generatePrecisionTime.sh,
 # generateUnitSphericalArc.sh and generateUnitSphericalSmallCircle.sh.
 #
-# The Math family uses the 3-tier architecture in .claude/specs/mathTypeTiers.md:
-# each generated Tier-1 `XxxxType` dataclass inherits its hand-written Tier-2
-# `XxxxLike` abstraction. quicktype knows nothing about that, so the Math-specific
-# post-processor (reuse/postprocess_mathtypes.py) reparents the classes, extracts
-# the enums to mathEnums, imports the data_model_helper helpers, and injects the
-# literal field defaults required for a dataclass to satisfy inherited abstract
-# `@property` accessors. from_dict/to_dict normalization is the shared run_ruff pass.
+# Math types remain schema-faithful DataModelHelper dataclasses. The independent
+# shape contracts in foundation_abc.math are structural protocols and therefore
+# are not injected as base classes. The Math-specific post-processor extracts the
+# shared enums and imports DataModelHelper; from_dict/to_dict normalization is the
+# shared run_black pass.
 # =============================================================================
 
 # === Input schemas (relative to repo root). Listed leaf-dependency-first for
@@ -46,7 +44,7 @@ INPUT_SCHEMA_FILES=(
 OUTPUT_PYTHON_REL="mathTypes/MathTypes.py"
 
 # === quicktype target. quicktype only emits up to 3.7; modern typing is restored
-#     afterwards by run_ruff (UP rules) + fix_to_dict_return_type. ===
+#     afterwards by fix_to_dict_return_type + normalization passes. ===
 PYTHON_VERSION="3.7"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -58,9 +56,9 @@ echo "    from schemas: ${INPUT_SCHEMA_FILES[*]}"
 
 setup_quicktype
 run_quicktype
-# Math-specific rewrite: reparent XxxxType -> XxxxLike, extract enums, import
-# helpers, inject the literal field defaults the Tier-2 accessors require.
+# Math-specific rewrite: extract shared enums and make each generated carrier a
+# direct DataModelHelper subclass. Required fields remain untouched.
 python3 "$SCRIPT_DIR/reuse/postprocess_mathtypes.py" "$OUTPUT_PYTHON_FILE"
 add_autogen_header "$OUTPUT_PYTHON_FILE"
-run_ruff "$OUTPUT_PYTHON_FILE"
+run_black "$OUTPUT_PYTHON_FILE"
 ensure_py_typed "$OUTPUT_PYTHON_FILE"

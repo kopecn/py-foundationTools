@@ -1,28 +1,10 @@
-"""Tier-1 <-> Tier-2 contract tests for the Math type family.
-
-Pins two invariants from ``.claude/specs/mathTypeTiers.md`` across all 13
-``(XxxxType, XxxxABC)`` pairs (mirrors ``TYPE_TO_LIKE`` in
-``schema/scripts/reuse/postprocess_mathtypes.py``):
-
-- **Invariant 4 (structural).** ``XxxxLike`` (the hand-written ABC) must come
-  before ``DataModelHelper`` in ``XxxxType``'s base list / MRO. The
-  post-processor emits this correctly today, but a regression would only
-  surface as subtle MRO behavior, not a loud failure -- see chunk 22 finding
-  F2.
-
-- **Serialization parity (F1).** Every ``XxxxABC`` carries a concrete
-  ``to_dict`` built on its abstract accessors -- the serialization contract
-  Tier-3 implementers inherit. Every generated ``XxxxType`` shadows it with
-  its own quicktype-generated ``to_dict``, so the ABC version never runs in
-  normal use and the wire shape is defined twice with nothing pinning them
-  together. This module calls the ABC's ``to_dict`` explicitly (unbound, on a
-  concrete instance) so the shadowed code path actually executes, and asserts
-  it agrees with the generated ``to_dict``.
-"""
+"""Contracts between generated Math carriers and structural Math protocols."""
 
 from __future__ import annotations
 
-from typing import Any
+import inspect
+from pathlib import Path
+from typing import Any, get_args, get_type_hints
 
 import pytest
 
@@ -57,8 +39,6 @@ from foundationTypes.mathTypes.MathTypes import (
     UnitSphericalSmallCircleWaveformType,
 )
 
-# Representative payloads, built bottom-up so nested waveform payloads can reuse
-# the leaf position/quaternion/timestamp/interval dicts.
 _QUATERNION: dict[str, Any] = {"w": 1.0, "x": 0.5, "y": -0.5, "z": 0.25}
 _QUATERNION_2: dict[str, Any] = {"w": 0.0, "x": 1.0, "y": 0.0, "z": 0.0}
 _POSITION: dict[str, Any] = {"x": 1.0, "y": -2.0, "z": 3.5}
@@ -68,9 +48,7 @@ _TIME_INTERVAL: dict[str, Any] = {
     "seconds": 42,
     "sign": "positive",
 }
-# Optionals absent -- this is also the shape nested waveform payloads reuse.
 _TIMESTAMP_MINIMAL: dict[str, Any] = {"attoseconds": 0, "seconds": 1_000, "sign": "positive"}
-# Optionals present -- referenceFrame / timescale / uncertainty all populated.
 _TIMESTAMP_FULL: dict[str, Any] = {
     "attoseconds": 5,
     "seconds": 10,
@@ -82,7 +60,6 @@ _TIMESTAMP_FULL: dict[str, Any] = {
 _ARC: dict[str, Any] = {"arcLength": 1.0, "azimuth": 0.5, "orient": 0.2, "polar": 0.3}
 _SMALL_CIRCLE: dict[str, Any] = {"azimuth": 0.5, "polar": 0.3, "radiusAngle": 0.1}
 
-# (XxxxType, XxxxABC, representative from_dict payload) for all 13 Math types.
 PAIRS: list[tuple[type[DataModelHelper], type[Any], dict[str, Any]]] = [
     (QuaternionType, QuaternionABC, _QUATERNION),
     (PositionType, PositionABC, _POSITION),
@@ -136,42 +113,171 @@ PAIRS: list[tuple[type[DataModelHelper], type[Any], dict[str, Any]]] = [
     ),
 ]
 
-assert len(PAIRS) == 13, f"expected all 13 Math types, found {len(PAIRS)}"
+# (wire name, constructor field) for every schema-required field.
+REQUIRED_FIELDS: dict[type[DataModelHelper], tuple[tuple[str, str], ...]] = {
+    QuaternionType: (("w", "w"), ("x", "x"), ("y", "y"), ("z", "z")),
+    PositionType: (("x", "x"), ("y", "y"), ("z", "z")),
+    SpatialTransformType: (("orientation", "orientation"), ("position", "position")),
+    PrecisionTimeIntervalType: (
+        ("attoseconds", "attoseconds"),
+        ("seconds", "seconds"),
+        ("sign", "sign"),
+    ),
+    PrecisionTimestampType: (
+        ("attoseconds", "attoseconds"),
+        ("seconds", "seconds"),
+        ("sign", "sign"),
+    ),
+    UnitSphericalArcType: (
+        ("arcLength", "arc_length"),
+        ("azimuth", "azimuth"),
+        ("orient", "orient"),
+        ("polar", "polar"),
+    ),
+    UnitSphericalSmallCircleType: (
+        ("azimuth", "azimuth"),
+        ("polar", "polar"),
+        ("radiusAngle", "radius_angle"),
+    ),
+    PositionWaveformType: (("dt", "dt"), ("positions", "positions"), ("t0", "t0")),
+    QuaternionWaveformType: (
+        ("dt", "dt"),
+        ("quaternions", "quaternions"),
+        ("t0", "t0"),
+    ),
+    SpatialTransformWaveformType: (
+        ("dt", "dt"),
+        ("positions", "positions"),
+        ("quaternions", "quaternions"),
+        ("t0", "t0"),
+    ),
+    ScalarWaveformType: (("dt", "dt"), ("t0", "t0"), ("waveform", "waveform")),
+    UnitSphericalArcWaveformType: (("arcs", "arcs"), ("dt", "dt"), ("t0", "t0")),
+    UnitSphericalSmallCircleWaveformType: (
+        ("dt", "dt"),
+        ("smallCircles", "small_circles"),
+        ("t0", "t0"),
+    ),
+}
+
+assert len(PAIRS) == len(REQUIRED_FIELDS) == 13
+
+
+def _protocol_conformance(
+    quaternion: QuaternionType,
+    position: PositionType,
+    transform: SpatialTransformType,
+    interval: PrecisionTimeIntervalType,
+    timestamp: PrecisionTimestampType,
+    arc: UnitSphericalArcType,
+    circle: UnitSphericalSmallCircleType,
+    position_waveform: PositionWaveformType,
+    quaternion_waveform: QuaternionWaveformType,
+    spatial_waveform: SpatialTransformWaveformType,
+    scalar_waveform: ScalarWaveformType,
+    arc_waveform: UnitSphericalArcWaveformType,
+    circle_waveform: UnitSphericalSmallCircleWaveformType,
+) -> tuple[
+    QuaternionABC,
+    PositionABC,
+    SpatialTransformABC,
+    PrecisionTimeIntervalABC,
+    PrecisionTimestampABC,
+    UnitSphericalArcABC,
+    UnitSphericalSmallCircleABC,
+    PositionWaveformABC,
+    QuaternionWaveformABC,
+    WaveformSpatialABC,
+    Waveform1dABC,
+    WaveformUnitSphericalArcABC,
+    WaveformUnitSphericalSmallCircleABC,
+]:
+    """Compile-time proof that carriers structurally satisfy every protocol."""
+    return (
+        quaternion,
+        position,
+        transform,
+        interval,
+        timestamp,
+        arc,
+        circle,
+        position_waveform,
+        quaternion_waveform,
+        spatial_waveform,
+        scalar_waveform,
+        arc_waveform,
+        circle_waveform,
+    )
 
 
 def _pair_id(value: Any) -> str | None:
-    """pytest calls this once per parametrized value, not once per tuple; only
-    name the ``XxxxType`` column, and let pytest auto-derive the rest."""
     return value.__name__ if isinstance(value, type) else None
 
 
-@pytest.mark.parametrize("type_cls,abc_cls,_payload", PAIRS, ids=_pair_id)
-def test_abc_precedes_data_model_helper_in_mro(
-    type_cls: type[DataModelHelper], abc_cls: type[Any], _payload: dict[str, Any]
+@pytest.mark.parametrize("type_cls,protocol_cls,payload", PAIRS, ids=_pair_id)
+def test_carrier_is_independent_data_model_helper(
+    type_cls: type[DataModelHelper], protocol_cls: type[Any], payload: dict[str, Any]
 ) -> None:
-    """Invariant 4: XxxxLike (the ABC) must come before DataModelHelper in the MRO."""
-    assert issubclass(type_cls, abc_cls)
-    assert issubclass(type_cls, DataModelHelper)
-    mro = type_cls.__mro__
-    assert mro.index(abc_cls) < mro.index(DataModelHelper)
-
-
-@pytest.mark.parametrize("type_cls,abc_cls,payload", PAIRS, ids=_pair_id)
-def test_abc_to_dict_matches_generated_to_dict(
-    type_cls: type[DataModelHelper], abc_cls: type[Any], payload: dict[str, Any]
-) -> None:
-    """F1: the ABC's concrete to_dict (accessor-based) must match the generated
-    to_dict shadowing it -- otherwise the wire shape silently drifts between the
-    hand-written Tier-2 contract and the quicktype-generated Tier-1 carrier."""
+    """Carriers retain IO behavior without inheriting field protocols."""
     instance = type_cls.from_dict(payload)
-    assert abc_cls.to_dict(instance) == instance.to_dict()
+    assert isinstance(instance, DataModelHelper)
+    assert protocol_cls not in type_cls.__mro__
+    assert instance.to_dict() == payload
 
 
-def test_precision_timestamp_parity_with_optionals_present() -> None:
-    """F1, optionals-present variant: referenceFrame/timescale/uncertainty all set.
+@pytest.mark.parametrize("type_cls,_protocol_cls,payload", PAIRS, ids=_pair_id)
+def test_direct_constructor_requires_every_schema_required_field(
+    type_cls: type[DataModelHelper], _protocol_cls: type[Any], payload: dict[str, Any]
+) -> None:
+    """Every required field is non-optional and has no constructor default."""
+    instance = type_cls.from_dict(payload)
+    parameters = inspect.signature(type_cls).parameters
+    hints = get_type_hints(type_cls)
+    required = REQUIRED_FIELDS[type_cls]
+    complete = {field_name: getattr(instance, field_name) for _, field_name in required}
 
-    (The optionals-absent variant is covered by the PAIRS table above via
-    _TIMESTAMP_MINIMAL.)
-    """
-    instance = PrecisionTimestampType.from_dict(_TIMESTAMP_FULL)
-    assert PrecisionTimestampABC.to_dict(instance) == instance.to_dict()
+    for _, field_name in required:
+        assert parameters[field_name].default is inspect.Parameter.empty
+        assert type(None) not in get_args(hints[field_name])
+        incomplete = complete.copy()
+        del incomplete[field_name]
+        with pytest.raises(TypeError):
+            type_cls(**incomplete)
+
+
+@pytest.mark.parametrize("type_cls,_protocol_cls,payload", PAIRS, ids=_pair_id)
+def test_from_dict_rejects_each_missing_required_field(
+    type_cls: type[DataModelHelper], _protocol_cls: type[Any], payload: dict[str, Any]
+) -> None:
+    """Deserialization rejects every required field when it is absent."""
+    for wire_name, _ in REQUIRED_FIELDS[type_cls]:
+        incomplete = payload.copy()
+        del incomplete[wire_name]
+        with pytest.raises((TypeError, ValueError)):
+            type_cls.from_dict(incomplete)
+
+
+def test_schema_optional_timestamp_fields_remain_optional() -> None:
+    minimal = PrecisionTimestampType.from_dict(_TIMESTAMP_MINIMAL)
+    full = PrecisionTimestampType.from_dict(_TIMESTAMP_FULL)
+    assert minimal.reference_frame is None
+    assert minimal.timescale is None
+    assert minimal.uncertainty is None
+    assert full.to_dict() == _TIMESTAMP_FULL
+
+
+def test_generated_source_pins_decoupled_regeneration_strategy() -> None:
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "src"
+        / "foundationTypes"
+        / "mathTypes"
+        / "MathTypes.py"
+    ).read_text(encoding="utf-8")
+
+    assert source.count("Type(DataModelHelper):") == len(PAIRS)
+    assert "# type: ignore[assignment]" not in source
+    assert "from foundation_abc.math.spatialABCs" not in source
+    assert "from foundation_abc.math.sphericalABCs" not in source
+    assert "from foundation_abc.math.waveformABCs" not in source
+    assert "from foundation_abc.math.precisionTimeABC" not in source
