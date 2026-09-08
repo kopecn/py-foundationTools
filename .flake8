@@ -1,19 +1,14 @@
-# First-class linter for pyFoundationTools. flake8 does not read pyproject.toml,
-# so its config lives here. Formatting is owned by black ([tool.black]); this file
-# only lints. flake8-bugbear supplies the `B` checks.
+# flake8 config (flake8 does not read pyproject.toml). Formatting is owned by black
+# ([tool.black]); this file only lints. flake8-bugbear supplies the `B` checks.
 [flake8]
 max-line-length = 100
 
-# select mirrors the enforcement the retired ruff config actually had
-# (select = E, F, I, UP, B): E (pycodestyle errors), F (pyflakes), B
-# (flake8-bugbear). The `W` series is intentionally NOT enforced — ruff never
-# selected it, so enabling flake8's default W-codes would newly flag thousands of
-# W293 (whitespace on blank lines) in the schema-GENERATED models. `I` (isort) and
-# `UP` (pyupgrade) have no flake8 equivalent and are dropped in the swap.
+# E (pycodestyle errors), F (pyflakes), B (bugbear). The `W` warning series is
+# intentionally not enforced.
 select = E, F, B
 
-# E203, W503: black-compatibility (black's slicing / line-break style trips these).
-# E704: `def f(): ...` on one line — the idiomatic form for @overload / stub bodies
+# E203, W503: disabled for black compatibility.
+# E704: `def f(): ...` one-liners are the idiomatic form for @overload / stub bodies
 #   (e.g. cliTransact.py's typed overloads). Not a defect.
 extend-ignore = E203, E704, W503
 

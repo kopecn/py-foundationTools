@@ -13,15 +13,18 @@ that a mapping is the right one for a given deck's current stamp is a
 consumer decision (that verification is registry/discovery machinery, out of
 scope per R13).
 
-A layout id, region id, or color reference the mapping does not cover cannot
-be placed on the new standard. It is left unchanged on the migrated deck and
-recorded in ``MigrationResult.unplaced`` -- reported, never silently dropped.
-File writing, interactive conflict resolution, inferred remapping, and
-PowerPoint rendering remain consumer responsibilities.
+Each mapping dimension is explicitly scoped: ``None`` excludes that dimension,
+while a mapping (including an empty one) attempts to migrate it. A scoped
+reference the mapping does not cover cannot be placed on the new standard. It
+is left unchanged on the migrated deck and recorded in
+``MigrationResult.unplaced`` -- reported, never silently dropped. Target
+versions are stamped only after all of their scoped dimensions succeed. File
+writing, interactive conflict resolution, inferred remapping, and PowerPoint
+rendering remain consumer responsibilities.
 """
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 
 from foundation_tools.presentation.layout_resolver import RESERVED_REGION_IDS
 from foundationTypes.presentationTypes.Presentations import (
@@ -236,10 +239,12 @@ def migrate_deck(deck: PresentationDeck, mapping: MigrationMapping) -> Migration
     ``MigrationMapping``, and stamp its theme/layout identity if the mapping
     names a new one.
 
-    Every layout id, region id, and color reference the deck actually uses is
-    looked up in the mapping. A hit is rewritten in the returned deck. A miss
+    Every layout id, region id, and color reference in a scoped dimension is
+    looked up in its mapping. A hit is rewritten in the returned deck. A miss
     is left unchanged and recorded in ``MigrationResult.unplaced`` -- content
-    this migration could not place is reported, never dropped.
+    this migration could not place is reported, never dropped. Theme identity
+    is stamped only after scoped color migration succeeds; layout identity is
+    stamped only after both layout and region migration are scoped and succeed.
     """
     unplaced: list[UnplacedContent] = []
     new_slides = [_migrate_slide(slide, mapping, unplaced) for slide in deck.slides]

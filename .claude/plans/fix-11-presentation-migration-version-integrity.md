@@ -1,9 +1,9 @@
 ---
 plan: Fix11PresentationMigrationVersionIntegrity
 scope: project
-status: needs-approval
-last_updated: 2026-09-05
-semver: 1.1.0
+status: completed
+last_updated: 2026-09-07
+semver: 1.2.0
 author: Nicholas Bergantz
 ---
 
@@ -49,3 +49,37 @@ Open questions for the dialog:
   that the current empty-map ambiguity lacks.
 
 Revisit before scoping an execution plan.
+
+## Ask ↔ result
+
+- **Authorizing request:** On 2026-09-07 the user explicitly approved the minimal
+  integrity contract and requested implementation: use `None` for an out-of-scope
+  mapping dimension and an empty mapping for an explicitly scoped dimension with no
+  correspondences; stamp `themeVersion` only after successful scoped color migration;
+  stamp `layoutVersion` only after successful scoped layout and region migration;
+  retain unresolved references and diagnostics; defer semantic role tags to a separate
+  plan.
+- **Delivered:**
+  - `MigrationMapping.layout_map`, `region_map`, and `color_map` are now optional.
+    `None` skips that dimension without producing `UnplacedContent`; any supplied
+    mapping, including `{}`, scopes the dimension and reports every unresolved reference.
+  - Layout, region, and color migration runs before metadata migration. The theme stamp
+    changes only when color migration is scoped and has no color failures. The layout
+    stamp changes only when both layout and region migration are scoped and neither has
+    failures. A failure in one version domain does not prevent a successful independent
+    version domain from being stamped.
+  - Unresolved references remain unchanged in the partial deck and retain the existing
+    per-reference `UnplacedContent` diagnostics. No mapping inference, registry/discovery
+    I/O, or content deletion was introduced.
+  - `tests/test_presentation_migration.py` now distinguishes omitted scope from an empty
+    scoped mapping and independently covers color, layout, and region failures, complete
+    scope omission, and either half of layout scope being omitted.
+- **Verification:** focused migration suite: `13 passed`; flake8 and strict mypy pass on
+  both changed Python files; repository-wide `make typecheck` passes (`62` source + `36`
+  test files); repository-wide `make test` passes (`596 passed`, with localhost socket
+  permission enabled). `make uv-fullCheck` reaches the repository-wide lint stage but is
+  currently stopped by pre-existing unused imports in generated model files unrelated to
+  fix-11; neither changed fix-11 Python file is reported.
+- **Deviation / gap:** none against the authorized fix-11 contract. The semantic role-tag
+  / “CSS for pptx” model remains intentionally deferred to its own design and execution
+  plan.
