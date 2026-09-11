@@ -13,6 +13,7 @@ package first (`make devInstall` / `make e`, or `uv-sync`).
 | [`exampleRetryPolicy.py`](exampleRetryPolicy.py) | `BackoffPolicy` + `RetryPolicy` composed over a simulated transiently-failing `CLITransact` call, and non-transient failures stopping immediately. |
 | [`exampleSocketClientServer.py`](exampleSocketClientServer.py) | `SocketTransact` + `SocketTransactServer`: a single request/reply round trip, concurrent out-of-order requests, and the server-push (unsolicited) channel. |
 | [`exampleBenchmarkPerformance.py`](exampleBenchmarkPerformance.py) | Transaction frequency/latency benchmark comparing `CLITransact` (subprocess per call) against `SocketTransact` (persistent connection), sequential and concurrent. Accepts an optional iteration count: `python examples/exampleBenchmarkPerformance.py 500`. |
+| [`exampleFindMatchingPaths.py`](exampleFindMatchingPaths.py) | `find_matching_paths`: pattern globs beneath an absolute root (a home-relative dir), default vs. explicit extensions, `extensions=None` for any extension, and a relative subdirectory in the pattern. |
 
 ## Which transport should I use?
 
