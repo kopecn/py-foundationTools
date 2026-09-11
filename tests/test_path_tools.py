@@ -6,19 +6,55 @@ from typing import Any, cast
 
 import pytest
 
-from foundation_tools.file_tools import DEFAULT_EXTENSIONS, find_matching_paths
+from foundation_tools.file_tools import find_matching_paths, suggested_extensions
 
 
 def test_root_is_required() -> None:
-    assert signature(find_matching_paths).parameters["root"].default is Parameter.empty
+    assert signature(find_matching_paths).parameters["starting_dir"].default is Parameter.empty
 
 
-def test_omitted_extensions_uses_default_set(tmp_path: Path) -> None:
-    matches = [tmp_path / f"report_0001.{ext}" for ext in DEFAULT_EXTENSIONS]
-    for match in matches:
+def test_no_arguments_returns_every_entry(tmp_path: Path) -> None:
+    csv = tmp_path / "report.csv"
+    txt = tmp_path / "report.txt"
+    log = tmp_path / "report.log"
+    for match in (csv, txt, log):
         match.write_text("")
 
-    assert find_matching_paths(tmp_path, "report_0001") == matches
+    # No pattern, no extensions, no exclusions: return everything directly under the dir.
+    assert find_matching_paths(tmp_path) == [csv, log, txt]
+
+
+def test_extensions_string_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(TypeError, match="extensions must be an iterable of str"):
+        find_matching_paths(tmp_path, "report", cast(Any, "txt"))
+
+
+def test_exclude_patterns_string_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(TypeError, match="exclude_patterns must be an iterable of str"):
+        find_matching_paths(tmp_path, "*", [], exclude_patterns=cast(Any, "*.pyc"))
+
+
+def test_dot_pattern_returns_empty_without_crashing(tmp_path: Path) -> None:
+    (tmp_path / "report.txt").write_text("")
+    # "." globs the folder itself; the folder is never returned.
+    assert find_matching_paths(tmp_path, ".", []) == []
+
+
+def test_hidden_files_are_included(tmp_path: Path) -> None:
+    hidden = tmp_path / ".env.txt"
+    hidden.write_text("")
+    assert find_matching_paths(tmp_path, ".env", ["txt"]) == [hidden]
+
+
+def test_omitted_extensions_matches_every_extension(tmp_path: Path) -> None:
+    csv = tmp_path / "report_0001.csv"
+    txt = tmp_path / "report_0001.txt"
+    log = tmp_path / "report_0001.log"
+    for match in (csv, txt, log):
+        match.write_text("")
+
+    # No extensions: no extension filter, so every suffix is returned.
+    assert find_matching_paths(tmp_path, "report_0001*") == [csv, log, txt]
 
 
 def test_extensions_are_applied_in_order(tmp_path: Path) -> None:
@@ -54,12 +90,25 @@ def test_empty_extension_sequence_uses_pattern_unchanged(tmp_path: Path) -> None
     assert find_matching_paths(tmp_path, "report*", []) == matches
 
 
-def test_none_matches_any_extension(tmp_path: Path) -> None:
-    matches = [tmp_path / "report.csv", tmp_path / "report.log"]
-    for match in matches:
+def test_none_extensions_applies_no_filter(tmp_path: Path) -> None:
+    csv = tmp_path / "report.csv"
+    log = tmp_path / "report.log"
+    for match in (csv, log):
         match.write_text("")
 
-    assert find_matching_paths(tmp_path, "report", None) == matches
+    # None means no extension filter, so both suffixes are returned.
+    assert find_matching_paths(tmp_path, "report*", None) == [csv, log]
+
+
+def test_any_extension_suggestion_matches_any_suffix(tmp_path: Path) -> None:
+    csv = tmp_path / "report.csv"
+    log = tmp_path / "report.log"
+    bare = tmp_path / "report"
+    for match in (csv, log, bare):
+        match.write_text("")
+
+    # suggested_extensions.ANY -> "{pattern}.*": any final extension, but not the bare name.
+    assert find_matching_paths(tmp_path, "report", suggested_extensions.ANY.value) == [csv, log]
 
 
 def test_accepts_any_extension_iterable(tmp_path: Path) -> None:
@@ -109,7 +158,8 @@ def test_nested_relative_pattern_still_accepted(tmp_path: Path) -> None:
 
 
 def test_recursive_glob_pattern_still_accepted(tree: Path) -> None:
-    assert find_matching_paths(tree, "**/proj_d", []) == []
+    # No exclusions: the recursively-matched dir is returned as-is.
+    assert find_matching_paths(tree, "**/proj_d", []) == [tree / "proj_c" / ".build" / "proj_d"]
 
 
 # --- root-anchored globbing + exclusion pruning -------------------------------
@@ -132,7 +182,7 @@ def test_root_resolves_patterns_against_disk(tmp_path: Path) -> None:
 
 
 def test_excluded_dir_itself_is_pruned(tree: Path) -> None:
-    assert find_matching_paths(tree, "*", []) == [
+    assert find_matching_paths(tree, "*", [], exclude_patterns=["/.build/"]) == [
         tree / ".cache",
         tree / "proj_a",
         tree / "proj_c",
@@ -140,11 +190,11 @@ def test_excluded_dir_itself_is_pruned(tree: Path) -> None:
 
 
 def test_paths_under_an_excluded_dir_are_pruned(tree: Path) -> None:
-    assert find_matching_paths(tree, "*/*", []) == []
+    assert find_matching_paths(tree, "*/*", [], exclude_patterns=["/.build/"]) == []
 
 
 def test_deeply_nested_excluded_dir_is_pruned(tree: Path) -> None:
-    assert find_matching_paths(tree, "**/proj_d", []) == []
+    assert find_matching_paths(tree, "**/proj_d", [], exclude_patterns=["/.build/"]) == []
 
 
 def test_empty_exclusions_disable_pruning(tree: Path) -> None:
@@ -247,4 +297,37 @@ def test_directory_and_file_globs_combine(mixed: Path) -> None:
         mixed / "keep",
         mixed / "keep" / "mod.py",
         mixed / "xyzxyz.txt",
+    ]
+
+
+# --- symlink containment ------------------------------------------------------
+
+
+def test_symlink_escaping_root_is_excluded(tmp_path: Path) -> None:
+    """A file/dir symlink under root whose target is outside root is dropped."""
+    outside = tmp_path / "outside"
+    (outside / "secret.txt").parent.mkdir()
+    (outside / "secret.txt").write_text("")
+
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "real.txt").write_text("")
+    (root / "file_link.txt").symlink_to(outside / "secret.txt")
+    (root / "dir_link").symlink_to(outside, target_is_directory=True)
+
+    # Only the real file survives; both escaping symlinks and the target reached
+    # through the dir symlink are dropped.
+    assert find_matching_paths(root, "**/*", []) == [root / "real.txt"]
+
+
+def test_symlink_resolving_inside_root_is_kept(tmp_path: Path) -> None:
+    """A symlink whose target stays within root is still contained, so it is kept."""
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "real.txt").write_text("")
+    (root / "alias.txt").symlink_to(root / "real.txt")
+
+    assert find_matching_paths(root, "*", ["txt"]) == [
+        root / "alias.txt",
+        root / "real.txt",
     ]
