@@ -14,6 +14,11 @@ from dataclasses import dataclass
 from typing import Generic, TypeVar
 
 from foundation_abc.peripheralByteTransport import PeripheralByteTransport
+from foundation_tools.socket_transaction._lifecycle import (
+    LifecycleState,
+    require_min,
+    require_positive,
+)
 from foundation_tools.socket_transaction.framing_codecs import DelimiterCodec, FramingCodec
 from foundation_tools.socket_transaction.socket_byte_transport import SocketByteTransport
 from foundation_tools.socket_transaction.transaction_router import (
@@ -91,9 +96,16 @@ class SocketTransact:
         poll_timeout: float = DEFAULT_POLL_TIMEOUT,
         unsolicited_maxsize: int = DEFAULT_UNSOLICITED_MAXSIZE,
     ) -> None:
-        self._codec = codec or DelimiterCodec()
-        self._transport = transport or SocketByteTransport(
-            host, port, connect_timeout=connect_timeout
+        require_positive("connect_timeout", connect_timeout)
+        require_positive("read_size", read_size)
+        require_positive("poll_timeout", poll_timeout)
+        require_min("unsolicited_maxsize", unsolicited_maxsize, 1)
+        self._state = LifecycleState.IDLE
+        self._codec = codec if codec is not None else DelimiterCodec()
+        self._transport = (
+            transport
+            if transport is not None
+            else SocketByteTransport(host, port, connect_timeout=connect_timeout)
         )
         self._router = TransactionRouter(
             self._transport,
@@ -111,14 +123,25 @@ class SocketTransact:
     # -----------------------------------------------------------------------
 
     async def connect(self) -> None:
-        """Open the transport and start the router's reader task."""
+        """Open the transport and start the router's reader task.
+
+        Raises ``RuntimeError`` if already connected — a live connection is never
+        silently replaced. The instance may be reconnected after ``disconnect()``.
+        """
+        if self._state is LifecycleState.ACTIVE:
+            raise RuntimeError("Cannot connect: already connected")
         await self._transport.connect()
         self._router.start()
+        self._state = LifecycleState.ACTIVE
 
     async def disconnect(self) -> None:
-        """Stop the router and close the transport."""
+        """Stop the router and close the transport. A no-op if not connected;
+        clears in-flight state while retaining construction configuration."""
+        if self._state is LifecycleState.IDLE:
+            return
         await self._router.stop()
         await self._transport.disconnect()
+        self._state = LifecycleState.IDLE
 
     async def __aenter__(self) -> "SocketTransact":
         await self.connect()

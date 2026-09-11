@@ -14,6 +14,11 @@ from contextlib import suppress
 from logging import getLogger
 from typing import Protocol
 
+from foundation_tools.socket_transaction._lifecycle import (
+    LifecycleState,
+    require_min,
+    require_positive,
+)
 from foundation_tools.socket_transaction.framing_codecs import DelimiterCodec, FramingCodec
 from foundation_tools.socket_transaction.transaction_router import TxIdExtractor, TxIdInjector
 
@@ -84,15 +89,21 @@ class SocketTransactServer:
         error_reply_factory: ErrorReplyFactory | None = None,
         read_size: int = DEFAULT_READ_SIZE,
     ) -> None:
+        require_positive("read_size", read_size)
+        if max_concurrent is not None:
+            require_min("max_concurrent", max_concurrent, 1)
         self._host = host
         self._port = port
         self._handler = handler
         self._inject = tx_id_injector
         self._extract = tx_id_extractor
         self._codec_factory = codec_factory
-        self._semaphore = asyncio.Semaphore(max_concurrent) if max_concurrent else None
+        self._semaphore = (
+            asyncio.Semaphore(max_concurrent) if max_concurrent is not None else None
+        )
         self._error_reply_factory = error_reply_factory
         self._read_size = read_size
+        self._state = LifecycleState.IDLE
         self._server: asyncio.base_events.Server | None = None
         self._connections: dict[_StreamWriterLike, FramingCodec] = {}
         self._request_tasks: set[asyncio.Task[None]] = set()
@@ -105,10 +116,18 @@ class SocketTransactServer:
     async def start(self) -> None:
         """Start accepting connections. ``asyncio.start_server`` serves
         immediately on return — no separate call is required to begin
-        accepting; ``serve_forever`` is only a convenience blocking call."""
+        accepting; ``serve_forever`` is only a convenience blocking call.
+
+        Raises ``RuntimeError`` if already running — a live server is never
+        silently replaced. The instance may be restarted after ``stop()``
+        (configuration is retained); automatic reconnect is out of scope.
+        """
+        if self._state is LifecycleState.ACTIVE:
+            raise RuntimeError("Cannot start: server is already running")
         self._server = await asyncio.start_server(
             self._on_connect, host=self._host, port=self._port
         )
+        self._state = LifecycleState.ACTIVE
 
     async def stop(self) -> None:
         """Stop accepting new connections, cancel in-flight handler tasks,
@@ -139,6 +158,7 @@ class SocketTransactServer:
 
         self._connections.clear()
         self._reader_tasks.clear()
+        self._state = LifecycleState.IDLE
 
     async def serve_forever(self) -> None:
         """Block until ``stop()`` closes the server (or the task is

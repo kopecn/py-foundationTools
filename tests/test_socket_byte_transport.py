@@ -207,3 +207,37 @@ class TestSocketByteTransportIO:
                 assert received == b"ab"
             finally:
                 await transport.disconnect()
+
+
+class TestSocketByteTransportLifecycleOwnership:
+    """fix-12: re-usable IDLE<->ACTIVE lifecycle, no silent replacement of a
+    live socket, and construction-time numeric validation."""
+
+    @pytest.mark.asyncio
+    async def test_connect_while_connected_raises(self) -> None:
+        async with running_server(_silent_handler) as (host, port):
+            transport = SocketByteTransport(host=host, port=port)
+            await transport.connect()
+            try:
+                with pytest.raises(RuntimeError, match="already connected"):
+                    await transport.connect()
+            finally:
+                await transport.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_connect_after_disconnect_succeeds(self) -> None:
+        async with running_server(_silent_handler) as (host, port):
+            transport = SocketByteTransport(host=host, port=port)
+            await transport.connect()
+            await transport.disconnect()
+            assert not transport.is_connected
+            await transport.connect()  # re-usable: fresh handle
+            try:
+                assert transport.is_connected
+            finally:
+                await transport.disconnect()
+
+    @pytest.mark.parametrize("bad", [0, -1.0])
+    def test_non_positive_connect_timeout_raises(self, bad: float) -> None:
+        with pytest.raises(ValueError, match="connect_timeout"):
+            SocketByteTransport(host="127.0.0.1", port=1, connect_timeout=bad)

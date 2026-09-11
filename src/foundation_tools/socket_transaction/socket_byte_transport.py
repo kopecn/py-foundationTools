@@ -10,6 +10,7 @@ import asyncio
 import contextlib
 
 from foundation_abc.peripheralByteTransport import PeripheralByteTransport
+from foundation_tools.socket_transaction._lifecycle import LifecycleState, require_positive
 
 
 class SocketByteTransport(PeripheralByteTransport):
@@ -17,22 +18,33 @@ class SocketByteTransport(PeripheralByteTransport):
 
     Host, port, and connect timeout are fixed at construction — no environment
     inspection, no reconnect/keepalive logic (a future policy concern).
+
+    Re-usable lifecycle (fix-12): ``IDLE`` <-> ``ACTIVE``. A live connection is
+    never silently replaced — ``connect()`` while ``ACTIVE`` raises. The raw
+    socket handle is destroyed on ``disconnect()`` and recreated on the next
+    ``connect()`` (a closed Python socket cannot be reused).
     """
 
     def __init__(self, host: str, port: int, *, connect_timeout: float = 5.0) -> None:
+        require_positive("connect_timeout", connect_timeout)
         self._host = host
         self._port = port
         self._connect_timeout = connect_timeout
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
+        self._state = LifecycleState.IDLE
 
     async def connect(self) -> None:
         """Open the TCP connection.
 
         Raises:
+            RuntimeError: If the transport is already connected (a live socket is
+                never silently replaced).
             ConnectionError: If the connection cannot be established within
                 ``connect_timeout``, or the peer refuses/rejects it.
         """
+        if self._state is LifecycleState.ACTIVE:
+            raise RuntimeError("Cannot connect: transport is already connected")
         try:
             self._reader, self._writer = await asyncio.wait_for(
                 asyncio.open_connection(self._host, self._port),
@@ -42,12 +54,15 @@ class SocketByteTransport(PeripheralByteTransport):
             raise ConnectionError(
                 f"Failed to connect to {self._host}:{self._port}: {error}"
             ) from error
+        self._state = LifecycleState.ACTIVE
 
     async def disconnect(self) -> None:
-        """Close the connection cleanly. A no-op if already disconnected."""
+        """Close the connection cleanly, destroying the socket handle. A no-op if
+        already disconnected; the instance may be ``connect()``ed again."""
         writer = self._writer
         self._writer = None
         self._reader = None
+        self._state = LifecycleState.IDLE
         if writer is None or writer.is_closing():
             return
         writer.close()

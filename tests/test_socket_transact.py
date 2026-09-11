@@ -390,3 +390,65 @@ class TestSocketByteTransportIntegration:
         )
         with pytest.raises(RuntimeError):
             await st.send(b"never-sent")
+
+
+class TestFacadeLifecycleOwnership:
+    """fix-12: the facade enforces a re-usable IDLE<->ACTIVE lifecycle, refuses
+    to silently replace a live connection, and validates numeric config."""
+
+    @pytest.mark.asyncio
+    async def test_connect_while_connected_raises(self) -> None:
+        transport = FakeTransport()
+        st = _make_socket_transact(transport)
+        await st.connect()
+        try:
+            with pytest.raises(RuntimeError, match="already connected"):
+                await st.connect()
+        finally:
+            await st.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_reconnect_cycle_on_one_instance(self) -> None:
+        transport = FakeTransport()
+        transport.enable_echo()
+        st = _make_socket_transact(transport)
+
+        await st.connect()
+        first = await st.request(b"ping-1", timeout=1.0)
+        assert first.success is True
+        await st.disconnect()
+
+        await st.connect()  # re-use the same instance
+        try:
+            second = await st.request(b"ping-2", timeout=1.0)
+            assert second.success is True
+            assert second.payload is not None and second.payload.endswith(b"ping-2")
+        finally:
+            await st.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_double_disconnect_is_noop(self) -> None:
+        transport = FakeTransport()
+        st = _make_socket_transact(transport)
+        await st.connect()
+        await st.disconnect()
+        await st.disconnect()  # no raise
+
+    @pytest.mark.parametrize(
+        ("kwarg", "value"),
+        [
+            ("connect_timeout", 0),
+            ("read_size", 0),
+            ("poll_timeout", -1),
+            ("unsolicited_maxsize", 0),
+        ],
+    )
+    def test_non_positive_numeric_config_raises(self, kwarg: str, value: float) -> None:
+        with pytest.raises(ValueError, match=kwarg):
+            SocketTransact(
+                "unused-host",
+                0,
+                tx_id_injector=_inject,
+                tx_id_extractor=_extract,
+                **{kwarg: value},  # type: ignore[arg-type]
+            )

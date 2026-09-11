@@ -1,9 +1,9 @@
 ---
 plan: Fix12SocketLifecycleOwnership
 scope: project
-status: needs-approval
-last_updated: 2026-09-05
-semver: 1.1.0
+status: completed
+last_updated: 2026-09-11
+semver: 1.2.0
 author: Nicholas Bergantz
 ---
 
@@ -51,3 +51,26 @@ auto-reconnect; *explicit disconnect/shutdown* → tear down the handle and pend
 keep configuration. This still needs a scoped execution plan (state representation, legal
 transitions across all four types, `is None` dependency defaults, numeric-config validation
 at construction) before any code is written.
+
+## Executed — 2026-09-11 (bare-bones subset; auto-reconnect deferred)
+
+The user authorized closing this candidate with a **bare-bones** implementation meeting the
+recorded requirements only. Delivered a re-usable `IDLE ⇄ ACTIVE` state model (new shared
+`socket_transaction/_lifecycle.py`) enforced across all four types:
+
+- `SocketByteTransport`, `SocketTransact`, `SocketTransactServer` raise on `connect()`/`start()`
+  while `ACTIVE` — a live socket/server is never silently replaced; each is re-usable after an
+  explicit teardown (config retained).
+- `TransactionRouter.start()` stays idempotent while running but restarts a finished reader into
+  a fresh epoch (`_closed` reset, fresh pending map and unsolicited queue) — fixing the
+  "completed task blocks restart / `_closed` never resets" defect.
+- Raw socket handle is destroy-and-recreate on `disconnect()`.
+- All injected-dependency defaults use `is None`; `max_concurrent=0` is now rejected rather than
+  silently meaning "unbounded".
+- Numeric config validated at construction (`connect_timeout`/`read_size`/`poll_timeout` > 0,
+  `unsolicited_maxsize` ≥ 1, `max_concurrent` None or ≥ 1).
+
+Lifecycle documented in [`socketTransact.md`](../specs/socketTransact.md) (§ Lifecycle & resource
+ownership). Gate `make fullCheck` green (637 tests). **Deferred, unchanged:** automatic reconnect
+and cross-dropout upper-layer continuity — the "real state machine handler" for a future scoping
+effort. fix-09 request-registration atomicity was left untouched and independently tested.

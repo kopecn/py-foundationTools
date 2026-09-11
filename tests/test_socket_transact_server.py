@@ -490,3 +490,52 @@ class TestEndToEnd:
         assert result.success is True
         assert result.error is None
         assert result.model == model
+
+
+async def _echo(request: bytes) -> bytes | None:
+    return request
+
+
+class TestServerLifecycleOwnership:
+    """fix-12: the server enforces a re-usable IDLE<->ACTIVE lifecycle, refuses
+    to silently replace a live server, distinguishes `max_concurrent=None` from
+    an explicit `0`, and validates numeric config at construction."""
+
+    @pytest.mark.parametrize("bad", [0, -1])
+    def test_max_concurrent_below_one_raises(self, bad: int) -> None:
+        with pytest.raises(ValueError, match="max_concurrent"):
+            _make_server(_echo, max_concurrent=bad)
+
+    def test_max_concurrent_none_is_unbounded(self) -> None:
+        server = _make_server(_echo, max_concurrent=None)
+        assert server._semaphore is None
+
+    @pytest.mark.parametrize("bad", [0, -5])
+    def test_non_positive_read_size_raises(self, bad: int) -> None:
+        with pytest.raises(ValueError, match="read_size"):
+            _make_server(_echo, read_size=bad)
+
+    @pytest.mark.asyncio
+    async def test_start_while_running_raises(self) -> None:
+        server = SocketTransactServer(
+            "127.0.0.1", 0, _echo, tx_id_injector=_inject, tx_id_extractor=_extract
+        )
+        await server.start()
+        try:
+            with pytest.raises(RuntimeError, match="already running"):
+                await server.start()
+        finally:
+            await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_restart_after_stop_succeeds(self) -> None:
+        server = SocketTransactServer(
+            "127.0.0.1", 0, _echo, tx_id_injector=_inject, tx_id_extractor=_extract
+        )
+        await server.start()
+        await server.stop()
+        await server.start()  # re-use: configuration retained
+        try:
+            assert server.address[0] == "127.0.0.1"
+        finally:
+            await server.stop()

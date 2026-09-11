@@ -16,6 +16,7 @@ from itertools import count
 from logging import getLogger
 
 from foundation_abc.peripheralByteTransport import PeripheralByteTransport
+from foundation_tools.socket_transaction._lifecycle import require_min, require_positive
 from foundation_tools.socket_transaction.framing_codecs import FramingCodec
 
 _log = getLogger(__name__)
@@ -65,13 +66,19 @@ class TransactionRouter:
         poll_timeout: float = DEFAULT_POLL_TIMEOUT,
         unsolicited_maxsize: int = DEFAULT_UNSOLICITED_MAXSIZE,
     ) -> None:
+        require_positive("read_size", read_size)
+        require_positive("poll_timeout", poll_timeout)
+        require_min("unsolicited_maxsize", unsolicited_maxsize, 1)
         self._transport = transport
         self._codec = codec
         self._inject = tx_id_injector
         self._extract = tx_id_extractor
-        self._generate = tx_id_generator or self._counting_generator()
+        self._generate = (
+            tx_id_generator if tx_id_generator is not None else self._counting_generator()
+        )
         self._read_size = read_size
         self._poll_timeout = poll_timeout
+        self._unsolicited_maxsize = unsolicited_maxsize
         self._pending: dict[str, asyncio.Future[bytes]] = {}
         self._unsolicited: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=unsolicited_maxsize)
         self._reader_task: asyncio.Task[None] | None = None
@@ -88,9 +95,20 @@ class TransactionRouter:
         return self._reader_task is not None and not self._reader_task.done()
 
     def start(self) -> None:
-        """Start the single background reader task. Idempotent."""
-        if self._reader_task is not None:
+        """Start the single background reader task.
+
+        Idempotent while a reader is already running (no duplicate task). If a
+        previous reader has finished (explicit ``stop()`` or a detected
+        connection loss), ``start()`` opens a fresh epoch — resetting the closed
+        flag, the pending map, and the unsolicited queue — so the router is
+        re-usable across a manual reconnect (fix-12). Automatic reconnect is out
+        of scope.
+        """
+        if self.is_running:
             return
+        self._closed = False
+        self._pending = {}
+        self._unsolicited = asyncio.Queue(maxsize=self._unsolicited_maxsize)
         self._reader_task = asyncio.ensure_future(self._reader_loop())
 
     async def stop(self) -> None:

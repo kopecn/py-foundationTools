@@ -523,3 +523,83 @@ class TestSocketByteTransportIntegration:
                 await transport.disconnect()
 
         assert reply.endswith(b"integration-ping")
+
+
+class TestRouterRestart:
+    """fix-12: the router is re-usable — a finished reader (explicit stop or
+    detected loss) can be restarted into a fresh epoch. start() stays idempotent
+    while a reader is actually running. Construction validates numeric config and
+    uses `is None` for the generator default."""
+
+    @pytest.mark.asyncio
+    async def test_start_after_stop_restarts_into_fresh_epoch(self) -> None:
+        transport = FakeTransport()
+        transport.enable_echo()
+        await transport.connect()
+        router = _make_router(transport)
+        router.start()
+        await router.stop()
+        assert not router.is_running
+        assert router._closed is True
+
+        router.start()  # re-use
+        try:
+            assert router.is_running
+            assert router._closed is False
+            reply = await router.request(b"after-restart", timeout=1.0)
+            assert reply.endswith(b"after-restart")
+        finally:
+            await router.stop()
+            await transport.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_start_while_running_is_noop(self) -> None:
+        transport = FakeTransport()
+        await transport.connect()
+        router = _make_router(transport)
+        router.start()
+        first_task = router._reader_task
+        try:
+            router.start()  # idempotent while running — no duplicate task
+            assert router._reader_task is first_task
+        finally:
+            await router.stop()
+            await transport.disconnect()
+
+    @pytest.mark.asyncio
+    async def test_start_after_detected_loss_restarts(self) -> None:
+        transport = FakeTransport()
+        await transport.connect()
+        router = _make_router(transport)
+        router.start()
+        transport.push_eof()  # reader detects loss and tears down
+        await asyncio.sleep(0.05)
+        assert not router.is_running
+        assert router._closed is True
+
+        router.start()
+        try:
+            assert router.is_running
+            assert router._closed is False
+        finally:
+            await router.stop()
+            await transport.disconnect()
+
+    @pytest.mark.parametrize(
+        ("kwarg", "value"),
+        [
+            ("read_size", 0),
+            ("read_size", -1),
+            ("poll_timeout", 0),
+            ("poll_timeout", -0.5),
+            ("unsolicited_maxsize", 0),
+            ("unsolicited_maxsize", -3),
+        ],
+    )
+    def test_non_positive_numeric_config_raises(self, kwarg: str, value: float) -> None:
+        with pytest.raises(ValueError, match=kwarg):
+            _make_router(FakeTransport(), **{kwarg: value})
+
+    def test_generator_default_used_when_none(self) -> None:
+        router = _make_router(FakeTransport(), tx_id_generator=None)
+        assert [router._generate(), router._generate()] == ["0", "1"]

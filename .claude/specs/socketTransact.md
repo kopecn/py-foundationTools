@@ -3,8 +3,8 @@ spec: SocketTransact
 scope: project
 status: implemented
 applies_to: src/foundation_tools/socket_transaction/
-last_updated: 2026-07-05
-semver: 0.4.0
+last_updated: 2026-09-11
+semver: 0.5.0
 author: Nicholas Bergantz
 ---
 
@@ -401,6 +401,48 @@ A compliant `SocketTransactServer` MUST:
 6. support `None` handler returns (no reply) and `broadcast` for uncorrelated push
 7. cancel in-flight handler tasks and close connections on teardown
 8. add zero external runtime dependencies (stdlib only)
+
+---
+
+# Lifecycle & resource ownership
+
+Records the bare-bones lifecycle decision made on 2026-09-05 and implemented under
+fix-12. Automatic reconnect and cross-dropout upper-layer continuity are
+**explicitly out of scope** here — deferred to a future scoping effort for a real
+state-machine handler.
+
+Every stateful component (`SocketByteTransport`, `TransactionRouter`,
+`SocketTransact`, `SocketTransactServer`) is **manually re-usable** across a single
+two-state model, shared via `socket_transaction/_lifecycle.py`:
+
+```
+IDLE  <->  ACTIVE
+```
+
+- **`IDLE → ACTIVE`** — `connect()` / `start()` acquires a live resource (raw socket
+  handle, reader task, or `asyncio` server).
+- **`ACTIVE → IDLE`** — an explicit `disconnect()` / `stop()` tears the resource
+  down and clears in-flight state (pending futures, buffered frames) while
+  **retaining construction configuration**, so the same instance may be activated
+  again.
+- **`ACTIVE → connect()/start()` again** — **raises `RuntimeError`.** A live socket
+  or server is never silently replaced (`SocketByteTransport.connect`,
+  `SocketTransact.connect`, `SocketTransactServer.start`).
+- **`IDLE → disconnect()`** — a no-op.
+
+The **raw socket handle is destroy-and-recreate**: a closed Python socket is never
+restarted; the next `connect()` opens a fresh handle. The **router is restartable** —
+`start()` is idempotent while a reader is actually running, but after a reader
+finishes (explicit `stop()` or a detected connection loss) `start()` opens a fresh
+epoch, resetting the closed flag, the pending map, and the unsolicited queue.
+
+**Dependency defaults use `is None`,** never truthiness — a valid falsy or
+zero-configured injected object is never mistaken for "unset".
+
+**Numeric configuration is validated at construction** (raises `ValueError`):
+`connect_timeout`, `read_size`, `poll_timeout` must be `> 0`; `unsolicited_maxsize`
+`>= 1`; `max_concurrent` is `None` (unbounded) or `>= 1` — an explicit `0` is
+rejected rather than silently meaning "unbounded".
 
 ---
 
