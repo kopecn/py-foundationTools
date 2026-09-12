@@ -1,29 +1,45 @@
 """
-Threaded transaction core — state half (Action Plan 25, chunk 05).
+Threaded transaction core — state and routing (Action Plan 25, chunks 05-06).
 
 Implements the internal, non-exported ``PendingTransaction`` mutable state and
-the state-management half of ``TransactionCore``: transaction id sequencing,
-epoch-bound registration, duplicate rejection, idempotent discard, and
-race-safe ACK/completion waits.
+the full ``TransactionCore``: transaction id sequencing, epoch-bound
+registration, duplicate rejection, idempotent discard, race-safe ACK/
+completion waits (chunk 05), plus frame routing, epoch-scoped failure,
+isolated broadcast/inbound callbacks, and atomic outcome finalization
+(chunk 06).
 
 Contract: ``.claude/specs/threadedTransactionProtocol.md`` ("Pending
-transaction" and "Transaction core" sections, state operations only). Frame
-routing, epoch failure, callback dispatch, and outcome finalization
-(``route``, ``fail_epoch``, the broadcast/inbound handler setters, and
-``finalize_outcome``) are chunk 06's responsibility and are intentionally
-absent here. This module is not exported from the package ``__init__.py``.
+transaction", "Transaction core", and "Routing" sections). This module is not
+exported from the package ``__init__.py``.
 """
 
 import logging
 import math
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from foundation_tools.socket_transaction.transaction_models import (
     AckStatus,
     CompletionStatus,
+    SendStatus,
     TransactionFrame,
+    TransactionOutcome,
 )
+
+_CONTROL_MESSAGE_TYPES = frozenset({"ack", "res", "err", "evt"})
+
+
+def _payload_text(payload: bytes | str | dict[str, object] | None) -> str:
+    """Render a non-``None`` frame payload as text for a diagnostic message.
+
+    ``bytes`` is decoded as UTF-8 with replacement rather than embedded via
+    ``str()``/an f-string, which would otherwise render its ``repr`` (e.g.
+    ``"b'abc'"``) instead of the payload's text.
+    """
+    if isinstance(payload, bytes):
+        return payload.decode("utf-8", errors="replace")
+    return str(payload)
 
 
 def _require_positive_int(name: str, value: int) -> None:
@@ -87,6 +103,8 @@ class TransactionCore:
         self._next_tx_id = first_tx_id
         self._lock = threading.Lock()
         self._pending: dict[int, PendingTransaction] = {}
+        self._broadcast_handler: Callable[[TransactionFrame], None] | None = None
+        self._inbound_handler: Callable[[int, TransactionFrame], None] | None = None
 
     def next_tx_id(self) -> int:
         """Return the next transaction id, advancing the sequence by ``tx_id_step``."""
@@ -157,3 +175,225 @@ class TransactionCore:
             if current.completion_status is None:
                 current.completion_status = CompletionStatus.TIMED_OUT
             return current.completion_status
+
+    def set_broadcast_event_handler(
+        self, handler: Callable[[TransactionFrame], None] | None
+    ) -> None:
+        """Set (or clear, with ``None``) the handler invoked for broadcast ``evt`` frames."""
+        with self._lock:
+            self._broadcast_handler = handler
+
+    def set_inbound_transaction_handler(
+        self, handler: Callable[[int, TransactionFrame], None] | None
+    ) -> None:
+        """Set (or clear, with ``None``) the handler invoked for application-defined
+        request frames with no owning pending transaction."""
+        with self._lock:
+            self._inbound_handler = handler
+
+    def route(self, epoch: int, frame: TransactionFrame) -> None:
+        """Route one inbound frame per the routing table.
+
+        State mutation always finishes under the transaction lock before any
+        callback runs; the selected callback (if any) is invoked after the
+        lock is released, and its exceptions are logged and contained so
+        routing stays usable for a later frame.
+        """
+        if frame.msg_type == "evt" and frame.tx_id < 0:
+            with self._lock:
+                broadcast_handler = self._broadcast_handler
+            self._invoke_broadcast(broadcast_handler, frame)
+            return
+
+        inbound_handler: Callable[[int, TransactionFrame], None] | None = None
+        with self._lock:
+            pending = self._pending.get(frame.tx_id)
+            if pending is None or pending.epoch != epoch:
+                if frame.msg_type in _CONTROL_MESSAGE_TYPES:
+                    self._logger.warning(
+                        "dropping orphan %s frame for tx_id=%s epoch=%s "
+                        "(no matching pending transaction)",
+                        frame.msg_type,
+                        frame.tx_id,
+                        epoch,
+                    )
+                else:
+                    inbound_handler = self._inbound_handler
+            elif frame.msg_type == "ack":
+                self._route_ack(pending, frame)
+            elif frame.msg_type == "res":
+                self._route_res(pending, frame)
+            elif frame.msg_type == "evt":
+                self._route_evt(pending, frame)
+            elif frame.msg_type == "err":
+                self._route_err(pending, frame)
+            else:
+                inbound_handler = self._inbound_handler
+
+        if inbound_handler is not None:
+            self._invoke_inbound(inbound_handler, epoch, frame)
+
+    def _route_ack(self, pending: PendingTransaction, frame: TransactionFrame) -> None:
+        """Settle the ACK stage (and, on failure, an unresolved completion stage).
+
+        Must be called while holding ``self._lock``. A second ACK arriving
+        after the stage has already settled is a losing/late frame: logged
+        and ignored rather than overwriting the first settlement.
+        """
+        if pending.ack_status is not None:
+            self._logger.debug(
+                "dropping late/duplicate ack for tx_id=%s (ack already settled)", frame.tx_id
+            )
+            return
+        if frame.code == 0:
+            pending.acked = True
+            pending.ack_status = AckStatus.ACKNOWLEDGED
+            pending.ack_event.set()
+            return
+
+        error_text = (
+            f"ack code {frame.code}: {_payload_text(frame.payload)}"
+            if frame.payload is not None
+            else f"ack code {frame.code}"
+        )
+        pending.ack_status = AckStatus.REJECTED
+        pending.ack_error = error_text
+        pending.ack_event.set()
+        # A failed ACK settles completion as ERROR only while completion
+        # remains unresolved; it must never overwrite a result/error/timeout
+        # that already settled completion first.
+        if pending.completion_status is None:
+            pending.completion_status = CompletionStatus.ERROR
+            pending.completion_error = error_text
+            pending.done_event.set()
+
+    def _route_res(self, pending: PendingTransaction, frame: TransactionFrame) -> None:
+        """Settle the completion stage with a result. Must be called under ``self._lock``."""
+        if pending.completion_status is not None:
+            self._logger.debug(
+                "dropping late/duplicate res for tx_id=%s (completion already settled)",
+                frame.tx_id,
+            )
+            return
+        pending.result = frame
+        pending.completion_status = CompletionStatus.RESULT
+        pending.done_event.set()
+
+    def _route_evt(self, pending: PendingTransaction, frame: TransactionFrame) -> None:
+        """Append a transaction event. Must be called under ``self._lock``.
+
+        Events are appended only while completion is unresolved; a late event
+        arriving after completion has settled is logged and dropped rather
+        than appended, and never signals completion.
+        """
+        if pending.completion_status is not None:
+            self._logger.debug(
+                "dropping late event for tx_id=%s (completion already settled)", frame.tx_id
+            )
+            return
+        pending.events.append(frame)
+
+    def _route_err(self, pending: PendingTransaction, frame: TransactionFrame) -> None:
+        """Settle the completion stage with an error. Must be called under ``self._lock``."""
+        if pending.completion_status is not None:
+            self._logger.debug(
+                "dropping late/duplicate err for tx_id=%s (completion already settled)",
+                frame.tx_id,
+            )
+            return
+        error_text = (
+            _payload_text(frame.payload)
+            if frame.payload is not None
+            else f"error code {frame.code}"
+        )
+        pending.completion_status = CompletionStatus.ERROR
+        pending.completion_error = error_text
+        pending.done_event.set()
+
+    def _invoke_broadcast(
+        self,
+        handler: Callable[[TransactionFrame], None] | None,
+        frame: TransactionFrame,
+    ) -> None:
+        """Invoke the broadcast handler outside the lock; exceptions are logged and contained."""
+        if handler is None:
+            return
+        try:
+            handler(frame)
+        except Exception:
+            self._logger.exception("broadcast event handler raised for tx_id=%s", frame.tx_id)
+
+    def _invoke_inbound(
+        self,
+        handler: Callable[[int, TransactionFrame], None],
+        epoch: int,
+        frame: TransactionFrame,
+    ) -> None:
+        """Invoke the inbound handler outside the lock; exceptions are logged and contained."""
+        try:
+            handler(epoch, frame)
+        except Exception:
+            self._logger.exception(
+                "inbound transaction handler raised for tx_id=%s epoch=%s", frame.tx_id, epoch
+            )
+
+    def fail_epoch(self, epoch: int, error: str) -> None:
+        """Settle every still-unresolved stage belonging to ``epoch`` as
+        ``CONNECTION_CLOSED``, signal both events on each affected entry, and
+        leave every entry registered (removal is ``finalize_outcome``'s job).
+
+        A stage already settled by another event (an ACK, a result, an
+        error, or a prior timeout) is left untouched; only its event is
+        (re-)signaled, which is a no-op if it was already set.
+        """
+        with self._lock:
+            for pending in self._pending.values():
+                if pending.epoch != epoch:
+                    continue
+                if pending.ack_status is None:
+                    pending.ack_status = AckStatus.CONNECTION_CLOSED
+                    pending.ack_error = error
+                pending.ack_event.set()
+                if pending.completion_status is None:
+                    pending.completion_status = CompletionStatus.CONNECTION_CLOSED
+                    pending.completion_error = error
+                pending.done_event.set()
+
+    def finalize_outcome(
+        self,
+        tx_id: int,
+        send_status: SendStatus,
+        *,
+        ack_requested: bool,
+        completion_requested: bool,
+    ) -> TransactionOutcome | None:
+        """Snapshot ``tx_id``'s immutable outcome and remove its pending entry,
+        in one lock acquisition. Returns ``None`` for an unknown identifier.
+
+        Unrequested stages map to ``NOT_REQUESTED``. Once this removes the
+        entry, a later control frame for ``tx_id`` follows orphan-frame
+        routing.
+        """
+        with self._lock:
+            pending = self._pending.pop(tx_id, None)
+            if pending is None:
+                return None
+
+            ack_status = AckStatus.NOT_REQUESTED
+            if ack_requested:
+                ack_status = pending.ack_status or AckStatus.NOT_REQUESTED
+
+            completion_status = CompletionStatus.NOT_REQUESTED
+            if completion_requested:
+                completion_status = pending.completion_status or CompletionStatus.NOT_REQUESTED
+
+            return TransactionOutcome(
+                tx_id=tx_id,
+                send_status=send_status,
+                ack_status=ack_status,
+                completion_status=completion_status,
+                result=pending.result,
+                ack_error=pending.ack_error,
+                completion_error=pending.completion_error,
+                events=tuple(pending.events),
+            )

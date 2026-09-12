@@ -1,12 +1,12 @@
 """
-Tests for the threaded transaction core state layer (Action Plan 25, chunk 05):
+Tests for the threaded transaction core (Action Plan 25, chunks 05-06):
 transaction id sequencing, epoch-bound registration, duplicate rejection,
-idempotent discard, and race-safe ACK/completion waits.
+idempotent discard, race-safe ACK/completion waits (chunk 05), plus frame
+routing, epoch-scoped failure, isolated callbacks, and atomic outcome
+finalization (chunk 06).
 
 Contract: ``.claude/specs/threadedTransactionProtocol.md`` ("Pending
-transaction" and "Transaction core" sections, state operations only). Frame
-routing, epoch failure, callbacks, and ``finalize_outcome`` are chunk 06's
-scope and are not exercised here.
+transaction", "Transaction core", and "Routing" sections).
 
 Every concurrency assertion uses ``threading.Barrier``/``threading.Event`` and
 bounded joins (via ``tests.threaded_socket_helpers.start_worker``) — never a
@@ -27,7 +27,13 @@ from foundation_tools.socket_transaction.transaction_core import (
     PendingTransaction,
     TransactionCore,
 )
-from foundation_tools.socket_transaction.transaction_models import AckStatus, CompletionStatus
+from foundation_tools.socket_transaction.transaction_models import (
+    AckStatus,
+    CompletionStatus,
+    SendStatus,
+    TransactionFrame,
+    TransactionOutcome,
+)
 from tests.threaded_socket_helpers import TEST_TIMEOUT, start_worker
 
 SHORT_TIMEOUT = 0.1
@@ -416,3 +422,652 @@ class TestLockNotHeldAcrossEventWait:
         _settle_ack(core, 1, AckStatus.ACKNOWLEDGED)
         handle.join(TEST_TIMEOUT)
         assert blocked_wait_result == [AckStatus.ACKNOWLEDGED]
+
+
+def _recorder() -> tuple[Callable[..., None], list[tuple[object, ...]]]:
+    """A handler that records every call's positional arguments."""
+    calls: list[tuple[object, ...]] = []
+
+    def _handler(*args: object) -> None:
+        calls.append(args)
+
+    return _handler, calls
+
+
+def _raising(exc: Exception) -> Callable[..., None]:
+    def _handler(*_args: object) -> None:
+        raise exc
+
+    return _handler
+
+
+class TestRouteBroadcastEvent:
+    """Routing table row: ``msg_type == "evt"`` and ``tx_id < 0``."""
+
+    def test_negative_tx_id_evt_invokes_broadcast_handler_without_consulting_pending(
+        self,
+    ) -> None:
+        core = _core()
+        handler, calls = _recorder()
+        core.set_broadcast_event_handler(handler)
+        frame = TransactionFrame(tx_id=-1, msg_type="evt", code=0, payload="ping")
+
+        core.route(epoch=1, frame=frame)
+
+        assert calls == [(frame,)]
+
+    def test_negative_tx_id_evt_does_not_touch_a_same_id_pending_entry(self) -> None:
+        # -1 is the defined broadcast id; nothing should ever be registered
+        # under it, but routing must not consult self._pending at all for
+        # this row regardless.
+        core = _core()
+        pending = core.register(epoch=1, tx_id=-1)
+        frame = TransactionFrame(tx_id=-1, msg_type="evt", code=0, payload=None)
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.completion_status is None
+        assert pending.events == []
+
+    def test_no_broadcast_handler_registered_is_a_silent_no_op(self) -> None:
+        core = _core()
+        frame = TransactionFrame(tx_id=-5, msg_type="evt", code=0, payload=None)
+        core.route(epoch=1, frame=frame)  # must not raise
+
+
+class TestRouteOrphanControlFrames:
+    """Routing table row: ack/res/err/non-broadcast-evt with no pending entry."""
+
+    @pytest.mark.parametrize("msg_type", ["ack", "res", "err", "evt"])
+    def test_control_frame_with_no_pending_entry_is_logged_and_dropped(
+        self, msg_type: str, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        core = _core()
+        inbound_handler, inbound_calls = _recorder()
+        core.set_inbound_transaction_handler(inbound_handler)
+        frame = TransactionFrame(tx_id=999, msg_type=msg_type, code=0, payload=None)
+
+        with caplog.at_level(logging.WARNING, logger="test-transaction-core"):
+            core.route(epoch=1, frame=frame)
+
+        assert inbound_calls == []
+        assert any("orphan" in record.message for record in caplog.records)
+
+    @pytest.mark.parametrize("msg_type", ["ack", "res", "err", "evt"])
+    def test_control_frame_for_mismatched_epoch_is_orphan_not_the_stale_pending(
+        self, msg_type: str
+    ) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type=msg_type, code=0, payload=None)
+
+        core.route(epoch=2, frame=frame)
+
+        # An old epoch must never resolve a new epoch's waiter: the pending
+        # entry registered under epoch 1 must be untouched.
+        assert pending.ack_status is None
+        assert pending.completion_status is None
+        assert pending.events == []
+
+
+class TestRouteApplicationRequestNoPendingEntry:
+    """Routing table row: no pending entry -> invoke inbound handler."""
+
+    def test_application_type_with_no_pending_entry_invokes_inbound_handler(self) -> None:
+        core = _core()
+        handler, calls = _recorder()
+        core.set_inbound_transaction_handler(handler)
+        frame = TransactionFrame(tx_id=42, msg_type="do_thing", code=0, payload={"a": 1})
+
+        core.route(epoch=7, frame=frame)
+
+        assert calls == [(7, frame)]
+
+    def test_application_type_for_mismatched_epoch_still_invokes_inbound_handler(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        handler, calls = _recorder()
+        core.set_inbound_transaction_handler(handler)
+        frame = TransactionFrame(tx_id=1, msg_type="do_thing", code=0, payload=None)
+
+        core.route(epoch=2, frame=frame)
+
+        assert calls == [(2, frame)]
+
+    def test_no_inbound_handler_registered_is_a_silent_no_op(self) -> None:
+        core = _core()
+        frame = TransactionFrame(tx_id=42, msg_type="do_thing", code=0, payload=None)
+        core.route(epoch=1, frame=frame)  # must not raise
+
+
+class TestRouteAckSuccess:
+    """Routing table row: ``msg_type == "ack"`` and ``code == 0``."""
+
+    def test_ack_code_zero_settles_acknowledged(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="ack", code=0, payload=None)
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.acked is True
+        assert pending.ack_status is AckStatus.ACKNOWLEDGED
+        assert pending.ack_event.is_set()
+        assert pending.completion_status is None  # ACK never settles completion on success
+        assert core.wait_ack(1, timeout=0) is AckStatus.ACKNOWLEDGED
+
+
+class TestRouteAckFailure:
+    """Routing table row: ``msg_type == "ack"`` and ``code != 0``."""
+
+    def test_failed_ack_with_payload_stores_exact_diagnostic_text(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="bad request")
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.ack_status is AckStatus.REJECTED
+        assert pending.ack_error == "ack code 5: bad request"
+        assert pending.ack_event.is_set()
+
+    def test_failed_ack_without_payload_stores_exact_diagnostic_text(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="ack", code=7, payload=None)
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.ack_status is AckStatus.REJECTED
+        assert pending.ack_error == "ack code 7"
+
+    def test_failed_ack_settles_unresolved_completion_as_error(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="bad request")
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.completion_status is CompletionStatus.ERROR
+        assert pending.completion_error == "ack code 5: bad request"
+        assert pending.done_event.is_set()
+
+    def test_failed_ack_does_not_overwrite_an_already_settled_completion(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        res_frame = TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok")
+        core.route(epoch=1, frame=res_frame)
+
+        ack_frame = TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="too late")
+        core.route(epoch=1, frame=ack_frame)
+
+        assert pending.completion_status is CompletionStatus.RESULT
+        assert pending.result is res_frame
+        # The ACK stage itself still settles independently.
+        assert pending.ack_status is AckStatus.REJECTED
+
+
+class TestRouteResult:
+    """Routing table row: ``msg_type == "res"``."""
+
+    def test_result_settles_completion_and_stores_the_frame(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="res", code=0, payload={"ok": True})
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.result is frame
+        assert pending.completion_status is CompletionStatus.RESULT
+        assert pending.done_event.is_set()
+
+    def test_result_before_ack_leaves_ack_unresolved(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="res", code=0, payload=None)
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.ack_status is None
+        assert not pending.ack_event.is_set()
+
+
+class TestRouteEvent:
+    """Routing table row: ``msg_type == "evt"`` (non-broadcast, pending exists)."""
+
+    def test_event_is_appended_and_does_not_signal_completion(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="evt", code=0, payload="progress")
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.events == [frame]
+        assert pending.completion_status is None
+        assert not pending.done_event.is_set()
+
+    def test_events_accumulate_in_arrival_order(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        first = TransactionFrame(tx_id=1, msg_type="evt", code=0, payload="1")
+        second = TransactionFrame(tx_id=1, msg_type="evt", code=0, payload="2")
+
+        core.route(epoch=1, frame=first)
+        core.route(epoch=1, frame=second)
+
+        assert pending.events == [first, second]
+
+    def test_late_event_after_completion_settled_is_dropped(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok"))
+
+        late = TransactionFrame(tx_id=1, msg_type="evt", code=0, payload="late")
+        core.route(epoch=1, frame=late)
+
+        assert pending.events == []
+
+
+class TestRouteError:
+    """Routing table row: ``msg_type == "err"``."""
+
+    def test_error_with_payload_stores_str_of_payload(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="err", code=3, payload="boom")
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.completion_status is CompletionStatus.ERROR
+        assert pending.completion_error == "boom"
+        assert pending.done_event.is_set()
+
+    def test_error_without_payload_stores_exact_diagnostic_text(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        frame = TransactionFrame(tx_id=1, msg_type="err", code=9, payload=None)
+
+        core.route(epoch=1, frame=frame)
+
+        assert pending.completion_error == "error code 9"
+
+
+class TestRouteLateAndDuplicateFrames:
+    def test_second_ack_after_success_is_dropped(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=0, payload=None))
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=9, payload="x"))
+
+        assert pending.ack_status is AckStatus.ACKNOWLEDGED
+        assert pending.ack_error is None
+
+    def test_second_res_after_first_res_is_dropped(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        first = TransactionFrame(tx_id=1, msg_type="res", code=0, payload="first")
+        second = TransactionFrame(tx_id=1, msg_type="res", code=0, payload="second")
+
+        core.route(epoch=1, frame=first)
+        core.route(epoch=1, frame=second)
+
+        assert pending.result is first
+
+    def test_err_after_res_is_dropped(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        res = TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok")
+        core.route(epoch=1, frame=res)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="err", code=1, payload="no"))
+
+        assert pending.completion_status is CompletionStatus.RESULT
+        assert pending.completion_error is None
+        assert pending.result is res
+
+
+class TestRouteCallbackIsolation:
+    def test_broadcast_handler_exception_is_contained_and_logged(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        core = _core()
+        core.set_broadcast_event_handler(_raising(RuntimeError("boom")))
+        frame = TransactionFrame(tx_id=-1, msg_type="evt", code=0, payload=None)
+
+        with caplog.at_level(logging.ERROR, logger="test-transaction-core"):
+            core.route(epoch=1, frame=frame)  # must not raise
+
+        assert any(record.levelno >= logging.ERROR for record in caplog.records)
+
+    def test_inbound_handler_exception_is_contained_and_routing_stays_usable(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        core = _core()
+        core.set_inbound_transaction_handler(_raising(RuntimeError("boom")))
+        failing_frame = TransactionFrame(tx_id=1, msg_type="do_thing", code=0, payload=None)
+
+        with caplog.at_level(logging.ERROR, logger="test-transaction-core"):
+            core.route(epoch=1, frame=failing_frame)  # must not raise
+
+        # Routing must remain usable for a later, unrelated frame.
+        pending = core.register(epoch=1, tx_id=2)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=2, msg_type="res", code=0, payload="ok"))
+        assert pending.completion_status is CompletionStatus.RESULT
+
+    def test_callback_is_invoked_outside_the_lock(self) -> None:
+        """A callback that itself calls back into the core must not deadlock."""
+        core = _core()
+
+        def _reentrant_handler(epoch: int, frame: TransactionFrame) -> None:
+            # This would deadlock on a non-reentrant lock if invoked while
+            # route() still held self._lock.
+            core.register(epoch=epoch, tx_id=999)
+            core.discard(999)
+
+        core.set_inbound_transaction_handler(_reentrant_handler)
+        frame = TransactionFrame(tx_id=1, msg_type="do_thing", code=0, payload=None)
+
+        handle = start_worker("reentrant-inbound-callback", lambda: core.route(1, frame))
+        handle.join(TEST_TIMEOUT)  # would raise WorkerTimeoutError on deadlock
+
+
+class TestFailEpoch:
+    def test_settles_unresolved_ack_and_completion_as_connection_closed(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+
+        core.fail_epoch(1, "connection lost")
+
+        assert pending.ack_status is AckStatus.CONNECTION_CLOSED
+        assert pending.ack_error == "connection lost"
+        assert pending.completion_status is CompletionStatus.CONNECTION_CLOSED
+        assert pending.completion_error == "connection lost"
+        assert pending.ack_event.is_set()
+        assert pending.done_event.is_set()
+
+    def test_does_not_overwrite_an_already_settled_ack(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=0, payload=None))
+
+        core.fail_epoch(1, "connection lost")
+
+        assert pending.ack_status is AckStatus.ACKNOWLEDGED
+        # Completion was unresolved and must still settle.
+        assert pending.completion_status is CompletionStatus.CONNECTION_CLOSED
+
+    def test_does_not_overwrite_an_already_settled_completion(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok"))
+
+        core.fail_epoch(1, "connection lost")
+
+        assert pending.completion_status is CompletionStatus.RESULT
+        assert pending.completion_error is None
+
+    def test_only_settles_entries_belonging_to_the_failed_epoch(self) -> None:
+        core = _core()
+        other_epoch_pending = core.register(epoch=2, tx_id=1)
+        target_pending = core.register(epoch=1, tx_id=2)
+
+        core.fail_epoch(1, "connection lost")
+
+        assert other_epoch_pending.ack_status is None
+        assert target_pending.ack_status is AckStatus.CONNECTION_CLOSED
+
+    def test_does_not_remove_pending_entries(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+
+        core.fail_epoch(1, "connection lost")
+
+        # Still registered: a later orphan-frame check would find it present.
+        assert core.wait_ack(1, timeout=0) is AckStatus.CONNECTION_CLOSED
+
+
+class TestFinalizeOutcome:
+    def test_returns_none_for_unknown_identifier(self) -> None:
+        core = _core()
+        assert (
+            core.finalize_outcome(
+                999, SendStatus.SENT, ack_requested=True, completion_requested=True
+            )
+            is None
+        )
+
+    def test_snapshots_settled_values_and_maps_unrequested_stages(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=0, payload=None))
+        result_frame = TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok")
+        core.route(epoch=1, frame=result_frame)
+
+        outcome = core.finalize_outcome(
+            1, SendStatus.SENT, ack_requested=True, completion_requested=True
+        )
+
+        assert isinstance(outcome, TransactionOutcome)
+        assert outcome.tx_id == 1
+        assert outcome.send_status is SendStatus.SENT
+        assert outcome.ack_status is AckStatus.ACKNOWLEDGED
+        assert outcome.completion_status is CompletionStatus.RESULT
+        assert outcome.result is result_frame
+        assert outcome.events == ()
+        assert outcome.success is True
+
+    def test_unrequested_stages_map_to_not_requested_regardless_of_settlement(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=0, payload=None))
+
+        outcome = core.finalize_outcome(
+            1, SendStatus.SENT, ack_requested=False, completion_requested=False
+        )
+
+        assert outcome is not None
+        assert outcome.ack_status is AckStatus.NOT_REQUESTED
+        assert outcome.completion_status is CompletionStatus.NOT_REQUESTED
+
+    def test_events_tuple_is_immutable_and_arrival_ordered(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        first = TransactionFrame(tx_id=1, msg_type="evt", code=0, payload="1")
+        second = TransactionFrame(tx_id=1, msg_type="evt", code=0, payload="2")
+        core.route(epoch=1, frame=first)
+        core.route(epoch=1, frame=second)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok"))
+
+        outcome = core.finalize_outcome(
+            1, SendStatus.SENT, ack_requested=False, completion_requested=True
+        )
+
+        assert outcome is not None
+        assert outcome.events == (first, second)
+        assert isinstance(outcome.events, tuple)
+
+    def test_removes_the_pending_entry_atomically(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+
+        first = core.finalize_outcome(
+            1, SendStatus.SENT, ack_requested=False, completion_requested=False
+        )
+        second = core.finalize_outcome(
+            1, SendStatus.SENT, ack_requested=False, completion_requested=False
+        )
+
+        assert first is not None
+        assert second is None
+
+    def test_a_later_control_frame_for_a_finalized_id_follows_orphan_routing(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        core.finalize_outcome(1, SendStatus.SENT, ack_requested=False, completion_requested=False)
+
+        with caplog.at_level(logging.WARNING, logger="test-transaction-core"):
+            core.route(
+                epoch=1, frame=TransactionFrame(tx_id=1, msg_type="res", code=0, payload="x")
+            )
+
+        assert any("orphan" in record.message for record in caplog.records)
+
+
+class TestTerminalRaceBarrierControlled:
+    """Race two frames/events for the same terminal completion settlement.
+
+    Because ``route``/``fail_epoch`` fully serialize their state mutation
+    under one lock, a genuine data race cannot corrupt state; these tests
+    assert the result is always exactly one legal, non-hybrid outcome no
+    matter which side wins, repeated to make an accidental un-locked window
+    show up as flakiness.
+    """
+
+    ITERATIONS = 30
+
+    def test_failed_ack_versus_res_settles_exactly_one_completion_outcome(self) -> None:
+        for _ in range(self.ITERATIONS):
+            core = _core()
+            pending = core.register(epoch=1, tx_id=1)
+            barrier = threading.Barrier(2)
+
+            def _send_failed_ack(
+                core: TransactionCore = core, barrier: threading.Barrier = barrier
+            ) -> None:
+                barrier.wait(TEST_TIMEOUT)
+                core.route(1, TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="bad"))
+
+            def _send_res(
+                core: TransactionCore = core, barrier: threading.Barrier = barrier
+            ) -> None:
+                barrier.wait(TEST_TIMEOUT)
+                core.route(1, TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok"))
+
+            first = start_worker("failed-ack", _send_failed_ack)
+            second = start_worker("res", _send_res)
+            first.join(TEST_TIMEOUT)
+            second.join(TEST_TIMEOUT)
+
+            assert pending.completion_status in (CompletionStatus.ERROR, CompletionStatus.RESULT)
+            if pending.completion_status is CompletionStatus.RESULT:
+                assert pending.result is not None
+                assert pending.completion_error is None
+            else:
+                assert pending.completion_error == "ack code 5: bad"
+                assert pending.result is None
+
+    def test_err_versus_res_settles_exactly_one_completion_outcome(self) -> None:
+        for _ in range(self.ITERATIONS):
+            core = _core()
+            pending = core.register(epoch=1, tx_id=1)
+            barrier = threading.Barrier(2)
+
+            def _send_err(
+                core: TransactionCore = core, barrier: threading.Barrier = barrier
+            ) -> None:
+                barrier.wait(TEST_TIMEOUT)
+                core.route(1, TransactionFrame(tx_id=1, msg_type="err", code=1, payload="no"))
+
+            def _send_res(
+                core: TransactionCore = core, barrier: threading.Barrier = barrier
+            ) -> None:
+                barrier.wait(TEST_TIMEOUT)
+                core.route(1, TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok"))
+
+            first = start_worker("err", _send_err)
+            second = start_worker("res", _send_res)
+            first.join(TEST_TIMEOUT)
+            second.join(TEST_TIMEOUT)
+
+            assert pending.completion_status in (CompletionStatus.ERROR, CompletionStatus.RESULT)
+            settled_result = pending.result
+            settled_error = pending.completion_error
+            # Exactly one side's data landed, never a mix of both.
+            assert (settled_result is not None) != (settled_error is not None)
+
+    def test_close_versus_res_settles_exactly_one_completion_outcome(self) -> None:
+        for _ in range(self.ITERATIONS):
+            core = _core()
+            pending = core.register(epoch=1, tx_id=1)
+            barrier = threading.Barrier(2)
+
+            def _close(core: TransactionCore = core, barrier: threading.Barrier = barrier) -> None:
+                barrier.wait(TEST_TIMEOUT)
+                core.fail_epoch(1, "connection lost")
+
+            def _send_res(
+                core: TransactionCore = core, barrier: threading.Barrier = barrier
+            ) -> None:
+                barrier.wait(TEST_TIMEOUT)
+                core.route(1, TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok"))
+
+            first = start_worker("close", _close)
+            second = start_worker("res", _send_res)
+            first.join(TEST_TIMEOUT)
+            second.join(TEST_TIMEOUT)
+
+            assert pending.completion_status in (
+                CompletionStatus.CONNECTION_CLOSED,
+                CompletionStatus.RESULT,
+            )
+            if pending.completion_status is CompletionStatus.RESULT:
+                assert pending.result is not None
+            else:
+                assert pending.completion_error == "connection lost"
+            # Whichever side lost, the event must still be signaled (either by
+            # its own settlement or by fail_epoch's unconditional signal).
+            assert pending.done_event.is_set()
+
+
+class TestAtomicFinalizationVersusLateFrame:
+    def test_finalize_and_a_late_frame_never_produce_a_hybrid_state(self) -> None:
+        for _ in range(30):
+            core = _core()
+            core.register(epoch=1, tx_id=1)
+            core.route(
+                epoch=1, frame=TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok")
+            )
+            barrier = threading.Barrier(2)
+            outcomes: list[TransactionOutcome | None] = []
+
+            def _finalize(
+                core: TransactionCore = core,
+                barrier: threading.Barrier = barrier,
+                outcomes: list[TransactionOutcome | None] = outcomes,
+            ) -> None:
+                barrier.wait(TEST_TIMEOUT)
+                outcomes.append(
+                    core.finalize_outcome(
+                        1, SendStatus.SENT, ack_requested=False, completion_requested=True
+                    )
+                )
+
+            def _late_frame(
+                core: TransactionCore = core, barrier: threading.Barrier = barrier
+            ) -> None:
+                barrier.wait(TEST_TIMEOUT)
+                # Late event: dropped if it arrives while still pending
+                # (completion already RESULT), or orphan-routed if finalize
+                # already removed the entry. Either way, must not raise and
+                # must not appear in a snapshot finalize returns.
+                core.route(1, TransactionFrame(tx_id=1, msg_type="evt", code=0, payload="late"))
+
+            first = start_worker("finalize", _finalize)
+            second = start_worker("late-frame", _late_frame)
+            first.join(TEST_TIMEOUT)
+            second.join(TEST_TIMEOUT)
+
+            assert len(outcomes) == 1
+            outcome = outcomes[0]
+            assert outcome is not None
+            assert outcome.events == ()  # the late evt never lands in the snapshot
+            assert outcome.completion_status is CompletionStatus.RESULT
+
+            # The entry is gone either way: a repeat finalize returns None.
+            assert (
+                core.finalize_outcome(
+                    1, SendStatus.SENT, ack_requested=False, completion_requested=True
+                )
+                is None
+            )
