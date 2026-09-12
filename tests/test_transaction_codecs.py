@@ -18,6 +18,7 @@ import pytest
 
 from foundation_tools.socket_transaction import transaction_codecs
 from foundation_tools.socket_transaction.transaction_codecs import (
+    AngleBracketTransactionCodec,
     JsonTransactionCodec,
     TransactionCodec,
 )
@@ -233,3 +234,168 @@ class TestJsonTransactionCodecMalformed:
         obj = {"tx_id": 1, "msg_type": "req", "code": 0, "payload": bad_payload}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
+
+
+class TestAngleBracketTransactionCodecDelimiter:
+    def test_delimiter_is_newline(self) -> None:
+        assert AngleBracketTransactionCodec().delimiter == "\n"
+
+
+class TestAngleBracketTransactionCodecEncode:
+    def test_encode_no_payload_is_exact_wire_form(self) -> None:
+        encoded = AngleBracketTransactionCodec().encode(1, "req", 0)
+        assert encoded == b"<1,req,0>\n"
+
+    def test_encode_returns_utf8_bytes_ending_in_one_newline(self) -> None:
+        encoded = AngleBracketTransactionCodec().encode(1, "req", 0, payload="hi")
+        assert isinstance(encoded, bytes)
+        assert encoded.endswith(b"\n")
+        assert not encoded.endswith(b"\n\n")
+        assert encoded.decode("utf-8").count("\n") == 1
+
+    def test_encode_string_payload(self) -> None:
+        encoded = AngleBracketTransactionCodec().encode(1, "req", 0, payload="hello")
+        assert encoded == b"<1,req,0,hello>\n"
+
+    def test_encode_payload_commas_survive(self) -> None:
+        encoded = AngleBracketTransactionCodec().encode(1, "req", 0, payload="a,b,c")
+        assert encoded == b"<1,req,0,a,b,c>\n"
+
+    def test_encode_payload_angle_brackets_survive(self) -> None:
+        encoded = AngleBracketTransactionCodec().encode(1, "req", 0, payload="a>b")
+        assert encoded == b"<1,req,0,a>b>\n"
+
+    def test_encode_bytes_payload_decodes_utf8(self) -> None:
+        encoded = AngleBracketTransactionCodec().encode(1, "req", 0, payload=b"hello")
+        assert encoded == b"<1,req,0,hello>\n"
+
+    def test_encode_bytes_payload_uses_replacement_for_invalid_utf8(self) -> None:
+        encoded = AngleBracketTransactionCodec().encode(1, "req", 0, payload=b"\xff\xfe")
+        assert "�" in encoded.decode("utf-8")
+
+    def test_encode_data_model_helper_payload_uses_to_bytes(self) -> None:
+        model = _Greeting(text="hi", count=2)
+        encoded = AngleBracketTransactionCodec().encode(1, "req", 0, payload=model)
+        expected_payload = model.to_bytes().decode("utf-8", errors="replace")
+        assert encoded == f"<1,req,0,{expected_payload}>\n".encode()
+
+    def test_encode_rejects_empty_msg_type(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().encode(1, "", 0)
+
+    def test_encode_rejects_comma_in_msg_type(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().encode(1, "re,q", 0)
+
+    def test_encode_rejects_cr_in_msg_type(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().encode(1, "re\rq", 0)
+
+    def test_encode_rejects_lf_in_msg_type(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().encode(1, "re\nq", 0)
+
+    def test_encode_rejects_cr_in_payload(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().encode(1, "req", 0, payload="a\rb")
+
+    def test_encode_rejects_lf_in_payload(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().encode(1, "req", 0, payload="a\nb")
+
+    def test_encode_rejects_lf_in_bytes_payload(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().encode(1, "req", 0, payload=b"a\nb")
+
+    def test_encode_no_bytes_emitted_on_rejected_msg_type(self) -> None:
+        """No wire message escapes when the message type is ambiguous."""
+        codec = AngleBracketTransactionCodec()
+        try:
+            codec.encode(1, "re,q", 0, payload="a\nb")
+        except ValueError:
+            pass
+        else:
+            pytest.fail("expected ValueError before any bytes were emitted")
+
+
+class TestAngleBracketTransactionCodecRoundTrip:
+    def test_round_trip_no_payload(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        frame = codec.decode(codec.encode(1, "req", 0))
+        assert frame == TransactionFrame(tx_id=1, msg_type="req", code=0, payload=None)
+
+    def test_round_trip_string_payload(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        frame = codec.decode(codec.encode(4, "req", 0, payload="hello"))
+        assert frame == TransactionFrame(tx_id=4, msg_type="req", code=0, payload="hello")
+
+    def test_round_trip_payload_with_commas(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        frame = codec.decode(codec.encode(1, "req", 0, payload="a,b,c"))
+        assert frame == TransactionFrame(tx_id=1, msg_type="req", code=0, payload="a,b,c")
+
+    def test_round_trip_bytes_payload(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        frame = codec.decode(codec.encode(3, "req", 0, payload=b"hello"))
+        assert frame == TransactionFrame(tx_id=3, msg_type="req", code=0, payload="hello")
+
+    def test_round_trip_model_payload(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        model = _Greeting(text="hi", count=2)
+        frame = codec.decode(codec.encode(2, "req", 0, payload=model))
+        assert frame == TransactionFrame(
+            tx_id=2,
+            msg_type="req",
+            code=0,
+            payload=model.to_bytes().decode("utf-8", errors="replace"),
+        )
+
+    def test_decode_accepts_str_without_trailing_newline(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        frame = codec.decode("<1,req,0>")
+        assert frame == TransactionFrame(tx_id=1, msg_type="req", code=0, payload=None)
+
+    def test_decode_accepts_bytes_with_trailing_newline(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        frame = codec.decode(b"<1,req,0>\n")
+        assert frame == TransactionFrame(tx_id=1, msg_type="req", code=0, payload=None)
+
+    def test_decode_strips_surrounding_whitespace(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        frame = codec.decode("  <1,req,0>\n  ")
+        assert frame == TransactionFrame(tx_id=1, msg_type="req", code=0, payload=None)
+
+    def test_decode_preserves_internal_angle_brackets_in_payload(self) -> None:
+        codec = AngleBracketTransactionCodec()
+        frame = codec.decode(codec.encode(1, "req", 0, payload="a>b<c"))
+        assert frame.payload == "a>b<c"
+
+
+class TestAngleBracketTransactionCodecMalformed:
+    def test_decode_rejects_missing_opening_bracket(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().decode("1,req,0>\n")
+
+    def test_decode_rejects_missing_closing_bracket(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().decode("<1,req,0\n")
+
+    def test_decode_rejects_missing_fields(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().decode("<1,req>\n")
+
+    def test_decode_rejects_invalid_tx_id(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().decode("<abc,req,0>\n")
+
+    def test_decode_rejects_invalid_code(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().decode("<1,req,abc>\n")
+
+    def test_decode_rejects_empty_msg_type(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().decode("<1,,0>\n")
+
+    def test_decode_rejects_empty_string(self) -> None:
+        with pytest.raises(ValueError):
+            AngleBracketTransactionCodec().decode("")

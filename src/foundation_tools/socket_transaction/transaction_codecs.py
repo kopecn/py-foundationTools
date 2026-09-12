@@ -1,14 +1,15 @@
 """
-Threaded transaction codec protocol and JSON codec (Action Plan 25, chunk 03).
+Threaded transaction codec protocol and codecs (Action Plan 25, chunks 03-04).
 
 Defines ``TransactionCodec``, a structural (non-runtime-checkable) protocol
-for encoding/decoding one complete delimiter-terminated wire message, and
-``JsonTransactionCodec``, its newline-delimited JSON implementation.
+for encoding/decoding one complete delimiter-terminated wire message, its
+newline-delimited JSON implementation ``JsonTransactionCodec``, and its
+strict textual ``AngleBracketTransactionCodec``.
 
-Contract: ``.claude/specs/threadedTransactionProtocol.md`` ("Codec protocol"
-and "JSON codec" sections). This module intentionally has no transport,
-threading, or socket behavior, no angle-bracket codec, and no transaction
-routing or payload model decoding.
+Contract: ``.claude/specs/threadedTransactionProtocol.md`` ("Codec protocol",
+"JSON codec", and "Angle-bracket codec" sections). This module intentionally
+has no transport, threading, or socket behavior, and no transaction routing
+or payload model decoding.
 """
 
 import json
@@ -119,4 +120,92 @@ class JsonTransactionCodec:
             msg_type=msg_type,
             code=_decode_numeric_field(parsed["code"], "code"),
             payload=_decode_payload_field(parsed),
+        )
+
+
+def _angle_encode_payload(payload: DataModelHelper | bytes | str | None) -> str | None:
+    """Convert an ``encode`` payload argument into its angle-bracket textual form."""
+    if payload is None:
+        return None
+    if isinstance(payload, DataModelHelper):
+        return payload.to_bytes().decode("utf-8", errors="replace")
+    if isinstance(payload, bytes):
+        return payload.decode("utf-8", errors="replace")
+    if isinstance(payload, str):
+        return payload
+    raise TypeError(f"Unsupported payload type for encoding: {type(payload).__name__}")
+
+
+def _validate_angle_msg_type(msg_type: str) -> None:
+    """Reject an empty message type or one containing comma, CR, or LF."""
+    if msg_type == "":
+        raise ValueError("'msg_type' must be a non-empty string")
+    if any(character in msg_type for character in (",", "\r", "\n")):
+        raise ValueError("'msg_type' must not contain a comma, CR, or LF")
+
+
+def _validate_angle_payload_text(payload_text: str) -> None:
+    """Reject payload text containing a CR or LF."""
+    if "\r" in payload_text or "\n" in payload_text:
+        raise ValueError("payload text must not contain CR or LF")
+
+
+def _decode_angle_numeric_field(value: str, field_name: str) -> int:
+    """Convert a required angle-bracket numeric field with ``int()``."""
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ValueError(f"'{field_name}' could not be converted to int: {exc}") from exc
+
+
+class AngleBracketTransactionCodec:
+    """Strict textual ``<tx_id,msg_type,code[,payload]>`` ``TransactionCodec``."""
+
+    @property
+    def delimiter(self) -> str:
+        return "\n"
+
+    def encode(
+        self,
+        tx_id: int,
+        msg_type: str,
+        code: int,
+        payload: DataModelHelper | bytes | str | None = None,
+    ) -> bytes:
+        _validate_angle_msg_type(msg_type)
+        payload_text = _angle_encode_payload(payload)
+
+        fields = [str(tx_id), msg_type, str(code)]
+        if payload_text is not None:
+            _validate_angle_payload_text(payload_text)
+            fields.append(payload_text)
+
+        return f"<{','.join(fields)}>{self.delimiter}".encode("utf-8")
+
+    def decode(self, raw: bytes | str) -> TransactionFrame:
+        try:
+            text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
+        except UnicodeDecodeError as exc:
+            raise ValueError(f"malformed angle-bracket transaction message: {exc}") from exc
+
+        text = text.strip()
+        if not (text.startswith("<") and text.endswith(">")):
+            raise ValueError("angle-bracket transaction message must be wrapped in '<' and '>'")
+
+        inner = text[1:-1]
+        fields = inner.split(",", 3)
+        if len(fields) < 3:
+            raise ValueError("angle-bracket transaction message requires at least three fields")
+
+        tx_id_text, msg_type, code_text = fields[0], fields[1], fields[2]
+        payload = fields[3] if len(fields) == 4 else None
+
+        if msg_type == "":
+            raise ValueError("'msg_type' must be a non-empty string")
+
+        return TransactionFrame(
+            tx_id=_decode_angle_numeric_field(tx_id_text, "tx_id"),
+            msg_type=msg_type,
+            code=_decode_angle_numeric_field(code_text, "code"),
+            payload=payload,
         )
