@@ -8,17 +8,18 @@ idempotent, epoch-conditional teardown that never joins its own receive
 thread. See ``.claude/specs/threadedSocketTransport.md#common-handler`` for
 the full behavioral contract.
 
-Only socket composition, epochs, epoch-safe sending, and receive-thread
-start/stop plumbing are implemented here. Raw/text receive dispatch (decoding
-and delivering received bytes) is chunk 08's ``_process_received_chunk``
-extension point, left as a no-op stub in this chunk. Client connect, server
-listen, and binary framing are later chunks; this module intentionally has no
-package export yet.
+Socket composition, epochs, epoch-safe sending, and receive-thread
+start/stop plumbing were implemented in chunk 07. This chunk (08) fills in
+``_process_received_chunk``: raw-byte dispatch, per-epoch incremental UTF-8
+reconstruction, delimiter-token splitting, and the internal connection
+observer notification. Client connect, server listen, and binary framing are
+later chunks; this module intentionally has no package export yet.
 """
 
 from __future__ import annotations
 
 import atexit
+import codecs
 import logging
 import math
 import socket
@@ -133,6 +134,13 @@ class SocketHandler:
         self._string_message_handler: Callable[[str], None] | None = None
         self._connection_observer: ConnectionObserver | None = None
 
+        # Per-epoch text reconstruction state, reset on attach and discarded
+        # on detach. Guarded by `_state_lock` alongside the epoch identity
+        # check so a lingering worker from a superseded epoch can never read
+        # or mutate a newer epoch's decoder/buffer (see `_tokenize_for_epoch`).
+        self._text_decoder: codecs.IncrementalDecoder | None = None
+        self._pending_text: str = ""
+
         self._finalizer: weakref.finalize[..., SocketHandler] | None = None
         atexit.register(self._atexit_cleanup)
 
@@ -237,6 +245,8 @@ class SocketHandler:
             epoch = self._next_epoch
             self._socket = sock
             self._epoch = epoch
+            self._text_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+            self._pending_text = ""
             self._stop_event.clear()
             thread = threading.Thread(
                 target=self._receive_loop,
@@ -272,6 +282,10 @@ class SocketHandler:
             self._socket = None
             self._epoch = None
             self._receive_thread = None
+            # Discard rather than flush: an incomplete code point or token
+            # belongs only to the connection that produced it.
+            self._text_decoder = None
+            self._pending_text = ""
 
         stop_event.set()
         self._notify_epoch_closed(expected_epoch, cause)
@@ -322,13 +336,81 @@ class SocketHandler:
     def _process_received_chunk(self, epoch: int, data: bytes) -> None:
         """Extension point for received-byte dispatch.
 
-        This chunk implements only receive-thread start/stop and epoch-safe
-        teardown. Raw/text dispatch (invoking the data/string message
-        handlers, incremental UTF-8 decoding, delimiter splitting) is chunk
-        08's responsibility
-        (``.claude/plans/25-threaded-socket-transaction/08-socket-receive-dispatch.md``);
-        the default implementation is intentionally a no-op here.
+        Default behavior: dispatch the raw chunk unchanged to the raw-data
+        handler, then feed it through this epoch's incremental UTF-8 decoder
+        and deliver complete delimiter-split tokens to the string handler and
+        the connection observer, in that order, for each token.
+
+        A specialization (e.g. chunk 12's binary-framed client) MAY extend
+        this but SHALL preserve these default channels unless its own public
+        contract says otherwise.
+
+        Dropped entirely, before either channel runs, when ``epoch`` is no
+        longer the active epoch: a lingering worker from a superseded
+        connection (e.g. mid-flight when a replacement attaches) must not
+        deliver stale bytes or mutate a newer epoch's decoder/buffer state.
         """
+        if not self._epoch_is_current(epoch):
+            return
+
+        self._invoke_raw_handler(data)
+
+        for token in self._tokenize_for_epoch(epoch, data):
+            self._invoke_string_handler(token)
+            self._notify_string_token(epoch, token)
+
+    def _epoch_is_current(self, epoch: int) -> bool:
+        with self._state_lock:
+            return self._socket is not None and self._epoch == epoch
+
+    def _tokenize_for_epoch(self, epoch: int, data: bytes) -> list[str]:
+        """Decode ``data`` and split off complete delimiter-terminated tokens.
+
+        Re-checks epoch identity under the same lock that guards the
+        decoder/buffer so a superseded worker can neither read nor mutate a
+        newer epoch's text-reconstruction state, even if it raced past the
+        earlier ``_epoch_is_current`` check in ``_process_received_chunk``.
+        """
+        with self._state_lock:
+            if self._socket is None or self._epoch != epoch or self._text_decoder is None:
+                return []
+            text = self._text_decoder.decode(data)
+            combined = self._pending_text + text
+            pieces = combined.split(self._string_delimiter)
+            self._pending_text = pieces[-1]
+            return pieces[:-1]
+
+    def _invoke_raw_handler(self, data: bytes) -> None:
+        with self._callback_lock:
+            handler = self._data_message_handler
+        if handler is None:
+            return
+        try:
+            handler(data)
+        except Exception:
+            self._logger.exception("socket handler: raw data handler raised")
+
+    def _invoke_string_handler(self, token: str) -> None:
+        with self._callback_lock:
+            handler = self._string_message_handler
+        if handler is None:
+            return
+        try:
+            handler(token)
+        except Exception:
+            self._logger.exception("socket handler: string message handler raised")
+
+    def _notify_string_token(self, epoch: int, token: str) -> None:
+        with self._observer_lock:
+            observer = self._connection_observer
+        if observer is None:
+            return
+        try:
+            observer.on_string_token(epoch, token)
+        except Exception:
+            self._logger.exception(
+                "socket handler: connection observer on_string_token raised for epoch %s", epoch
+            )
 
     def _notify_epoch_closed(self, epoch: int, cause: str) -> None:
         with self._observer_lock:

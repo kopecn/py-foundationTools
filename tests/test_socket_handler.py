@@ -1,18 +1,22 @@
 """
-Tests for ``SocketHandler`` (plan 25, chunk 07): construction/validation,
-epoch-safe attach/detach primitives, epoch-safe sending, and best-effort
-cleanup registration. Receive-loop dispatch beyond thread start/stop belongs
-to chunk 08 and is not exercised here.
+Tests for ``SocketHandler`` (plan 25, chunks 07-08): construction/validation,
+epoch-safe attach/detach primitives, epoch-safe sending, best-effort cleanup
+registration (chunk 07), and raw/text receive dispatch — incremental UTF-8
+reconstruction, delimiter tokenization, callback/observer isolation, and
+EOF/error/disconnect/reconnect races (chunk 08).
 
 Every concurrency assertion uses the ``tests/threaded_socket_helpers.py``
 harness (``threading.Event`` gates and bounded joins) per the chunk-01 race
-recipe — no test in this file uses a sleep or random delay.
+recipe — no test in this file uses a sleep or random delay. Where a test
+needs to wait for an asynchronously delivered callback, it uses a bounded
+``queue.Queue.get(timeout=...)`` rather than polling.
 """
 
 from __future__ import annotations
 
 import logging
 import math
+import queue
 import socket
 import threading
 from typing import cast
@@ -111,6 +115,88 @@ class _SendFailsSocket:
 
     def fileno(self) -> int:
         return self._inner.fileno()
+
+
+class _GatedRecvSocket:
+    """Wraps a real connected socket so ``recv`` can be paused after fetching
+    data but before returning it to the caller.
+
+    Lets a test force a deterministic window in which the receive worker has
+    already pulled a chunk off the wire but has not yet reached
+    ``_process_received_chunk`` with it — the window needed to race a
+    reconnect against a stale worker's in-flight chunk.
+    """
+
+    def __init__(self, inner: socket.socket) -> None:
+        self._inner = inner
+        self.entered = threading.Event()
+        self.release = threading.Event()
+        self.pause_next = False
+
+    def recv(self, bufsize: int) -> bytes:
+        data = self._inner.recv(bufsize)
+        if self.pause_next:
+            self.pause_next = False
+            self.entered.set()
+            if not self.release.wait(TEST_TIMEOUT):
+                raise WorkerTimeoutError("gated recv socket: test never released the paused recv")
+        return data
+
+    def sendall(self, data: bytes) -> None:
+        self._inner.sendall(data)
+
+    def shutdown(self, how: int) -> None:
+        self._inner.shutdown(how)
+
+    def close(self) -> None:
+        self._inner.close()
+
+    def fileno(self) -> int:
+        return self._inner.fileno()
+
+
+class _RecvErrorSocket:
+    """Wraps a real connected socket whose ``recv`` raises ``OSError`` once
+    released — gated so a test can capture the receive-thread reference
+    before the worker detaches and clears it (a real race, since the worker
+    self-detaches without joining and would otherwise usually beat the test
+    to reading ``receive_thread()``).
+    """
+
+    def __init__(self, inner: socket.socket) -> None:
+        self._inner = inner
+        self.release = threading.Event()
+
+    def recv(self, bufsize: int) -> bytes:
+        if not self.release.wait(TEST_TIMEOUT):
+            raise WorkerTimeoutError("recv error socket: test never released the guarded recv")
+        raise OSError("simulated receive failure")
+
+    def sendall(self, data: bytes) -> None:
+        self._inner.sendall(data)
+
+    def shutdown(self, how: int) -> None:
+        self._inner.shutdown(how)
+
+    def close(self) -> None:
+        self._inner.close()
+
+    def fileno(self) -> int:
+        return self._inner.fileno()
+
+
+class _RecordingObserver:
+    """Collects ``ConnectionObserver`` calls onto bounded-wait queues."""
+
+    def __init__(self) -> None:
+        self.tokens: queue.Queue[tuple[int, str]] = queue.Queue()
+        self.closed: queue.Queue[tuple[int, str]] = queue.Queue()
+
+    def on_string_token(self, epoch: int, token: str) -> None:
+        self.tokens.put((epoch, token))
+
+    def on_epoch_closed(self, epoch: int, cause: str) -> None:
+        self.closed.put((epoch, cause))
 
 
 class TestConstruction:
@@ -382,3 +468,337 @@ class TestCleanupRegistration:
             # Replacing the finalizer detaches the previous one so it cannot
             # double-close a socket that normal detach already tore down.
             assert first_finalizer.alive is False
+
+
+class TestRawAndTextDispatch:
+    """Exact raw chunks, incremental UTF-8 reconstruction, and delimiter
+    tokenization (``.claude/specs/threadedSocketTransport.md#receive-dispatch``).
+    """
+
+    def test_raw_handler_receives_exact_chunk_bytes(self) -> None:
+        handler = _HarnessSocketHandler(_logger("raw-exact"))
+        raw_chunks: queue.Queue[bytes] = queue.Queue()
+        handler.set_data_message_handler(raw_chunks.put)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+            right.sendall(b"hello world")
+            assert raw_chunks.get(timeout=TEST_TIMEOUT) == b"hello world"
+            handler.detach(epoch)
+
+    def test_spec_example_split_delimiter_and_multiple_tokens_per_chunk(self) -> None:
+        # `.claude/specs/threadedSocketTransport.md#receive-dispatch` example:
+        # chunks "abc\n12" then "3\nxyz\n" yield exactly "abc", "123", "xyz".
+        handler = _HarnessSocketHandler(_logger("spec-example"))
+        tokens: queue.Queue[str] = queue.Queue()
+        handler.set_string_message_handler(tokens.put)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+
+            right.sendall(b"abc\n12")
+            assert tokens.get(timeout=TEST_TIMEOUT) == "abc"
+            with pytest.raises(queue.Empty):
+                tokens.get(timeout=SHORT_TIMEOUT)
+
+            right.sendall(b"3\nxyz\n")
+            assert tokens.get(timeout=TEST_TIMEOUT) == "123"
+            assert tokens.get(timeout=TEST_TIMEOUT) == "xyz"
+            with pytest.raises(queue.Empty):
+                tokens.get(timeout=SHORT_TIMEOUT)
+
+            handler.detach(epoch)
+
+    def test_retained_suffix_without_a_delimiter_is_not_delivered_yet(self) -> None:
+        handler = _HarnessSocketHandler(_logger("retained-suffix"))
+        tokens: queue.Queue[str] = queue.Queue()
+        handler.set_string_message_handler(tokens.put)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+
+            right.sendall(b"abc")
+            with pytest.raises(queue.Empty):
+                tokens.get(timeout=SHORT_TIMEOUT)
+
+            right.sendall(b"def\n")
+            assert tokens.get(timeout=TEST_TIMEOUT) == "abcdef"
+            handler.detach(epoch)
+
+    def test_multibyte_utf8_code_point_split_at_every_byte_boundary_reconstructs_once(
+        self,
+    ) -> None:
+        # "é" (U+00E9) encodes to the two bytes b"\xc3\xa9" in UTF-8. Splitting
+        # after each byte must reconstruct the character exactly once, with no
+        # replacement character.
+        payload = "café".encode("utf-8")
+        handler = _HarnessSocketHandler(_logger("multibyte-utf8"))
+        tokens: queue.Queue[str] = queue.Queue()
+        handler.set_string_message_handler(tokens.put)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+
+            for i in range(len(payload)):
+                right.sendall(payload[i : i + 1])
+            right.sendall(b"\n")
+
+            token = tokens.get(timeout=TEST_TIMEOUT)
+            assert token == "café"
+            assert "�" not in token
+            handler.detach(epoch)
+
+    def test_send_string_does_not_append_the_receive_delimiter(self) -> None:
+        # Regression guard tying `send_string` (chunk 07) to this chunk's
+        # delimiter-splitting behavior: two `send_string` calls with no
+        # delimiter of their own must not themselves produce a token boundary.
+        sender = SocketHandler(_logger("send-string-no-delimiter-sender"))
+        handler = _HarnessSocketHandler(_logger("send-string-no-delimiter"))
+        tokens: queue.Queue[str] = queue.Queue()
+        handler.set_string_message_handler(tokens.put)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(right)
+            sender._attach(left)
+
+            assert sender.send_string("abc") is True
+            assert sender.send_string("def") is True
+            with pytest.raises(queue.Empty):
+                tokens.get(timeout=SHORT_TIMEOUT)
+
+            assert sender.send_string("ghi\n") is True
+            assert tokens.get(timeout=TEST_TIMEOUT) == "abcdefghi"
+
+            handler.detach(epoch)
+            sender.disconnect()
+
+
+class TestCallbackAndObserverIsolation:
+    """Replacement semantics and exception containment for the raw handler,
+    string handler, and internal connection observer.
+    """
+
+    def test_replacing_the_raw_handler_only_affects_subsequent_chunks(self) -> None:
+        handler = _HarnessSocketHandler(_logger("raw-replace"))
+        first: queue.Queue[bytes] = queue.Queue()
+        second: queue.Queue[bytes] = queue.Queue()
+        handler.set_data_message_handler(first.put)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+            right.sendall(b"one")
+            assert first.get(timeout=TEST_TIMEOUT) == b"one"
+
+            handler.set_data_message_handler(second.put)
+            right.sendall(b"two")
+            assert second.get(timeout=TEST_TIMEOUT) == b"two"
+            with pytest.raises(queue.Empty):
+                first.get(timeout=SHORT_TIMEOUT)
+            handler.detach(epoch)
+
+    def test_replacing_the_string_handler_only_affects_subsequent_tokens(self) -> None:
+        handler = _HarnessSocketHandler(_logger("string-replace"))
+        first: queue.Queue[str] = queue.Queue()
+        second: queue.Queue[str] = queue.Queue()
+        handler.set_string_message_handler(first.put)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+            right.sendall(b"one\n")
+            assert first.get(timeout=TEST_TIMEOUT) == "one"
+
+            handler.set_string_message_handler(second.put)
+            right.sendall(b"two\n")
+            assert second.get(timeout=TEST_TIMEOUT) == "two"
+            with pytest.raises(queue.Empty):
+                first.get(timeout=SHORT_TIMEOUT)
+            handler.detach(epoch)
+
+    def test_replacing_the_connection_observer_only_affects_subsequent_tokens(self) -> None:
+        handler = _HarnessSocketHandler(_logger("observer-replace"))
+        first = _RecordingObserver()
+        second = _RecordingObserver()
+        handler.set_connection_observer(first)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+            right.sendall(b"one\n")
+            assert first.tokens.get(timeout=TEST_TIMEOUT) == (epoch, "one")
+
+            handler.set_connection_observer(second)
+            right.sendall(b"two\n")
+            assert second.tokens.get(timeout=TEST_TIMEOUT) == (epoch, "two")
+            with pytest.raises(queue.Empty):
+                first.tokens.get(timeout=SHORT_TIMEOUT)
+            handler.detach(epoch)
+
+    def test_observer_receives_epoch_tagged_tokens(self) -> None:
+        handler = _HarnessSocketHandler(_logger("observer-epoch"))
+        observer = _RecordingObserver()
+        handler.set_connection_observer(observer)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+            right.sendall(b"payload\n")
+            assert observer.tokens.get(timeout=TEST_TIMEOUT) == (epoch, "payload")
+            handler.detach(epoch)
+
+    def test_raw_handler_exception_is_logged_and_does_not_block_later_chunks(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler = _HarnessSocketHandler(_logger("raw-exception"))
+        calls: queue.Queue[bytes] = queue.Queue()
+
+        def _raise_then_record(data: bytes) -> None:
+            calls.put(data)
+            if data == b"boom":
+                raise RuntimeError("raw handler failure")
+
+        handler.set_data_message_handler(_raise_then_record)
+        with socketpair_context() as (left, right), caplog.at_level(logging.ERROR):
+            epoch = handler.attach(left)
+            right.sendall(b"boom")
+            assert calls.get(timeout=TEST_TIMEOUT) == b"boom"
+            right.sendall(b"after")
+            assert calls.get(timeout=TEST_TIMEOUT) == b"after"
+            handler.detach(epoch)
+        assert any("raw data handler raised" in r.message for r in caplog.records)
+
+    def test_string_handler_exception_is_logged_and_does_not_block_later_tokens(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler = _HarnessSocketHandler(_logger("string-exception"))
+        calls: queue.Queue[str] = queue.Queue()
+
+        def _raise_then_record(token: str) -> None:
+            calls.put(token)
+            if token == "boom":
+                raise RuntimeError("string handler failure")
+
+        handler.set_string_message_handler(_raise_then_record)
+        with socketpair_context() as (left, right), caplog.at_level(logging.ERROR):
+            epoch = handler.attach(left)
+            right.sendall(b"boom\n")
+            assert calls.get(timeout=TEST_TIMEOUT) == "boom"
+            right.sendall(b"after\n")
+            assert calls.get(timeout=TEST_TIMEOUT) == "after"
+            handler.detach(epoch)
+        assert any("string message handler raised" in r.message for r in caplog.records)
+
+    def test_observer_exception_is_logged_and_does_not_block_later_tokens(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler = _HarnessSocketHandler(_logger("observer-exception"))
+        calls: queue.Queue[str] = queue.Queue()
+
+        class _RaisingObserver:
+            def on_string_token(self, epoch: int, token: str) -> None:
+                calls.put(token)
+                if token == "boom":
+                    raise RuntimeError("observer failure")
+
+            def on_epoch_closed(self, epoch: int, cause: str) -> None:
+                pass
+
+        handler.set_connection_observer(_RaisingObserver())
+        with socketpair_context() as (left, right), caplog.at_level(logging.ERROR):
+            epoch = handler.attach(left)
+            right.sendall(b"boom\n")
+            assert calls.get(timeout=TEST_TIMEOUT) == "boom"
+            right.sendall(b"after\n")
+            assert calls.get(timeout=TEST_TIMEOUT) == "after"
+            handler.detach(epoch)
+        assert any("on_string_token raised" in r.message for r in caplog.records)
+
+
+class TestReceiveRaces:
+    """Event-gated EOF, recv-error, disconnect-from-callback, and
+    old-worker-after-reconnect races.
+    """
+
+    def test_eof_detaches_only_its_epoch_and_notifies_close_observer_once(self) -> None:
+        handler = _HarnessSocketHandler(_logger("eof"))
+        observer = _RecordingObserver()
+        handler.set_connection_observer(observer)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+            thread = handler.receive_thread()
+            assert thread is not None
+
+            right.close()
+
+            assert observer.closed.get(timeout=TEST_TIMEOUT) == (epoch, "peer closed connection")
+            thread.join(TEST_TIMEOUT)
+            assert not thread.is_alive()
+            assert handler.is_connected is False
+            with pytest.raises(queue.Empty):
+                observer.closed.get(timeout=SHORT_TIMEOUT)
+
+    def test_recv_error_detaches_only_its_epoch_and_notifies_close_observer_once(self) -> None:
+        handler = _HarnessSocketHandler(_logger("recv-error"))
+        observer = _RecordingObserver()
+        handler.set_connection_observer(observer)
+        with socketpair_context() as (left, _right):
+            recv_error_socket = _RecvErrorSocket(left)
+            epoch = handler.attach(cast(socket.socket, recv_error_socket))
+            thread = handler.receive_thread()
+            assert thread is not None
+
+            recv_error_socket.release.set()
+            assert observer.closed.get(timeout=TEST_TIMEOUT) == (epoch, "receive error")
+            thread.join(TEST_TIMEOUT)
+            assert not thread.is_alive()
+            assert handler.is_connected is False
+            with pytest.raises(queue.Empty):
+                observer.closed.get(timeout=SHORT_TIMEOUT)
+
+    def test_disconnect_called_from_a_string_callback_does_not_deadlock(self) -> None:
+        handler = _HarnessSocketHandler(_logger("disconnect-from-callback"))
+        observer = _RecordingObserver()
+        handler.set_connection_observer(observer)
+        handler.set_string_message_handler(lambda _token: handler.disconnect())
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+            thread = handler.receive_thread()
+            assert thread is not None
+
+            right.sendall(b"trigger\n")
+
+            assert observer.closed.get(timeout=TEST_TIMEOUT) == (epoch, "explicit disconnect")
+            thread.join(TEST_TIMEOUT)
+            assert not thread.is_alive()
+            assert handler.is_connected is False
+
+    def test_old_worker_after_reconnect_cannot_deliver_stale_data_or_corrupt_new_epoch(
+        self,
+    ) -> None:
+        handler = _HarnessSocketHandler(_logger("old-worker-race"))
+        observer = _RecordingObserver()
+        handler.set_connection_observer(observer)
+        raw_chunks: queue.Queue[bytes] = queue.Queue()
+        handler.set_data_message_handler(raw_chunks.put)
+
+        with socketpair_context() as (left1, right1), socketpair_context() as (left2, right2):
+            gated = _GatedRecvSocket(left1)
+            epoch1 = handler.attach(cast(socket.socket, gated))
+            stale_thread = handler.receive_thread()
+            assert stale_thread is not None
+
+            gated.pause_next = True
+            right1.sendall(b"stale-epoch-data\n")
+            assert gated.entered.wait(TEST_TIMEOUT)
+
+            # The stale worker has already pulled the bytes off the wire but
+            # is paused before dispatch. Replace the connection now.
+            assert handler.detach(epoch1) is True
+            epoch2 = handler.attach(left2)
+            assert epoch2 > epoch1
+
+            # Legitimate traffic for the new epoch, to prove it is unaffected
+            # by the stale worker's pending chunk once released.
+            right2.sendall(b"live-epoch-data\n")
+
+            gated.release.set()
+            stale_thread.join(TEST_TIMEOUT)
+            assert not stale_thread.is_alive()
+
+            assert raw_chunks.get(timeout=TEST_TIMEOUT) == b"live-epoch-data\n"
+            with pytest.raises(queue.Empty):
+                raw_chunks.get(timeout=SHORT_TIMEOUT)
+
+            assert observer.tokens.get(timeout=TEST_TIMEOUT) == (epoch2, "live-epoch-data")
+            with pytest.raises(queue.Empty):
+                observer.tokens.get(timeout=SHORT_TIMEOUT)
+
+            handler.detach(epoch2)
