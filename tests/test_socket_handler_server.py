@@ -416,6 +416,102 @@ class TestStopOrdering:
         stale_thread.join(TEST_TIMEOUT)
 
 
+class TestListenStopRace:
+    """PA25-02 / chunk 18: a successful listener publication must be
+    inseparable from accept-worker startup, as observed by ``stop()``.
+
+    The race recipe gates only the named accept worker's
+    ``Thread.start()``, so a concurrent ``stop()`` started right after
+    publication can never observe a published-but-unstarted thread.
+    """
+
+    def test_concurrent_listen_and_stop_cannot_join_an_unstarted_worker(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        first = _FakeListenerSocket(address=("0.0.0.0", 8700))
+        second = _FakeListenerSocket(address=("0.0.0.0", 8701))
+        _install_fake_listener_factory(monkeypatch, first, second)
+
+        server = _HarnessSocketHandlerServer(_logger("listen-stop-race"))
+
+        start_entered = threading.Event()
+        release_start = threading.Event()
+        original_start = threading.Thread.start
+
+        def _gated_start(thread_self: threading.Thread) -> None:
+            if "-accept-" in thread_self.name:
+                start_entered.set()
+                if not release_start.wait(TEST_TIMEOUT):
+                    raise WorkerTimeoutError("gated accept start: never released")
+            original_start(thread_self)
+
+        monkeypatch.setattr(threading.Thread, "start", _gated_start)
+
+        with caplog.at_level(logging.WARNING):
+            listen_worker = start_worker("listen-worker", lambda: server.listen(8700))
+            assert start_entered.wait(TEST_TIMEOUT)
+
+            stop_worker = start_worker("stop-worker", server.stop)
+            release_start.set()
+
+            # Both public calls must return without lifecycle exceptions.
+            listen_worker.join(TEST_TIMEOUT)
+            stop_worker.join(TEST_TIMEOUT)
+
+        assert not any("crashed unexpectedly" in r.message for r in caplog.records)
+
+        # The listener that stop() retired is fully closed, and the same
+        # instance can listen again afterward.
+        assert server.is_listening is False
+        assert first.close_calls == 1
+
+        server.listen(8701)
+        assert server.is_listening is True
+        assert server.listening_address == ("0.0.0.0", 8701)
+        server.stop()
+
+
+class TestListenerStartFailureRollback:
+    """PA25-02 / chunk 18: a `Thread.start()` failure for the accept worker
+    must retire only that listener epoch, close the candidate listener, and
+    propagate the original startup exception -- never leave a published,
+    unstarted listener behind."""
+
+    def test_accept_thread_start_failure_retires_epoch_and_closes_candidate(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakeListenerSocket(address=("0.0.0.0", 8800))
+        second = _FakeListenerSocket(address=("0.0.0.0", 8801))
+        _install_fake_listener_factory(monkeypatch, fake, second)
+
+        server = _HarnessSocketHandlerServer(_logger("listen-start-failure"))
+
+        original_start = threading.Thread.start
+        start_error = RuntimeError("simulated accept worker start failure")
+
+        def _failing_start(thread_self: threading.Thread) -> None:
+            if "-accept-" in thread_self.name:
+                raise start_error
+            original_start(thread_self)
+
+        monkeypatch.setattr(threading.Thread, "start", _failing_start)
+
+        with pytest.raises(RuntimeError) as exc_info:
+            server.listen(8800)
+
+        assert exc_info.value is start_error
+        assert fake.close_calls == 1
+        assert server.is_listening is False
+        assert server.listening_address is None
+
+        # The same instance can still listen successfully afterward.
+        monkeypatch.setattr(threading.Thread, "start", original_start)
+        server.listen(8801)
+        assert server.is_listening is True
+        assert server.listening_address == ("0.0.0.0", 8801)
+        server.stop()
+
+
 class TestStaleAcceptWorkerCannotAffectRestartedListener:
     def test_stale_worker_closes_stale_candidate_and_leaves_new_listener_untouched(
         self, monkeypatch: pytest.MonkeyPatch

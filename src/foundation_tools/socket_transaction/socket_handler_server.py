@@ -175,7 +175,19 @@ class SocketHandlerServer(SocketHandler):
                 thread=thread,
             )
 
-        thread.start()
+            # `thread.start()` runs inside the same critical section that
+            # published `_listener_state`, so publication and startup are
+            # inseparable as observed by `stop()`: a concurrent `stop()`
+            # cannot acquire this lock -- and therefore cannot see or join
+            # this thread -- until it has actually started. If `start()`
+            # raises, retire only this epoch and close the candidate; the
+            # listener was never truly published.
+            try:
+                thread.start()
+            except Exception:
+                self._listener_state = None
+                candidate.close()
+                raise
 
     def wait_for_connection(self, timeout: float | None = None) -> bool:
         """Block until a client is active, or ``timeout`` elapses.
@@ -258,8 +270,8 @@ class SocketHandlerServer(SocketHandler):
         worker's listener, so the candidate is closed and the worker exits
         without touching any newer epoch's state.
         """
-        listener.settimeout(self._accept_poll_interval)
         try:
+            listener.settimeout(self._accept_poll_interval)
             while not stop_event.is_set():
                 try:
                     candidate, peer = listener.accept()
