@@ -258,6 +258,117 @@ class TestFrameHandlerFailureAndReconnectBufferReset:
                 first.get(timeout=SHORT_TIMEOUT)
             client.detach(epoch)
 
+
+class TestEpochRevalidationAfterReplacement:
+    """Plan 25, chunk 19 (PA25-03): a decoder blocked on a stale epoch, or a
+    frame handler that replaces the connection mid-delivery, must never let
+    that stale epoch's output reach the application after replacement.
+    """
+
+    def test_blocked_decoder_replacement_regression(self) -> None:
+        """Race recipe from 19-binary-epoch-revalidation.md: block the decoder
+        after it has a complete epoch-1 frame in hand, replace the connection
+        with epoch 2 while it is still blocked, prove epoch 2 keeps decoding
+        and delivering while epoch 1 is stuck, then release epoch 1's decoder
+        and assert its frame never arrives.
+        """
+        decoder_entered = threading.Event()
+        release_decoder = threading.Event()
+        first_call_seen = threading.Event()
+
+        def _blocking_decoder(buffer: bytes) -> tuple[object | None, bytes]:
+            frame, remainder = _length_prefixed_decoder(buffer)
+            if frame is not None and not first_call_seen.is_set():
+                first_call_seen.set()
+                decoder_entered.set()
+                assert release_decoder.wait(TEST_TIMEOUT)
+            return frame, remainder
+
+        client = _make_client("blocked-decoder-replacement", _blocking_decoder)
+        frames: queue.Queue[object] = queue.Queue()
+        client.set_frame_handler(frames.put)
+
+        left1, right1 = socket.socketpair()
+        try:
+            epoch1 = client.attach(left1)
+            right1.sendall(_frame(b"stale"))
+            assert decoder_entered.wait(TEST_TIMEOUT)
+
+            # Epoch 1's receive worker is now blocked inside the decoder,
+            # holding no internal lock. Replace the connection outright.
+            client.detach(epoch1)
+
+            left2, right2 = socket.socketpair()
+            try:
+                epoch2 = client.attach(left2)
+                assert epoch2 != epoch1
+
+                try:
+                    right2.sendall(_frame(b"fresh"))
+                    # Epoch 2 must decode and deliver its own frame promptly
+                    # -- proves the decoder call does not hold a lock that
+                    # would serialize the two epochs (a bounded, short wait
+                    # rather than TEST_TIMEOUT: under the bug this never
+                    # arrives until epoch 1's decoder is released).
+                    assert frames.get(timeout=SHORT_TIMEOUT) == b"fresh"
+                finally:
+                    release_decoder.set()
+
+                # Epoch 1's stale frame must never be delivered, even once
+                # its decoder call is allowed to return.
+                with pytest.raises(queue.Empty):
+                    frames.get(timeout=SHORT_TIMEOUT)
+
+                client.detach(epoch2)
+            finally:
+                right2.close()
+        finally:
+            right1.close()
+
+    def test_replacement_during_delivery_suppresses_the_same_chunks_next_frame(
+        self,
+    ) -> None:
+        """Callback-boundary regression: two complete frames arrive in one
+        chunk on epoch 1. The handler for the first frame replaces the
+        connection with epoch 2 synchronously, from epoch 1's own receive
+        worker. The second frame was already decoded before the handler
+        ran, but its callback-boundary epoch recheck must still suppress it
+        because delivery happens after the replacement completed.
+        """
+        client = _make_client("callback-boundary-replacement")
+        frames: queue.Queue[object] = queue.Queue()
+        state: dict[str, object] = {}
+
+        def _handler(frame: object) -> None:
+            frames.put(frame)
+            if frame == b"one":
+                client.detach(state["epoch1"])  # type: ignore[arg-type]
+                left2, right2 = socket.socketpair()
+                state["right2"] = right2
+                state["epoch2"] = client.attach(left2)
+
+        client.set_frame_handler(_handler)
+        left1, right1 = socket.socketpair()
+        try:
+            state["epoch1"] = client.attach(left1)
+            right1.sendall(_frame(b"one") + _frame(b"two"))
+
+            assert frames.get(timeout=TEST_TIMEOUT) == b"one"
+            with pytest.raises(queue.Empty):
+                frames.get(timeout=SHORT_TIMEOUT)
+
+            right2 = state["right2"]
+            assert isinstance(right2, socket.socket)
+            right2.sendall(_frame(b"fresh"))
+            assert frames.get(timeout=TEST_TIMEOUT) == b"fresh"
+
+            client.detach(state["epoch2"])  # type: ignore[arg-type]
+            right2.close()
+        finally:
+            right1.close()
+
+
+class TestReconnectBufferReset:
     def test_reconnect_does_not_leak_a_prior_epochs_partial_frame(self) -> None:
         client = BinaryFramedSocketHandlerClient(
             _logger("reconnect-reset"), _length_prefixed_decoder

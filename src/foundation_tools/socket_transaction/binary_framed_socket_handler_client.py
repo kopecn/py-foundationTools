@@ -45,7 +45,11 @@ class BinaryFramedSocketHandlerClient(SocketHandlerClient):
     without terminating reception; frame-handler exceptions are contained
     the same way. The binary buffer resets whenever a chunk is first
     observed for a new connection epoch, so a reconnect never sees a prior
-    epoch's leftover partial frame.
+    epoch's leftover partial frame. The epoch is revalidated after every
+    decoder return and again immediately before every frame-handler call,
+    so a decoder blocked on a stale epoch -- or a callback that itself
+    triggers connection replacement -- can never deliver output once that
+    epoch is no longer active (plan 25, chunk 19).
     """
 
     def __init__(
@@ -73,60 +77,84 @@ class BinaryFramedSocketHandlerClient(SocketHandlerClient):
 
     def _process_received_chunk(self, epoch: int, data: bytes) -> None:
         super()._process_received_chunk(epoch, data)
-        for frame in self._decode_frames_for_epoch(epoch, data):
-            self._invoke_frame_handler(frame)
+        self._decode_and_dispatch_frames(epoch, data)
 
-    def _decode_frames_for_epoch(self, epoch: int, data: bytes) -> list[object]:
-        """Extend this epoch's binary buffer and decode complete frames.
+    def _decode_and_dispatch_frames(self, epoch: int, data: bytes) -> None:
+        """Extend this epoch's binary buffer, decode complete frames, and
+        deliver each to the frame handler in order.
 
-        Re-checks epoch identity under the same lock that guards the binary
-        buffer, mirroring the base class's own epoch-safe text-tokenization
-        pattern, so a lingering worker from a superseded epoch can neither
-        read nor mutate a newer epoch's binary state. Resets the buffer the
-        first time a chunk is observed for a not-yet-seen epoch (covers both
-        the first chunk of a fresh connection and any reconnect). Follows
-        the decoder-loop recipe exactly: a valid remainder must be a byte
-        suffix of the input, a frame must strictly shorten the buffer, and
-        ``(None, identical_input)`` is the only incomplete-frame stop result.
-        Any decoder exception or invalid progress clears the buffer and
-        stops decoding this chunk without propagating.
+        The caller-supplied decoder and the frame handler are invoked
+        outside every internal lock -- ``_binary_lock`` is held only to
+        snapshot or publish buffer/epoch state, never across a callback.
+        Because a decoder call can block for an unbounded time (see the
+        plan's blocked-decoder race), the epoch is revalidated immediately
+        after every decoder return -- before that decode's progress is
+        committed to the shared buffer -- and again immediately before the
+        matching frame-handler call, since a frame-handler invocation for an
+        earlier frame in this same chunk may itself trigger a replacement
+        before a later, already-decoded frame is delivered. Either window
+        closing on a no-longer-active epoch discards that decode's output
+        instead of committing or delivering it, and never mutates a newer
+        epoch's binary buffer. A decoder exception or invalid result is
+        still treated as decoder failure: log the error, clear the buffer
+        (only if this epoch still owns it), and stop decoding this chunk
+        without terminating reception.
         """
         with self._binary_lock:
             if not self._epoch_is_current(epoch):
-                return []
-
+                return
             if self._binary_epoch != epoch:
                 self._binary_epoch = epoch
                 self._binary_buffer = b""
-
             buffer = self._binary_buffer + data
-            frames: list[object] = []
+
+        while buffer:
             try:
-                while buffer:
-                    frame, remainder = self._frame_decoder(buffer)
-                    if frame is None and remainder == buffer:
-                        break
-                    if not isinstance(remainder, bytes) or not buffer.endswith(remainder):
-                        raise ValueError(
-                            "binary frame decoder remainder is not a suffix of the input buffer"
-                        )
-                    if frame is None or len(remainder) >= len(buffer):
-                        raise ValueError("binary frame decoder made no valid progress")
-                    buffer = remainder
-                    frames.append(frame)
+                frame, remainder = self._frame_decoder(buffer)
+                if frame is None and remainder == buffer:
+                    self._commit_binary_buffer(epoch, buffer)
+                    return
+                if not isinstance(remainder, bytes) or not buffer.endswith(remainder):
+                    raise ValueError(
+                        "binary frame decoder remainder is not a suffix of the input buffer"
+                    )
+                if frame is None or len(remainder) >= len(buffer):
+                    raise ValueError("binary frame decoder made no valid progress")
             except Exception:
                 self._logger.exception(
                     "binary framed client: frame decoder failed for epoch %s; "
                     "clearing binary buffer",
                     epoch,
                 )
-                if self._binary_epoch == epoch:
-                    self._binary_buffer = b""
-                return []
+                self._clear_binary_buffer(epoch)
+                return
 
+            buffer = remainder
+            if not self._commit_binary_buffer(epoch, buffer):
+                return  # stale epoch: discard this frame and stop this chunk
+            if not self._epoch_is_current(epoch):
+                return  # replaced between commit and delivery: discard
+            self._invoke_frame_handler(frame)
+
+    def _commit_binary_buffer(self, epoch: int, buffer: bytes) -> bool:
+        """Publish ``buffer`` as ``epoch``'s binary state iff still active.
+
+        Returns ``False`` without writing anything when ``epoch`` is no
+        longer the active connection or no longer owns the binary buffer --
+        the caller must then discard whatever it decoded rather than commit
+        or deliver it, so a stale worker never mutates a newer epoch's state.
+        """
+        with self._binary_lock:
+            if self._binary_epoch != epoch or not self._epoch_is_current(epoch):
+                return False
+            self._binary_buffer = buffer
+            return True
+
+    def _clear_binary_buffer(self, epoch: int) -> None:
+        """Clear the binary buffer after a decoder failure, iff still owned by ``epoch``."""
+        with self._binary_lock:
             if self._binary_epoch == epoch:
-                self._binary_buffer = buffer
-            return frames
+                self._binary_buffer = b""
 
     def _invoke_frame_handler(self, frame: object) -> None:
         with self._frame_handler_lock:
