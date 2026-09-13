@@ -11,8 +11,8 @@ package first (`make devInstall` / `make e`, or `uv-sync`).
 | [`exampleTransactSSH.py`](exampleTransactSSH.py) | `SSHTransact`: sync/async execution over SSH, composed with a `RetryPolicy`. Targets `localhost`; requires a local SSH server to actually succeed, but demonstrates the never-raise contract either way. |
 | [`exampleTransactRsync.py`](exampleTransactRsync.py) | `RsyncTransact`: a local-to-local sync (no SSH needed to run), plus the build-time `ValueError` guard against host-less SSH injection. |
 | [`exampleRetryPolicy.py`](exampleRetryPolicy.py) | `BackoffPolicy` + `RetryPolicy` composed over a simulated transiently-failing `CLITransact` call, and non-transient failures stopping immediately. |
-| [`exampleSocketClientServer.py`](exampleSocketClientServer.py) | `SocketTransact` + `SocketTransactServer`: a single request/reply round trip, concurrent out-of-order requests, and the server-push (unsolicited) channel. |
-| [`exampleBenchmarkPerformance.py`](exampleBenchmarkPerformance.py) | Transaction frequency/latency benchmark comparing `CLITransact` (subprocess per call) against `SocketTransact` (persistent connection), sequential and concurrent. Accepts an optional iteration count: `python examples/exampleBenchmarkPerformance.py 500`. |
+| [`exampleSocketClientServer.py`](exampleSocketClientServer.py) | `TransactingSocketHandlerClient` + `TransactingSocketHandlerServer`: a single request/reply round trip, concurrent out-of-order requests, and the server-push (unsolicited) channel. |
+| [`exampleBenchmarkPerformance.py`](exampleBenchmarkPerformance.py) | Transaction frequency/latency benchmark comparing `CLITransact` (subprocess per call) against `TransactingSocketHandlerClient`/`TransactingSocketHandlerServer` (persistent connection), sequential and concurrent. Accepts an optional iteration count: `python examples/exampleBenchmarkPerformance.py 500`. |
 | [`exampleFindMatchingPaths.py`](exampleFindMatchingPaths.py) | `find_matching_paths`: pattern globs beneath an absolute root (a home-relative dir), default vs. explicit extensions, `extensions=None` for any extension, and a relative subdirectory in the pattern. |
 
 ## Which transport should I use?
@@ -21,8 +21,8 @@ package first (`make devInstall` / `make e`, or `uv-sync`).
   `CLITransact` / `SSHTransact` / `RsyncTransact`. No server process to manage;
   each call is an independent subprocess.
 - **Frequent, low-latency request/reply, or a server pushing data to clients** →
-  `SocketTransact` / `SocketTransactServer`. Pays for a persistent connection in
-  exchange for much higher round-trip frequency — see
+  `TransactingSocketHandlerClient` / `TransactingSocketHandlerServer`. Pays for a
+  persistent connection in exchange for much higher round-trip frequency — see
   `exampleBenchmarkPerformance.py` for measured numbers.
 
 See `.claude/specs/transport_transaction_architecture.md` for the full layer

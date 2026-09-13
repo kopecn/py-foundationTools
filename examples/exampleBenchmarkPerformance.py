@@ -4,8 +4,9 @@ families this library ships.
 
 - CLITransact  — a subprocess is forked/exec'd for every single call. Simple and
   universal, but process creation dominates the cost of each round trip.
-- SocketTransact/SocketTransactServer — one persistent asyncio TCP connection;
-  each transaction is just a framed byte round trip over an already-open socket.
+- TransactingSocketHandlerClient/Server — one persistent, synchronous threaded
+  TCP connection; each transaction is just a framed byte round trip over an
+  already-open socket.
 
 Running both side by side makes the trade-off concrete: sockets buy roundtrip
 frequency at the cost of a stateful, long-lived connection to manage; CLI buys
@@ -24,19 +25,28 @@ this project's zero-runtime-dependency rule.
 """
 
 import asyncio
+import logging
+import queue
 import statistics
 import sys
+import threading
 import time
 from dataclasses import dataclass
 
 from foundation_tools.cli_transaction.cliTransact import CLITransact
-from foundation_tools.socket_transaction.framing_codecs import DelimiterCodec
-from foundation_tools.socket_transaction.socketTransact import SocketTransact
-from foundation_tools.socket_transaction.socketTransactServer import SocketTransactServer
+from foundation_tools.socket_transaction import (
+    InboundTransaction,
+    JsonTransactionCodec,
+    TransactingSocketHandlerClient,
+    TransactingSocketHandlerServer,
+    TransactionOutcome,
+)
 
 DEFAULT_ITERATIONS = 200
 MIN_CLI_ITERATIONS = 10
 CLI_ITERATION_FRACTION = 10
+_TIMEOUT = 10.0
+_LOGGER = logging.getLogger("examples.benchmark_performance")
 
 
 @dataclass
@@ -95,103 +105,102 @@ async def benchmark_cli_async(iterations: int) -> BenchmarkResult:
     )
 
 
-def _stamp_tx_id(payload: bytes, tx_id: str) -> bytes:
-    return f"{tx_id}:".encode() + payload
+def _echo_handler(inbound: InboundTransaction) -> None:
+    inbound.reply("ack", 0)
+    inbound.reply("res", 0, payload=inbound.frame.payload)
 
 
-def _read_tx_id(frame: bytes) -> str | None:
-    prefix, sep, _ = frame.partition(b":")
-    return prefix.decode("ascii") if sep else None
+def benchmark_socket_roundtrip(iterations: int) -> BenchmarkResult:
+    server = TransactingSocketHandlerServer(_LOGGER, JsonTransactionCodec())
+    server.set_inbound_transaction_handler(_echo_handler)
+    server.listen(0)
+    try:
+        address = server.listening_address
+        assert address is not None
+        client = TransactingSocketHandlerClient(_LOGGER, JsonTransactionCodec())
+        try:
+            client.connect(*address, timeout=_TIMEOUT)
+            assert server.wait_for_connection(_TIMEOUT) is True
 
-
-def _strip_tx_id(frame: bytes) -> bytes:
-    """Drop the `tx_id:` prefix — handlers return a bare reply body; the server
-    re-stamps it with the same tx_id."""
-    _prefix, sep, body = frame.partition(b":")
-    return body if sep else frame
-
-
-async def benchmark_socket_roundtrip(iterations: int) -> BenchmarkResult:
-    async def echo_handler(request: bytes) -> bytes | None:
-        return _strip_tx_id(request)
-
-    async with SocketTransactServer(
-        "127.0.0.1",
-        0,
-        echo_handler,
-        tx_id_injector=_stamp_tx_id,
-        tx_id_extractor=_read_tx_id,
-        codec_factory=DelimiterCodec,
-    ) as server:
-        host, port = server.address
-        async with SocketTransact(
-            host,
-            port,
-            tx_id_injector=_stamp_tx_id,
-            tx_id_extractor=_read_tx_id,
-            codec=DelimiterCodec(),
-            poll_timeout=0.005,
-        ) as client:
             latencies_ms: list[float] = []
             start = time.perf_counter()
             for i in range(iterations):
                 t0 = time.perf_counter()
-                result = await client.request(f"payload-{i}".encode(), timeout=5.0)
+                outcome = client.send_transaction(
+                    "request", 0, f"payload-{i}", wait_ack=True, wait_result=True, timeout=_TIMEOUT
+                )
                 latencies_ms.append((time.perf_counter() - t0) * 1000)
-                assert result.success
+                assert outcome.success
             total = time.perf_counter() - start
+        finally:
+            client.disconnect()
+    finally:
+        server.stop()
 
     return BenchmarkResult(
-        "SocketTransact.request — persistent TCP connection", iterations, total, latencies_ms
+        "TransactingSocketHandlerClient.send_transaction — persistent TCP connection",
+        iterations,
+        total,
+        latencies_ms,
     )
 
 
-async def benchmark_socket_concurrent(iterations: int, concurrency: int = 20) -> BenchmarkResult:
+def benchmark_socket_concurrent(iterations: int, concurrency: int = 20) -> BenchmarkResult:
     """Same round trip, but fired with `concurrency` requests in flight at once —
     the shape a persistent connection is built for (CLITransact has no analogous
-    mode: each call is already a fresh, independent process)."""
+    mode: each call is already a fresh, independent process). Each in-flight
+    request runs on its own worker thread; the transacting client serializes
+    outbound wire bytes internally, so concurrent callers never interleave."""
+    server = TransactingSocketHandlerServer(_LOGGER, JsonTransactionCodec())
+    server.set_inbound_transaction_handler(_echo_handler)
+    server.listen(0)
+    try:
+        address = server.listening_address
+        assert address is not None
+        client = TransactingSocketHandlerClient(_LOGGER, JsonTransactionCodec())
+        try:
+            client.connect(*address, timeout=_TIMEOUT)
+            assert server.wait_for_connection(_TIMEOUT) is True
 
-    async def echo_handler(request: bytes) -> bytes | None:
-        return _strip_tx_id(request)
+            latencies: queue.Queue[float] = queue.Queue()
+            pending = queue.Queue()
+            for i in range(iterations):
+                pending.put(i)
+            semaphore = threading.Semaphore(concurrency)
 
-    async with SocketTransactServer(
-        "127.0.0.1",
-        0,
-        echo_handler,
-        tx_id_injector=_stamp_tx_id,
-        tx_id_extractor=_read_tx_id,
-        codec_factory=DelimiterCodec,
-    ) as server:
-        host, port = server.address
-        async with SocketTransact(
-            host,
-            port,
-            tx_id_injector=_stamp_tx_id,
-            tx_id_extractor=_read_tx_id,
-            codec=DelimiterCodec(),
-            poll_timeout=0.005,
-        ) as client:
-            latencies_ms: list[float] = []
-
-            async def one_request(i: int) -> None:
+            def one_request(i: int) -> None:
                 t0 = time.perf_counter()
-                result = await client.request(f"payload-{i}".encode(), timeout=10.0)
-                assert result.success
-                # Single-threaded event loop between await points — no lock needed.
-                latencies_ms.append((time.perf_counter() - t0) * 1000)
+                outcome = client.send_transaction(
+                    "request",
+                    0,
+                    f"payload-{i}",
+                    wait_ack=True,
+                    wait_result=True,
+                    timeout=_TIMEOUT,
+                )
+                assert outcome.success
+                latencies.put((time.perf_counter() - t0) * 1000)
+                semaphore.release()
 
             start = time.perf_counter()
-            semaphore = asyncio.Semaphore(concurrency)
-
-            async def bounded(i: int) -> None:
-                async with semaphore:
-                    await one_request(i)
-
-            await asyncio.gather(*(bounded(i) for i in range(iterations)))
+            workers: list[threading.Thread] = []
+            for i in range(iterations):
+                semaphore.acquire()
+                worker = threading.Thread(target=one_request, args=(i,))
+                worker.start()
+                workers.append(worker)
+            for worker in workers:
+                worker.join(timeout=_TIMEOUT)
             total = time.perf_counter() - start
 
+            latencies_ms = [latencies.get_nowait() for _ in range(iterations)]
+        finally:
+            client.disconnect()
+    finally:
+        server.stop()
+
     return BenchmarkResult(
-        f"SocketTransact.request — {concurrency} concurrent in flight",
+        f"TransactingSocketHandlerClient.send_transaction — {concurrency} concurrent in flight",
         iterations,
         total,
         latencies_ms,
@@ -211,10 +220,10 @@ async def main() -> None:
     cli_async = await benchmark_cli_async(cli_iterations)
     _print_result(cli_async)
 
-    socket_sequential = await benchmark_socket_roundtrip(iterations)
+    socket_sequential = benchmark_socket_roundtrip(iterations)
     _print_result(socket_sequential)
 
-    socket_concurrent = await benchmark_socket_concurrent(iterations)
+    socket_concurrent = benchmark_socket_concurrent(iterations)
     _print_result(socket_concurrent)
 
     print("\nSummary:")

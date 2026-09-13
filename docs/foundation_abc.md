@@ -55,7 +55,7 @@ stateDiagram-v2
 ### Implementations and consumers
 
 - A serial (RS485/USB) implementation exists elsewhere on top of this interface; an EtherCAT adapter (translating PDO process-image offsets to this byte-stream contract) is planned.
-- Within this repo, `foundation_tools.socket_transaction.SocketByteTransport` implements this ABC over a TCP socket — see [foundation_tools.md](foundation_tools.md#socket-transaction).
+- `foundation_tools.socket_transaction` is a synchronous, threaded socket stack and deliberately does **not** implement this asynchronous ABC — see [foundation_tools.md](foundation_tools.md#socket-transaction).
 
 ```python
 from foundation_abc.peripheralByteTransport import PeripheralByteTransport

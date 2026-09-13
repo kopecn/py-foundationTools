@@ -12,7 +12,7 @@ graph TD
             CLI["cli_transaction<br/>CLITransact · SSHTransact · RsyncTransact"]
             BUILD["builders<br/>ssh / rsync command builders"]
             POL["policies<br/>RetryPolicy · BackoffPolicy"]
-            SOCK["socket_transaction<br/>SocketTransact · Server · Router · Codecs"]
+            SOCK["socket_transaction<br/>TransactingSocketHandlerClient · Server · Core · Codecs"]
         end
     end
 
@@ -26,7 +26,7 @@ Contents:
 - [Command builders](#command-builders)
 - [Execution policies](#execution-policies) — retry + backoff
 - [SSH and rsync transactions](#ssh-and-rsync-transactions)
-- [socket_transaction](#socket-transaction) — the async TCP stack
+- [socket_transaction](#socket-transaction) — the threaded TCP stack
 - [file_tools](#file_tools)
 - [presentation](#presentation)
 - [StandardizedLogger](#standardizedlogger)
@@ -211,85 +211,64 @@ Both offer `run_sync` / `run_async` and `run_sync_with_model` / `run_async_with_
 
 ## socket transaction
 
-`foundation_tools/socket_transaction/` — a **fully asynchronous** request/reply stack over TCP, its own four layers mirroring the CLI stack's ethos. Full contract: [`.claude/specs/socketTransact.md`](../.claude/specs/socketTransact.md).
+`foundation_tools/socket_transaction/` — a **synchronous, threaded** request/reply stack over TCP, built directly on `socket` and `threading` (no `asyncio`, no event loop, no coroutine public method). Full contract: [`.claude/specs/threadedSocketTransaction.md`](../.claude/specs/threadedSocketTransaction.md), with sibling layer contracts [`threadedSocketTransport.md`](../.claude/specs/threadedSocketTransport.md), [`threadedTransactionProtocol.md`](../.claude/specs/threadedTransactionProtocol.md), and [`transactingSocketHandlers.md`](../.claude/specs/transactingSocketHandlers.md).
 
 ```mermaid
 graph TD
-    L4["Layer 4 — SocketTransact (client) / SocketTransactServer (server)<br/>the only classes end users touch"]
-    L3["Layer 3 — TransactionRouter<br/>one background reader task; correlates replies by tx_id"]
-    L2["Layer 2 — FramingCodec<br/>DelimiterCodec · LengthPrefixedCodec"]
-    L1["Layer 1 — SocketByteTransport<br/>implements PeripheralByteTransport over TCP"]
+    L3["Facade — TransactingSocketHandlerClient / TransactingSocketHandlerServer<br/>the classes end users touch"]
+    L2A["TransactionCore<br/>identifiers, pending state, routing"]
+    L2B["TransactionCodec<br/>JsonTransactionCodec · AngleBracketTransactionCodec"]
+    L1["SocketHandlerClient / SocketHandlerServer<br/>connection lifecycle, receive/accept threads"]
+    L0["SocketHandler<br/>epoch-bound socket ownership"]
 
-    L4 --> L3 --> L2 --> L1
-    L1 -.->|is a| PBT["foundation_abc.PeripheralByteTransport"]
+    L3 --> L2A
+    L3 --> L2B
+    L3 --> L1 --> L0 --> SOCK["socket.socket"]
 
-    style L4 fill:#e8f5e9
-    style L1 fill:#fff3e0
+    style L3 fill:#e8f5e9
+    style L0 fill:#fff3e0
 ```
 
-### Layer 1 — SocketByteTransport
+### Transport layer — SocketHandler / SocketHandlerClient / SocketHandlerServer
 
-`socket_byte_transport.py` implements the [`PeripheralByteTransport`](foundation_abc.md#peripheralbytetransport) ABC over an asyncio TCP socket: `connect` / `disconnect` / `send` / `receive` / `is_connected`. Because it satisfies that ABC, anything written against the byte-transport interface works over sockets unchanged.
+`socket_handler.py` owns one epoch-bound socket: attach/detach, sending, and a single daemon receive thread dispatching raw bytes or delimiter-framed text. `socket_handler_client.py` adds `connect`/`disconnect`; `socket_handler_server.py` adds a listener with one daemon accept thread and single-active-client admission/replacement. `binary_framed_socket_handler_client.py` is a parallel transport specialization (`BinaryFramedSocketHandlerClient`) for pluggable binary framing instead of delimiter-framed text.
 
-### Layer 2 — framing codecs
+Every attached socket belongs to a unique, monotonically increasing connection epoch; receive, send, close, and reply operations affect only the epoch that originated them, so a replaced or closed connection cannot leak into a new one.
 
-`framing_codecs.py` turns a raw byte stream into discrete frames. A `FramingCodec` is a `Protocol` with two methods:
+### Protocol layer — TransactionCodec and TransactionCore
 
-- `encode(payload) -> bytes` — frame one outbound message.
-- `feed(data) -> list[bytes]` — push inbound bytes, get back zero or more complete frames (it buffers partial frames internally).
+`transaction_codecs.py` defines the `TransactionCodec` protocol (`encode`/`decode` a `TransactionFrame`) with two implementations: `JsonTransactionCodec` and `AngleBracketTransactionCodec`. `transaction_core.py`'s `TransactionCore` owns transaction-id sequencing, epoch-bound registration, and race-safe ACK/completion waits — a transaction registration exists before its bytes are sent and is removed on every exit path.
 
-| Codec | Framing strategy |
-|---|---|
-| `DelimiterCodec` | frames terminated by a delimiter byte sequence (the default) |
-| `LengthPrefixedCodec` | each frame prefixed with its length |
+### Facade — TransactingSocketHandlerClient / TransactingSocketHandlerServer
 
-### Layer 3 — TransactionRouter
-
-`transaction_router.py` owns the **single background reader task** for a connection and correlates each reply to its request by transaction id. Uncorrelated inbound frames are surfaced separately as an *unsolicited* stream. It raises `ConnectionClosedError` (a `ConnectionError`) when the peer goes away.
-
-```mermaid
-sequenceDiagram
-    participant C as caller
-    participant R as TransactionRouter
-    participant Rd as reader task
-    participant Peer as remote peer
-
-    R->>Rd: start() (one background task)
-    C->>R: request(payload, tx_id)
-    R->>Peer: framed payload (tx_id injected)
-    Peer-->>Rd: framed reply (tx_id)
-    Rd->>Rd: extract tx_id
-    alt matches a pending request
-        Rd-->>C: resolve awaiting future
-    else no match
-        Rd-->>R: push to unsolicited stream
-    end
-```
-
-### Layer 4 — SocketTransact (client)
-
-`socketTransact.py` is the only client class you touch. It wires the default stack (`SocketByteTransport` → codec → `TransactionRouter`) and, like `CLITransact`, **never raises on a request** — timeouts, connection loss, and codec errors are captured into the result.
-
-The `tx_id_injector` / `tx_id_extractor` pair is **required** — the correlation format is protocol-specific and the stack defines none of its own.
+`transacting_socket_handler.py` composes an already-constructed transport, codec, and core into the shared receive pipeline and `send_transaction`/`send_broadcast` operations; `transacting_socket_handler_client.py` and `transacting_socket_handler_server.py` are the two public facades built on it, each owning exactly one socket, one `TransactionCore` (client ids `1, 3, 5, ...`; server ids `2, 4, 6, ...`), and one shared engine.
 
 ```python
-async with SocketTransact(
-    host, port,
-    tx_id_injector=my_injector,
-    tx_id_extractor=my_extractor,
-) as st:
-    result = await st.request(b"PING")                       # -> SocketTransactResult
-    typed  = await st.request_with_model(req_model, Reply)    # send model, parse reply.from_wire
-    await st.send(b"fire-and-forget")                         # uncorrelated; raises on transport error
-    async for frame in st.unsolicited():                     # server-pushed frames
-        ...
+from foundation_tools.socket_transaction import (
+    InboundTransaction,
+    JsonTransactionCodec,
+    TransactingSocketHandlerClient,
+    TransactingSocketHandlerServer,
+)
+
+server = TransactingSocketHandlerServer(logger, JsonTransactionCodec())
+
+def on_inbound(inbound: InboundTransaction) -> None:
+    inbound.reply("ack", 0)
+    inbound.reply("res", 0, payload=inbound.frame.payload)
+
+server.set_inbound_transaction_handler(on_inbound)
+server.listen(0)                                    # 0 selects an ephemeral port
+host, port = server.listening_address
+
+client = TransactingSocketHandlerClient(logger, JsonTransactionCodec())
+client.connect(host, port, timeout=5.0)
+outcome = client.send_transaction("request", 0, "hello", wait_ack=True, wait_result=True)
+outcome.success            # True iff send + every requested stage settled successfully
+outcome.result.payload     # "hello"
 ```
 
-`request_with_model` mirrors the CLI bridge: send a `DataModelHelper` (via `to_wire`) or raw bytes, and parse the reply via `model_type.from_wire`. Parsing runs only on a non-empty successful reply and never changes `success`.
-
-### Layer 4b — SocketTransactServer
-
-`socketTransactServer.py` is the server counterpart: it accepts connections, services requests, and can `broadcast` to every connected client. Lifecycle is `start` / `stop` / `serve_forever`, with `address` reporting the bound `(host, port)`.
+`InboundTransaction` (returned to an application's inbound handler) is an epoch-bound responder: `reply` is bound to the epoch that was active when the frame was routed, so a later replacement connection can never receive its frames even if the callback retains the instance. `send_transaction` never raises on execution — send failures, ACK rejection/timeout, and connection loss are all captured into the returned `TransactionOutcome` (`send_status` / `ack_status` / `completion_status`). A server maintains at most one active client; an admitted challenger replaces the incumbent.
 
 ---
 
