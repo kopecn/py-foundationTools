@@ -338,6 +338,31 @@ class TestAttachDetachLifecycle:
                     stuck_thread.join(TEST_TIMEOUT)
                 assert not stuck_thread.is_alive()
 
+    def test_detach_does_not_raise_when_receive_worker_never_started(self) -> None:
+        # Regression (plan 25, chunk 15 finding): the server publishes
+        # connection state (waking wait_for_connection / flipping is_connected)
+        # and stores the receive-thread object *before* Thread.start() runs. A
+        # caller that wakes on that state and immediately disconnects/kicks in
+        # the pre-start window must not hit "RuntimeError: cannot join thread
+        # before it is started" from _detach's bounded join.
+        handler = _HarnessSocketHandler(_logger("unstarted-join"))
+        with socketpair_context() as (left, _right):
+            epoch = handler.attach(left)
+            handler.detach(epoch)  # retire the real running thread first
+
+            with socketpair_context() as (left2, _right2):
+                epoch2 = handler.attach(left2)
+                never_started = threading.Thread(
+                    target=lambda: None, name="never-started-worker", daemon=True
+                )
+                # Substitute an unstarted thread to mimic the publish-before-start window.
+                handler.set_receive_thread_for_test(never_started)
+                assert never_started.ident is None
+
+                # Before the fix this raised RuntimeError on the unstarted-thread join.
+                assert handler.detach(epoch2) is True
+                assert never_started.ident is None  # still never started
+
 
 class TestEpochSafeSending:
     def test_send_for_epoch_rejects_a_non_active_epoch(self) -> None:

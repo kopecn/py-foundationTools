@@ -79,7 +79,11 @@ def _finalize_socket(
             sock.close()
         except OSError:
             pass
-        if thread is not None and thread is not threading.current_thread():
+        if (
+            thread is not None
+            and thread.ident is not None
+            and thread is not threading.current_thread()
+        ):
             thread.join(join_timeout)
             if thread.is_alive():
                 logger.warning("socket handler: receive worker still alive after finalization")
@@ -300,7 +304,15 @@ class SocketHandler:
             except OSError:
                 pass
 
-        if thread is not None and thread is not threading.current_thread():
+        # ``thread.ident is None`` means the receive worker was published (via
+        # _attach / server admission) but its ``Thread.start()`` had not yet run
+        # when this detach ran; joining an unstarted thread raises RuntimeError,
+        # so skip the join in that pre-start window.
+        if (
+            thread is not None
+            and thread.ident is not None
+            and thread is not threading.current_thread()
+        ):
             thread.join(self._join_timeout)
             if thread.is_alive():
                 self._logger.warning(
