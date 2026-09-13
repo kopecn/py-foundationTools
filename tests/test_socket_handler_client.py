@@ -5,13 +5,21 @@ before incumbent teardown, blocking-mode restoration after a successful
 connect, and candidate-socket cleanup with the original ``OSError``
 propagated on failure.
 
+Also covers chunk 17's lifecycle serialization (PA25-01): concurrent
+``connect()`` calls, and a ``connect()``/``disconnect()`` race, must not
+orphan a socket or receive worker.
+
 Socket-double tests monkeypatch ``socket.socket`` itself with a recording
 fake so constructor forwarding, timeout-validation order, socket
 family/type, the ``connect`` call, blocking-mode restoration, and candidate
 cleanup can be asserted deterministically without any real network I/O. Real
 loopback tests use ``tests/threaded_socket_helpers.ThreadedLoopbackListener``
 for actual connect/send/receive/disconnect and successful-reconnect
-behavior. No sleeps or randomness are used anywhere in this file.
+behavior. The lifecycle-serialization tests use ``threading.Event``-gated
+fake candidates (never a sleep or a barrier that would deadlock once
+serialization makes true internal overlap impossible) to force a
+deterministic ordering between two concurrent lifecycle calls. No sleeps or
+randomness are used anywhere in this file.
 """
 
 from __future__ import annotations
@@ -25,7 +33,7 @@ import threading
 import pytest
 
 from foundation_tools.socket_transaction.socket_handler_client import SocketHandlerClient
-from tests.threaded_socket_helpers import TEST_TIMEOUT, ThreadedLoopbackListener
+from tests.threaded_socket_helpers import TEST_TIMEOUT, ThreadedLoopbackListener, start_worker
 
 SHORT_TIMEOUT = 0.2
 
@@ -35,10 +43,33 @@ def _logger(name: str) -> logging.Logger:
 
 
 class _HarnessSocketHandlerClient(SocketHandlerClient):
-    """Exposes the protected receive-thread reference for white-box testing."""
+    """Exposes the protected receive-thread reference for white-box testing.
+
+    Also records every receive thread this handler has ever attached (not
+    just the current one), so a lifecycle-race test can assert that no
+    worker from a superseded attach survives -- the PA25-01 failure mode was
+    two live receive workers after two concurrent successful ``connect()``
+    calls.
+    """
+
+    def __init__(
+        self,
+        logger: logging.Logger,
+        *,
+        string_delimiter: str = "\n",
+        join_timeout: float = 1.0,
+    ) -> None:
+        super().__init__(logger, string_delimiter=string_delimiter, join_timeout=join_timeout)
+        self.attached_threads: list[threading.Thread] = []
 
     def receive_thread(self) -> threading.Thread | None:
         return self._receive_thread
+
+    def _attach(self, sock: socket.socket) -> int:
+        epoch = super()._attach(sock)
+        if self._receive_thread is not None:
+            self.attached_threads.append(self._receive_thread)
+        return epoch
 
 
 class _FakeConnectSocket:
@@ -247,6 +278,126 @@ class TestConnectSocketDouble:
         assert client.is_connected is False
         assert client.snapshot_active_epoch() is None
         assert client.receive_thread() is None
+
+
+class TestConcurrentConnectLifecycleSerialization:
+    """PA25-01 regression: two concurrent successful ``connect()`` calls must
+    not publish two live receive workers or leave a candidate unclosed.
+
+    The first candidate's ``connect()`` blocks (via an ``Event``) until the
+    test releases it, which -- once the lifecycle lock in chunk 17 is held
+    across candidate connect -- guarantees the second ``connect()`` call
+    cannot even begin its own critical section until the first finishes.
+    This makes the winning epoch, and which candidate ends up closed,
+    deterministic instead of scheduler-dependent.
+    """
+
+    def test_concurrent_connects_leave_one_incumbent_and_no_orphaned_worker(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        entered_first_connect = threading.Event()
+        release_first_connect = threading.Event()
+        created: list[_FakeConnectSocket] = []
+
+        class _BlockingFirstSocket(_FakeConnectSocket):
+            def connect(self, address: tuple[str, int]) -> None:
+                entered_first_connect.set()
+                assert release_first_connect.wait(TEST_TIMEOUT)
+                super().connect(address)
+
+        def _factory(family: int, type_: int, *_a: object, **_k: object) -> _FakeConnectSocket:
+            fake: _FakeConnectSocket
+            fake = _BlockingFirstSocket() if not created else _FakeConnectSocket()
+            fake.family = family
+            fake.type = type_
+            created.append(fake)
+            return fake
+
+        monkeypatch.setattr(socket, "socket", _factory)
+
+        client = _HarnessSocketHandlerClient(_logger("concurrent-connect"))
+
+        first = start_worker(
+            "connect-first", lambda: client.connect("example.invalid", 1, timeout=1.0)
+        )
+        assert entered_first_connect.wait(TEST_TIMEOUT)
+
+        second = start_worker(
+            "connect-second", lambda: client.connect("example.invalid", 2, timeout=1.0)
+        )
+
+        release_first_connect.set()
+
+        first.join(TEST_TIMEOUT)
+        second.join(TEST_TIMEOUT)
+
+        assert len(created) == 2
+        first_candidate, second_candidate = created
+
+        alive_after_connects = [t for t in client.attached_threads if t.is_alive()]
+        assert len(alive_after_connects) == 1
+        assert alive_after_connects[0] is client.receive_thread()
+
+        assert client.is_connected is True
+        assert first_candidate.closed is True
+        assert second_candidate.closed is False
+
+        client.disconnect()
+
+        assert client.is_connected is False
+        assert second_candidate.closed is True
+        assert all(not t.is_alive() for t in client.attached_threads)
+
+
+class TestConnectDisconnectInterleaving:
+    """A public ``disconnect()`` racing an in-flight ``connect()`` must
+    serialize behind it and then tear down what it attached, rather than
+    completing as a no-op against a not-yet-attached candidate.
+    """
+
+    def test_disconnect_started_during_connect_waits_then_tears_it_down(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        entered_connect = threading.Event()
+        release_connect = threading.Event()
+
+        class _BlockingSocket(_FakeConnectSocket):
+            def connect(self, address: tuple[str, int]) -> None:
+                entered_connect.set()
+                assert release_connect.wait(TEST_TIMEOUT)
+                super().connect(address)
+
+        created: list[_FakeConnectSocket] = []
+
+        def _factory(family: int, type_: int, *_a: object, **_k: object) -> _FakeConnectSocket:
+            fake = _BlockingSocket()
+            fake.family = family
+            fake.type = type_
+            created.append(fake)
+            return fake
+
+        monkeypatch.setattr(socket, "socket", _factory)
+
+        client = _HarnessSocketHandlerClient(_logger("connect-disconnect-race"))
+
+        connect_worker = start_worker(
+            "connect-in-flight",
+            lambda: client.connect("example.invalid", 12345, timeout=1.0),
+        )
+        assert entered_connect.wait(TEST_TIMEOUT)
+
+        disconnect_worker = start_worker("disconnect-in-flight", client.disconnect)
+
+        release_connect.set()
+
+        connect_worker.join(TEST_TIMEOUT)
+        disconnect_worker.join(TEST_TIMEOUT)
+
+        assert client.is_connected is False
+        assert client.snapshot_active_epoch() is None
+        assert len(created) == 1
+        assert created[0].closed is True
+        assert all(not t.is_alive() for t in client.attached_threads)
 
 
 class TestConnectRealLoopback:
