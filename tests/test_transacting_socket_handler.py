@@ -20,6 +20,7 @@ observe a real timeout (``SHORT_TIMEOUT``) are asserting timeout behavior
 itself, not working around a race.
 """
 
+import json
 import logging
 import threading
 from collections.abc import Callable
@@ -432,6 +433,23 @@ class TestReceivePipeline:
         transport.deliver(1, "not valid json")
 
         assert received == ["not valid json"]
+        assert inbound_calls == []
+
+    def test_non_finite_numeric_field_skips_routing_but_still_reaches_the_string_handler(
+        self,
+    ) -> None:
+        transport, _core, engine = _build()
+        transport.attach(1)
+
+        received: list[str] = []
+        inbound_calls: list[InboundTransaction] = []
+        engine.set_string_message_handler(received.append)
+        engine.set_inbound_transaction_handler(inbound_calls.append)
+
+        token = json.dumps({"tx_id": float("inf"), "msg_type": "req", "code": 0})
+        transport.deliver(1, token)
+
+        assert received == [token]
         assert inbound_calls == []
 
     def test_decoded_frame_is_routed_before_the_string_handler_runs(self) -> None:

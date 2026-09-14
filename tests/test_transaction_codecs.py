@@ -235,6 +235,26 @@ class TestJsonTransactionCodecMalformed:
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
+    def test_decode_rejects_positive_infinity_tx_id(self) -> None:
+        obj = {"tx_id": float("inf"), "msg_type": "req", "code": 0}
+        with pytest.raises(ValueError):
+            JsonTransactionCodec().decode(json.dumps(obj))
+
+    def test_decode_rejects_negative_infinity_tx_id(self) -> None:
+        obj = {"tx_id": float("-inf"), "msg_type": "req", "code": 0}
+        with pytest.raises(ValueError):
+            JsonTransactionCodec().decode(json.dumps(obj))
+
+    def test_decode_rejects_positive_infinity_code(self) -> None:
+        obj = {"tx_id": 1, "msg_type": "req", "code": float("inf")}
+        with pytest.raises(ValueError):
+            JsonTransactionCodec().decode(json.dumps(obj))
+
+    def test_decode_rejects_negative_infinity_code(self) -> None:
+        obj = {"tx_id": 1, "msg_type": "req", "code": float("-inf")}
+        with pytest.raises(ValueError):
+            JsonTransactionCodec().decode(json.dumps(obj))
+
 
 class TestAngleBracketTransactionCodecDelimiter:
     def test_delimiter_is_newline(self) -> None:

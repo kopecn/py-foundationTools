@@ -61,7 +61,7 @@ def _decode_numeric_field(value: Any, field_name: str) -> int:
         raise ValueError(f"'{field_name}' must be an int, float, or numeric string")
     try:
         return int(value)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"'{field_name}' could not be converted to int: {exc}") from exc
 
 
