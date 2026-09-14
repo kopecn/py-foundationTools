@@ -18,7 +18,6 @@ later chunks; this module intentionally has no package export yet.
 
 from __future__ import annotations
 
-import atexit
 import codecs
 import logging
 import math
@@ -94,6 +93,64 @@ def _finalize_socket(
             pass
 
 
+def _receive_worker(
+    owner_ref: weakref.ReferenceType[SocketHandler],
+    epoch: int,
+    sock: socket.socket,
+    stop_event: threading.Event,
+) -> None:
+    """Receive-thread target holding only a weak reference to its owner.
+
+    Takes ``owner_ref`` rather than a bound method so the running
+    ``threading.Thread`` -- kept alive by the interpreter's own thread
+    bookkeeping for as long as it is blocked in ``recv`` -- can never itself
+    keep an otherwise-unreachable ``SocketHandler`` alive (PA25-05). The
+    owner is resolved fresh only when dispatch or a conditional detach
+    actually needs it, and the local reference is dropped again before the
+    next blocking ``recv`` so it is never pinned across an iteration.
+
+    ``owner_ref()`` resolving to ``None`` means the handler has already been
+    collected: ``weakref.finalize`` will have made (or is about to make) the
+    same best-effort socket-close/stop-event cleanup this worker would
+    otherwise perform on EOF/error, so this simply returns without
+    duplicating it.
+    """
+    try:
+        while True:
+            try:
+                data = sock.recv(4096)
+            except OSError:
+                if stop_event.is_set():
+                    return
+                owner = owner_ref()
+                if owner is not None:
+                    owner._detach(epoch, cause="receive error")
+                return
+
+            if stop_event.is_set():
+                return
+
+            if not data:
+                owner = owner_ref()
+                if owner is not None:
+                    owner._detach(epoch, cause="peer closed connection")
+                return
+
+            owner = owner_ref()
+            if owner is None:
+                return
+            try:
+                owner._process_received_chunk(epoch, data)
+            finally:
+                del owner
+    except Exception:
+        owner = owner_ref()
+        if owner is not None:
+            owner._logger.exception(
+                "socket handler: receive loop for epoch %s crashed unexpectedly", epoch
+            )
+
+
 class SocketHandler:
     """Owns one attached ``socket.socket`` and its connection epoch.
 
@@ -145,8 +202,13 @@ class SocketHandler:
         self._text_decoder: codecs.IncrementalDecoder | None = None
         self._pending_text: str = ""
 
+        # Registered per-attach in `_attach` (not here, and not via
+        # `atexit.register`): a bound method registered at construction time
+        # would retain this handler for the atexit module's lifetime, which
+        # is exactly the strong-reference path PA25-05 requires removed.
+        # `weakref.finalize` makes its own best-effort process-exit
+        # invocation, so no separate atexit registration is needed.
         self._finalizer: weakref.finalize[..., SocketHandler] | None = None
-        atexit.register(self._atexit_cleanup)
 
     # -- public surface (threadedSocketTransport.md#common-handler) --------
 
@@ -252,9 +314,10 @@ class SocketHandler:
             self._text_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
             self._pending_text = ""
             self._stop_event.clear()
+            owner_ref = weakref.ref(self)
             thread = threading.Thread(
-                target=self._receive_loop,
-                args=(epoch, sock, self._stop_event),
+                target=_receive_worker,
+                args=(owner_ref, epoch, sock, self._stop_event),
                 name=f"{type(self).__name__}-receive-{epoch}",
                 daemon=True,
             )
@@ -320,30 +383,6 @@ class SocketHandler:
                     expected_epoch,
                 )
         return True
-
-    def _receive_loop(self, epoch: int, sock: socket.socket, stop_event: threading.Event) -> None:
-        try:
-            while True:
-                try:
-                    data = sock.recv(4096)
-                except OSError:
-                    if stop_event.is_set():
-                        return
-                    self._detach(epoch, cause="receive error")
-                    return
-
-                if stop_event.is_set():
-                    return
-
-                if not data:
-                    self._detach(epoch, cause="peer closed connection")
-                    return
-
-                self._process_received_chunk(epoch, data)
-        except Exception:
-            self._logger.exception(
-                "socket handler: receive loop for epoch %s crashed unexpectedly", epoch
-            )
 
     def _process_received_chunk(self, epoch: int, data: bytes) -> None:
         """Extension point for received-byte dispatch.
@@ -436,13 +475,8 @@ class SocketHandler:
                 "socket handler: connection observer on_epoch_closed raised for epoch %s", epoch
             )
 
-    # -- best-effort process-exit cleanup ------------------------------------
-
-    def _atexit_cleanup(self) -> None:
-        try:
-            self.disconnect()
-        except Exception:  # pragma: no cover - defensive: atexit must never raise
-            try:
-                self._logger.debug("socket handler: atexit cleanup raised", exc_info=True)
-            except Exception:
-                pass
+    # Process-exit cleanup: no separate `atexit`-registered instance method.
+    # `weakref.finalize` (registered per-attach above) makes its own
+    # best-effort process-exit invocation of `_finalize_socket`, which is the
+    # same callback GC finalization uses -- see
+    # `.claude/specs/threadedSocketTransport.md#detachment-and-cleanup`.

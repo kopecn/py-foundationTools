@@ -26,7 +26,11 @@ import weakref
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from foundation_tools.socket_transaction.socket_handler import SocketHandler, _finalize_socket
+from foundation_tools.socket_transaction.socket_handler import (
+    SocketHandler,
+    _finalize_socket,
+    _receive_worker,
+)
 
 
 @dataclass
@@ -430,9 +434,10 @@ class SocketHandlerServer(SocketHandler):
             if self._epoch != epoch or self._socket is None:
                 return
             sock = self._socket
+            owner_ref = weakref.ref(self)
             thread = threading.Thread(
-                target=self._receive_loop,
-                args=(epoch, sock, self._stop_event),
+                target=_receive_worker,
+                args=(owner_ref, epoch, sock, self._stop_event),
                 name=f"{type(self).__name__}-receive-{epoch}",
                 daemon=True,
             )

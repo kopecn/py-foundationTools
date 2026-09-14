@@ -14,16 +14,22 @@ needs to wait for an asynchronously delivered callback, it uses a bounded
 
 from __future__ import annotations
 
+import gc
 import logging
 import math
 import queue
 import socket
 import threading
+import weakref
 from typing import cast
 
 import pytest
 
-from foundation_tools.socket_transaction.socket_handler import EpochSendStatus, SocketHandler
+from foundation_tools.socket_transaction.socket_handler import (
+    EpochSendStatus,
+    SocketHandler,
+    _finalize_socket,
+)
 from tests.threaded_socket_helpers import (
     TEST_TIMEOUT,
     WorkerTimeoutError,
@@ -493,6 +499,68 @@ class TestCleanupRegistration:
             # Replacing the finalizer detaches the previous one so it cannot
             # double-close a socket that normal detach already tore down.
             assert first_finalizer.alive is False
+
+    def test_finalizer_callback_never_raises_on_unexpected_error(self) -> None:
+        """The finalizer callback (used by both GC finalization and process
+        exit, per ``.claude/specs/threadedSocketTransport.md#detachment-and-
+        cleanup``) must remain best-effort and non-raising even when the
+        captured socket raises something other than the ``OSError`` its
+        inline ``shutdown``/``close`` guards already expect.
+        """
+
+        class _RaisingSocket:
+            def shutdown(self, how: int) -> None:
+                raise RuntimeError("shutdown boom")
+
+            def close(self) -> None:
+                raise RuntimeError("close boom")
+
+        stop_event = threading.Event()
+        _finalize_socket(
+            cast(socket.socket, _RaisingSocket()),
+            None,
+            stop_event,
+            SHORT_TIMEOUT,
+            _logger("finalizer-exception-containment"),
+        )
+        # The stop event is signaled before the raising shutdown call, and
+        # the unexpected exception is contained rather than propagated.
+        assert stop_event.is_set()
+
+
+class TestGarbageCollectionCleanup:
+    """PA25-05: an active handler with no remaining application references
+    must become collectible, and its peer must observe socket closure,
+    without an explicit ``disconnect()`` call. See
+    ``.claude/plans/25-threaded-socket-transaction/21-gc-socket-cleanup.md``.
+    """
+
+    def test_unreachable_handler_is_collected_and_peer_observes_closure(self) -> None:
+        with socketpair_context() as (left, right):
+            handler = _HarnessSocketHandler(_logger("gc-cleanup"))
+            handler.attach(left)
+            thread = handler.receive_thread()
+            assert thread is not None
+            handler_ref: weakref.ReferenceType[_HarnessSocketHandler] = weakref.ref(handler)
+
+            del handler
+            # Bounded, not sleep-based: a handful of collection passes is
+            # enough to prove reachability, never used to wait out a timing
+            # race.
+            for _ in range(10):
+                gc.collect()
+                if handler_ref() is None:
+                    break
+
+            assert handler_ref() is None, (
+                "an active handler with no application references must become "
+                "unreachable under bounded gc.collect() polling (PA25-05)"
+            )
+
+            thread.join(TEST_TIMEOUT)
+            assert not thread.is_alive()
+            # The peer observes closure without any explicit disconnect().
+            assert right.recv(16) == b""
 
 
 class TestRawAndTextDispatch:
