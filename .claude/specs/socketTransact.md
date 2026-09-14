@@ -1,14 +1,17 @@
 ---
 spec: SocketTransact
 scope: project
-status: implemented
+status: superseded
+superseded_by: threadedSocketTransaction.md
 applies_to: src/foundation_tools/socket_transaction/
-last_updated: 2026-09-11
-semver: 0.5.0
+last_updated: 2026-09-13
+semver: 0.6.1
 author: Nicholas Bergantz
 ---
 
 # Socket Transaction Transport Layer Specification
+
+> **Superseded on 2026-09-12.** The accepted replacement contract is [threadedSocketTransaction.md](threadedSocketTransaction.md) and its linked transport, protocol, and facade specifications. The breaking cutover (Action Plan 25, chunk 16) has been executed: `src/foundation_tools/socket_transaction/` now implements only the threaded contract. This document retains the asyncio-era contract as implementation history only.
 
 > **Status — implemented.** All layers described below — the raw transport, the
 > framing codecs, the transaction router, and both the client (`SocketTransact`)

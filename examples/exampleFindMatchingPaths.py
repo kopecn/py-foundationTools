@@ -10,9 +10,11 @@ root = Path.home() / "workspace" / "data"
 print("---- Downloads ----")
 downloads_folder = Path.home().joinpath("Downloads")
 if downloads_folder.exists() and downloads_folder.is_dir():
+
     files = find_matching_paths(
         starting_dir=downloads_folder,
     )
+
     for file in files:
         print(file)
 
@@ -20,20 +22,24 @@ if downloads_folder.exists() and downloads_folder.is_dir():
 print("\n\n\n---- Documents, pdfs ----")
 downloads_folder = Path.home().joinpath("Documents")
 if downloads_folder.exists() and downloads_folder.is_dir():
+
     files = find_matching_paths(
         starting_dir=downloads_folder,
         extensions=[".pdf"],
     )
+
     for file in files:
         print(file)
 
 print("\n\n\n---- User Home, *Img* ----")
 downloads_folder = Path.home()
 if downloads_folder.exists() and downloads_folder.is_dir():
+
     files = find_matching_paths(
         starting_dir=downloads_folder,
         pattern="*code*",
     )
+
     for file in files:
         print(file)
 

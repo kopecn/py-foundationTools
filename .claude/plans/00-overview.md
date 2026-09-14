@@ -3,7 +3,7 @@ plan: PresentationsOverview
 scope: project
 status: active
 last_updated: 2026-08-28
-semver: 1.1.0
+semver: 1.1.1
 author: Nicholas Bergantz
 ---
 
@@ -39,3 +39,7 @@ work to that repository.
 - Do not add runtime dependencies or PowerPoint rendering here.
 - Do not restore files removed by `c78008a` merely because the old plan mentioned them.
 - Specs record agreed contracts; they do not override this source request.
+
+## Additional active plans
+
+- [Plan 26 — Reliable Bidirectional Named-Pipe IPC](26-named-pipe-ipc.md)

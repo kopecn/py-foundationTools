@@ -3,12 +3,14 @@ spec: TransportTransactionArchitecture
 scope: project
 status: accepted
 applies_to: src/foundation_tools/cli_transaction/, src/foundation_tools/builders/, src/foundation_tools/policies/, src/foundation_tools/socket_transaction/
-last_updated: 2026-08-15
-semver: 0.4.2
+last_updated: 2026-09-13
+semver: 0.6.0
 author: Nicholas Bergantz
 ---
 
 # Transport Transaction Architecture
+
+> **Socket-family cutover complete.** The socket-specific sections below describe the synchronous threaded stack now implemented in `src/foundation_tools/socket_transaction/`; the authoritative contract is [threadedSocketTransaction.md](threadedSocketTransaction.md) and its sibling transport/protocol/facade specifications. The asyncio-era contract is retained only as implementation history in [socketTransact.md](socketTransact.md) (status: superseded).
 
 ## Overview
 
@@ -19,10 +21,11 @@ strict layer ownership) and one serialization bridge (`DataModelHelper`):
 1. **Process transactions** — one-shot external command execution.
    `CLITransact` is the execution kernel; SSH, rsync, Docker, Git, etc. are thin
    transactional layers above it.
-2. **Stream transports** — long-lived byte-stream connections (TCP sockets, serial,
-   EtherCAT) built on the `foundation_abc.PeripheralByteTransport` ABC, with framing
-   codecs and a transaction router layered on top (see
-   [socketTransact.md](socketTransact.md)).
+2. **Stream transports** — long-lived byte-stream connections. The TCP socket
+   family is a synchronous, threaded stack built directly on `socket`/`threading`
+   (see [threadedSocketTransaction.md](threadedSocketTransaction.md)); serial and
+   EtherCAT transports are built separately on the `foundation_abc.PeripheralByteTransport`
+   ABC, which the socket family does not implement.
 
 Both families live under `src/foundation_tools/` and meet the data-model layer through
 `DataModelHelper` wire serialization (see [Wire Serialization Bridge](#wire-serialization-bridge)).
@@ -41,14 +44,14 @@ This architecture separates execution mechanics from transport semantics.
   Process transactions                     Stream transports
   (one-shot commands)                      (long-lived connections)
         │                                         │
-  SSHTransact / RsyncTransact / …           SocketTransact
+  SSHTransact / RsyncTransact / …    TransactingSocketHandlerClient/Server
         │                                         │
-  Command Builders + Execution Policies     Tx Router + Framing Codecs
+  Command Builders + Execution Policies     TransactionCore + TransactionCodec
         │                                         │
-     CLITransact                           SocketByteTransport
-        │                                  (PeripheralByteTransport ABC)
+     CLITransact                           SocketHandlerClient/Server
+        │                                  (epoch-bound SocketHandler)
         ▼                                         ▼
-    subprocess                              asyncio streams
+    subprocess                              socket.socket + threading
         └────────────────────┬────────────────────┘
                              ▼
               DataModelHelper (to_wire / from_wire)
@@ -74,11 +77,16 @@ src/foundation_tools/
         retry_policy.py         # implemented
         backoff_policy.py       # implemented
     socket_transaction/
-        socket_byte_transport.py    # implemented
-        framing_codecs.py           # implemented
-        transaction_router.py       # implemented
-        socketTransact.py           # implemented — client facade
-        socketTransactServer.py     # implemented — server facade
+        socket_handler.py                        # implemented — epoch-bound socket ownership
+        socket_handler_client.py                 # implemented
+        socket_handler_server.py                 # implemented
+        binary_framed_socket_handler_client.py    # implemented — binary framing specialization
+        transaction_models.py                     # implemented
+        transaction_codecs.py                     # implemented
+        transaction_core.py                       # implemented
+        transacting_socket_handler.py             # implemented — shared engine
+        transacting_socket_handler_client.py      # implemented — client facade
+        transacting_socket_handler_server.py      # implemented — server facade
 ```
 
 `cliTransact.py` **is** the execution kernel — there is no separate
@@ -90,12 +98,13 @@ src/foundation_tools/
 
 End users interact with exactly two kinds of objects:
 
-1. **Layer-4 transactions** — `CLITransact`, `SSHTransact`, `RsyncTransact`,
-   `SocketTransact`. Each is a one-call, stateless surface mirroring the existing
-   four-classmethod pattern (`run_sync` / `run_async` / `run_sync_with_model` /
-   `run_async_with_model`, or the socket equivalent).
-2. **Result objects** — `CLITransactResult`, `CLITransactResultModel[T]`,
-   `SocketTransactResult`. Transaction surfaces return results; they never raise.
+1. **Layer-4 transactions** — `CLITransact`, `SSHTransact`, `RsyncTransact` mirror
+   the four-classmethod pattern (`run_sync` / `run_async` / `run_sync_with_model` /
+   `run_async_with_model`). The socket family's equivalent one-call surface is
+   `TransactingSocketHandlerClient`/`TransactingSocketHandlerServer.send_transaction`.
+2. **Result objects** — `CLITransactResult`, `CLITransactResultModel[T]` for the
+   process family; `TransactionOutcome` for the socket family. Transaction
+   surfaces return results; they never raise.
 
 Builders, policies, and codecs are **internal-but-importable**: available for
 composition by advanced users, never required for the common path. Adding a
@@ -364,41 +373,49 @@ It delegates execution to CLITransact.
 
 # Stream-Transport Family (socket)
 
-Status: Implemented — full contract in [socketTransact.md](socketTransact.md).
+Status: Implemented — full contract in [threadedSocketTransaction.md](threadedSocketTransaction.md)
+and its sibling layer specs, [threadedSocketTransport.md](threadedSocketTransport.md),
+[threadedTransactionProtocol.md](threadedTransactionProtocol.md), and
+[transactingSocketHandlers.md](transactingSocketHandlers.md).
 
 The socket family is the long-lived-connection counterpart to the process family.
-It is **asyncio-native** and layers as:
+It is **synchronous and threaded**, built directly on `socket`/`threading` with no
+`asyncio` dependency, and layers as:
 
 ```
-SocketTransact              # Layer 4 — public facade, result objects
+TransactingSocketHandlerClient / TransactingSocketHandlerServer   # public facades
         │
-Transaction Router          # tx_id correlation via asyncio futures
+TransactionCore                     # identifiers, pending state, routing
         │
-Framing Codecs              # delimiter / length-prefixed framing,
-        │                   # DataModelHelper to_wire / from_wire
-SocketByteTransport         # implements foundation_abc.PeripheralByteTransport
+TransactionCodec                    # JsonTransactionCodec / AngleBracketTransactionCodec
         │
-asyncio streams
+SocketHandlerClient / SocketHandlerServer   # connection lifecycle, receive/accept threads
+        │
+SocketHandler                       # epoch-bound socket ownership
+        │
+socket.socket + threading
 ```
 
 Parallels with the process family are deliberate:
 
 | process family | stream family |
 | --- | --- |
-| CLITransact (kernel) | SocketByteTransport (raw bytes) |
-| Command Builders | Framing Codecs |
-| Execution Policies | Transaction Router policies (timeout, correlation) |
-| SSHTransact / RsyncTransact | SocketTransact |
-| `CLITransactResult` | `SocketTransactResult` |
+| CLITransact (kernel) | SocketHandler (raw bytes, epoch-bound) |
+| Command Builders | TransactionCodec |
+| Execution Policies | TransactionCore (timeout, correlation) |
+| SSHTransact / RsyncTransact | TransactingSocketHandlerClient / TransactingSocketHandlerServer |
+| `CLITransactResult` | `TransactionOutcome` |
 
-The raw transport keeps the ABC's raising semantics (`ConnectionError`,
-`TimeoutError`); the **transaction surface** (`SocketTransact`) converts failures to
-result objects, matching the process family's containment ethos.
+The **transaction surface** (`send_transaction`) never raises on execution — send
+failures, ACK rejection/timeout, and connection loss are captured into the
+returned `TransactionOutcome`, matching the process family's containment ethos.
 
-The family covers both roles: `SocketTransact` (client) and `SocketTransactServer`
-(server — accepts connections, services plural inbound requests concurrently, and
-replies tagged with each request's tx_id). The layers beneath the facades (codecs,
-correlation pair) are shared between roles.
+The family covers both roles: `TransactingSocketHandlerClient` and
+`TransactingSocketHandlerServer` (server — maintains at most one active client,
+services inbound requests, and replies tagged with each request's transaction
+id). The layers beneath the facades (codec, transaction core) are shared between
+roles. `BinaryFramedSocketHandlerClient` is a parallel transport specialization
+for pluggable binary framing.
 
 ---
 
@@ -411,8 +428,8 @@ data-model layer:
   `from_dict`-based parser) is the canonical `output_parser` for the
   `run_*_with_model` methods. Models parsed from CLI output should be
   schema-generated `DataModelHelper` subclasses, not ad-hoc classes.
-- **Stream family:** framing codecs encode outbound payloads with
-  `DataModelHelper.to_wire` and decode inbound frames with
+- **Stream family:** `TransactionCodec` implementations encode outbound payloads
+  with `DataModelHelper.to_wire` and decode inbound frames with
   `DataModelHelper.from_wire` (via the `wire_encode` / `wire_decode` ClassVars).
 
 No transport module defines its own serialization format; they compose the bridge.
@@ -423,9 +440,9 @@ request that produces a model's wire input, independent of `wire_encode`/
 `wire_decode`. `CLITransact.run_*_with_model` accepts a bare `DataModelHelper`
 subclass and resolves `wire_invoke` + `from_wire` for it (see
 [cliTransact.md](cliTransact.md)) — today only for `str`/`list[str]` requests.
-Should `SSHTransact`/`SocketTransact` grow the same model-based call form, the
-same asymmetry holds: `wire_invoke` is the request, `from_wire` parses the
-result, and an arm a given transport doesn't understand (e.g.
+Should `SSHTransact`/the socket transacting facades grow the same model-based
+call form, the same asymmetry holds: `wire_invoke` is the request, `from_wire`
+parses the result, and an arm a given transport doesn't understand (e.g.
 `type[DataModelHelper]` for a transport that isn't request/response-over-model)
 raises rather than inventing a meaning for it — this is a forward-looking note,
 not an implemented capability of those transports.
@@ -437,17 +454,17 @@ not an implemented capability of those transports.
 Dependencies are strictly one-way.
 
 ```
-CLITransact / SocketByteTransport
+CLITransact / SocketHandler
 
 ↑
 
-Policies / Codecs / Router
+Policies / TransactionCodec / TransactionCore
 
 ↑
 
 RsyncTransact
 SSHTransact
-SocketTransact
+TransactingSocketHandlerClient / TransactingSocketHandlerServer
 
 ↑
 
