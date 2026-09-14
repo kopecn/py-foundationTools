@@ -136,6 +136,14 @@ class TestSimultaneousBidirectionalTransactions:
         client_release = threading.Event()
         server_request_entered = threading.Event()
         server_release = threading.Event()
+        # Set the instant `client_inbound_handler` has issued its reply --
+        # deterministic proof of reply *issuance* order between the two
+        # handlers, independent of the (racy, wire-latency-dependent) order
+        # in which each side's peer actually reads and completes on it: each
+        # side's receive thread is busy running the *other* role's inbound
+        # handler until that handler returns, so neither transaction's own
+        # completion is observable until both releases have fired anyway.
+        client_answers_server_sent = threading.Event()
 
         def server_inbound_handler(inbound: InboundTransaction) -> None:
             # Answers the request the client initiated.
@@ -150,6 +158,7 @@ class TestSimultaneousBidirectionalTransactions:
             server_request_entered.set()
             assert server_release.wait(TEST_TIMEOUT)
             assert inbound.reply("res", 0, payload="client-answers-server") is True
+            client_answers_server_sent.set()
 
         server.set_inbound_transaction_handler(server_inbound_handler)
         client.set_inbound_transaction_handler(client_inbound_handler)
@@ -168,14 +177,24 @@ class TestSimultaneousBidirectionalTransactions:
                 def _initiate_from_client() -> None:
                     both_registered.wait(TEST_TIMEOUT)
                     outcome = client.send_transaction(
-                        "request", 0, "from-client", wait_result=True, timeout=TEST_TIMEOUT
+                        "request",
+                        0,
+                        "from-client",
+                        wait_ack=True,
+                        wait_result=True,
+                        timeout=TEST_TIMEOUT,
                     )
                     outcomes.put(("client", outcome))
 
                 def _initiate_from_server() -> None:
                     both_registered.wait(TEST_TIMEOUT)
                     outcome = server.send_transaction(
-                        "request", 0, "from-server", wait_result=True, timeout=TEST_TIMEOUT
+                        "request",
+                        0,
+                        "from-server",
+                        wait_ack=True,
+                        wait_result=True,
+                        timeout=TEST_TIMEOUT,
                     )
                     outcomes.put(("server", outcome))
 
@@ -187,18 +206,21 @@ class TestSimultaneousBidirectionalTransactions:
                     assert client_request_entered.wait(TEST_TIMEOUT)
                     assert server_request_entered.wait(TEST_TIMEOUT)
 
-                    # Release in the opposite order from initiation: the
-                    # responder answering the server-initiated request
-                    # (running on the client) finishes first, even though
-                    # the client's own request was registered first.
+                    # Release in the opposite order from initiation, and
+                    # prove that ordering is real rather than incidental:
+                    # `client_inbound_handler`'s reply must actually be
+                    # issued on the wire before `client_release` is ever
+                    # set, so `server_inbound_handler`'s own reply is
+                    # deterministically issued second.
                     server_release.set()
+                    assert client_answers_server_sent.wait(TEST_TIMEOUT)
                     client_release.set()
             finally:
                 client.disconnect()
         finally:
             server.stop()
 
-        collected = dict(outcomes.get_nowait() for _ in range(2))
+        collected = dict(outcomes.get(timeout=TEST_TIMEOUT) for _ in range(2))
         client_outcome = collected["client"]
         server_outcome = collected["server"]
 
@@ -206,12 +228,17 @@ class TestSimultaneousBidirectionalTransactions:
         assert server_outcome.tx_id % 2 == 0
         assert client_outcome.send_status is SendStatus.SENT
         assert server_outcome.send_status is SendStatus.SENT
+        # Every requested ACK/result stage, for both distinct-id-space
+        # transactions.
+        assert client_outcome.ack_status is AckStatus.ACKNOWLEDGED
+        assert server_outcome.ack_status is AckStatus.ACKNOWLEDGED
         assert client_outcome.completion_status is CompletionStatus.RESULT
         assert server_outcome.completion_status is CompletionStatus.RESULT
         assert client_outcome.result is not None
         assert server_outcome.result is not None
         assert client_outcome.result.payload == "server-answers-client"
         assert server_outcome.result.payload == "client-answers-server"
+        assert client_outcome.tx_id != server_outcome.tx_id
 
 
 class TestTransactionEvent:

@@ -241,6 +241,87 @@ class TestWaitUnknownIdentifier:
         assert core.wait_completion(999, timeout=0) is None
 
 
+class TestNoneTimeoutWaitsWokenDeterministically:
+    """Design constraint (plan 25, chunk 24): a ``timeout=None`` wait selects
+    an unbounded public wait; exercise it by actually blocking a worker on
+    it and waking that block through the real ``route()``/``fail_epoch()``
+    production paths (not the private ``_settle_*`` test-only shortcuts used
+    elsewhere in this file), then join it with a single bound. Because
+    ``threading.Event.set()`` before ``wait()`` still makes ``wait()``
+    return immediately, ordering between "worker enters wait" and "this test
+    wakes it" cannot race here -- either way the join stays bounded and no
+    worker is ever left running past ``TEST_TIMEOUT``.
+    """
+
+    def test_wait_ack_with_none_timeout_is_woken_by_a_successful_ack_route(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        started = threading.Event()
+        results: list[AckStatus | None] = []
+
+        def _wait() -> None:
+            started.set()
+            results.append(core.wait_ack(1, timeout=None))
+
+        handle = start_worker("none-ack-wait", _wait)
+        assert started.wait(TEST_TIMEOUT)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=0, payload=None))
+        handle.join(TEST_TIMEOUT)
+
+        assert results == [AckStatus.ACKNOWLEDGED]
+
+    def test_wait_completion_with_none_timeout_is_woken_by_a_successful_result_route(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        started = threading.Event()
+        results: list[CompletionStatus | None] = []
+
+        def _wait() -> None:
+            started.set()
+            results.append(core.wait_completion(1, timeout=None))
+
+        handle = start_worker("none-completion-wait", _wait)
+        assert started.wait(TEST_TIMEOUT)
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok"))
+        handle.join(TEST_TIMEOUT)
+
+        assert results == [CompletionStatus.RESULT]
+
+    def test_wait_ack_with_none_timeout_is_woken_by_epoch_failure(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        started = threading.Event()
+        results: list[AckStatus | None] = []
+
+        def _wait() -> None:
+            started.set()
+            results.append(core.wait_ack(1, timeout=None))
+
+        handle = start_worker("none-ack-wait-epoch-fail", _wait)
+        assert started.wait(TEST_TIMEOUT)
+        core.fail_epoch(1, "connection lost")
+        handle.join(TEST_TIMEOUT)
+
+        assert results == [AckStatus.CONNECTION_CLOSED]
+
+    def test_wait_completion_with_none_timeout_is_woken_by_epoch_failure(self) -> None:
+        core = _core()
+        core.register(epoch=1, tx_id=1)
+        started = threading.Event()
+        results: list[CompletionStatus | None] = []
+
+        def _wait() -> None:
+            started.set()
+            results.append(core.wait_completion(1, timeout=None))
+
+        handle = start_worker("none-completion-wait-epoch-fail", _wait)
+        assert started.wait(TEST_TIMEOUT)
+        core.fail_epoch(1, "connection lost")
+        handle.join(TEST_TIMEOUT)
+
+        assert results == [CompletionStatus.CONNECTION_CLOSED]
+
+
 class TestWaitAckTimeoutSettlement:
     def test_unresolved_stage_settles_as_timed_out(self) -> None:
         core = _core()

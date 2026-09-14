@@ -895,3 +895,106 @@ class TestReceiveRaces:
                 observer.tokens.get(timeout=SHORT_TIMEOUT)
 
             handler.detach(epoch2)
+
+
+class TestMalformedUtf8Replacement:
+    """Design constraint (plan 25, chunk 24): a malformed byte must be
+    substituted with U+FFFD rather than raising or dropping neighboring
+    valid bytes (``.claude/specs/threadedSocketTransport.md#receive-dispatch``:
+    "using replacement for malformed sequences")."""
+
+    def test_malformed_utf8_byte_is_replaced_and_does_not_lose_neighboring_ascii(self) -> None:
+        handler = _HarnessSocketHandler(_logger("malformed-utf8"))
+        tokens: queue.Queue[str] = queue.Queue()
+        handler.set_string_message_handler(tokens.put)
+        with socketpair_context() as (left, right):
+            epoch = handler.attach(left)
+            # 0xFF is never a valid UTF-8 lead byte; the incremental decoder
+            # must substitute U+FFFD for it rather than raising or dropping
+            # the surrounding bytes.
+            right.sendall(b"\xffbad\n")
+            token = tokens.get(timeout=TEST_TIMEOUT)
+            assert token == "�bad"
+            handler.detach(epoch)
+
+
+class TestIncompleteTextDiscardOnEpochChange:
+    """Design constraint (plan 25, chunk 24): an incomplete token buffered
+    with no delimiter yet must be discarded, not carried across a
+    detach/reattach, per ``.claude/specs/threadedSocketTransport.md#detachment-
+    and-cleanup``: "An incomplete code point or token SHALL be discarded
+    rather than delivered on detachment."."""
+
+    def test_pending_text_without_a_delimiter_is_discarded_when_the_epoch_changes(self) -> None:
+        handler = _HarnessSocketHandler(_logger("incomplete-text-discard"))
+        tokens: queue.Queue[str] = queue.Queue()
+        handler.set_string_message_handler(tokens.put)
+        with socketpair_context() as (left1, right1):
+            epoch1 = handler.attach(left1)
+            right1.sendall(b"abc")  # buffered, no delimiter yet
+            with pytest.raises(queue.Empty):
+                tokens.get(timeout=SHORT_TIMEOUT)
+            handler.detach(epoch1)
+
+        with socketpair_context() as (left2, right2):
+            epoch2 = handler.attach(left2)
+            right2.sendall(b"def\n")
+            # If the incomplete "abc" leaked across the epoch change, this
+            # would arrive as "abcdef" instead of "def".
+            assert tokens.get(timeout=TEST_TIMEOUT) == "def"
+            handler.detach(epoch2)
+
+
+class TestCloseObserverExceptionContainment:
+    """Design constraint (plan 25, chunk 24): the connection observer's
+    ``on_epoch_closed`` failure must be logged and contained, never prevent
+    detachment from completing."""
+
+    def test_on_epoch_closed_exception_is_logged_and_detach_still_completes(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler = _HarnessSocketHandler(_logger("close-observer-exception"))
+
+        class _RaisingCloseObserver:
+            def on_string_token(self, epoch: int, token: str) -> None:
+                pass
+
+            def on_epoch_closed(self, epoch: int, cause: str) -> None:
+                raise RuntimeError("close observer failure")
+
+        handler.set_connection_observer(_RaisingCloseObserver())
+        with socketpair_context() as (left, _right), caplog.at_level(logging.ERROR):
+            epoch = handler.attach(left)
+            assert handler.detach(epoch) is True
+
+        assert handler.is_connected is False
+        assert any("on_epoch_closed raised" in r.message for r in caplog.records)
+
+
+class TestRawCallbackFailureDoesNotBlockSameChunkTextDelivery:
+    """Design constraint (plan 25, chunk 24): a raw-handler failure must not
+    prevent the string handler from receiving a token decoded from the very
+    same received chunk -- a stronger claim than "a later chunk still
+    arrives" (already covered by ``TestCallbackAndObserverIsolation``)."""
+
+    def test_raw_handler_exception_does_not_prevent_a_text_token_in_the_same_chunk(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler = _HarnessSocketHandler(_logger("raw-fail-same-chunk-text"))
+        tokens: queue.Queue[str] = queue.Queue()
+        handler.set_string_message_handler(tokens.put)
+
+        def _raising_raw_handler(data: bytes) -> None:
+            raise RuntimeError("raw handler failure")
+
+        handler.set_data_message_handler(_raising_raw_handler)
+        with socketpair_context() as (left, right), caplog.at_level(logging.ERROR):
+            epoch = handler.attach(left)
+            # One chunk carries both the raw payload that fails its handler
+            # and a complete delimited text token; the raw failure must not
+            # prevent this same chunk's text token from still reaching the
+            # string handler.
+            right.sendall(b"boom\n")
+            assert tokens.get(timeout=TEST_TIMEOUT) == "boom"
+            handler.detach(epoch)
+        assert any("raw data handler raised" in r.message for r in caplog.records)

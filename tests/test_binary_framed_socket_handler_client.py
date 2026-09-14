@@ -217,6 +217,61 @@ class TestInvalidProgressAndDecoderExceptionRecovery:
             client.detach(epoch)
 
 
+class TestInvalidProgressLoggingAndSameEpochRecovery:
+    """Design constraint (plan 25, chunk 24): an invalid-progress decoder
+    result (not just a raised exception) must be logged, must clear the
+    binary buffer, and a later frame on the *same* connection epoch must
+    still decode correctly afterward -- proving the failure only clears
+    binary-framing state rather than wedging or tearing down the epoch."""
+
+    def test_invalid_progress_logs_clears_buffer_and_a_later_frame_on_the_same_epoch_recovers(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        # Stage a genuinely *persisted* non-empty buffer first (an
+        # incomplete header committed via the "no progress yet" path), then
+        # force invalid progress on the next chunk. This is the case that
+        # actually exercises the clear: if the buffer were merely left
+        # untouched (rather than explicitly cleared), the stale committed
+        # header bytes would still corrupt the very next, otherwise
+        # well-formed, frame.
+        partial_header = bytes([5])  # declares 5 payload bytes still to come
+
+        def _bad_progress_after_staged_partial(buffer: bytes) -> tuple[object | None, bytes]:
+            if buffer == partial_header:
+                return None, buffer  # incomplete: commits the lone header byte
+            if buffer.startswith(partial_header):
+                # Second call sees the staged partial header still prefixed
+                # onto the new chunk -- invalid progress (frame decoded but
+                # the remainder is not shorter than the input).
+                return b"frame", buffer
+            return _length_prefixed_decoder(buffer)
+
+        client = _make_client("invalid-progress-recovery", _bad_progress_after_staged_partial)
+        frames: queue.Queue[object] = queue.Queue()
+        client.set_frame_handler(frames.put)
+        with socketpair_context() as (left, right), caplog.at_level(logging.ERROR):
+            epoch = client.attach(left)
+            right.sendall(partial_header)
+            with pytest.raises(queue.Empty):
+                frames.get(timeout=SHORT_TIMEOUT)
+
+            right.sendall(b"garbage")
+            with pytest.raises(queue.Empty):
+                frames.get(timeout=SHORT_TIMEOUT)
+
+            # Same epoch, same receive worker: the failed decode must have
+            # cleared the binary buffer (not merely left it alone), so a
+            # later, well-formed frame decodes cleanly rather than being
+            # corrupted by the staged header byte.
+            right.sendall(_frame(b"recovered"))
+            assert frames.get(timeout=TEST_TIMEOUT) == b"recovered"
+
+            client.detach(epoch)
+
+        assert "frame decoder failed" in caplog.text
+        assert "clearing binary buffer" in caplog.text
+
+
 class TestFrameHandlerFailureAndReconnectBufferReset:
     def test_frame_handler_exception_is_logged_and_a_later_frame_still_arrives(
         self, caplog: pytest.LogCaptureFixture

@@ -249,6 +249,37 @@ class TestConstructorValidation:
             SocketHandlerServer(_logger("ctor-bad-delim"), string_delimiter="")
 
 
+class TestAcceptWorkerDaemonNameAndEffectivePollTimeout:
+    """Design constraint (plan 25, chunk 24): the accept worker must be a
+    named daemon thread, and the listener socket must actually receive the
+    configured ``accept_poll_interval`` as its effective polling timeout."""
+
+    def test_accept_worker_is_a_named_daemon_thread(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        created = _install_fake_listener_factory(monkeypatch)
+        server = _HarnessSocketHandlerServer(_logger("accept-daemon-name"))
+        server.listen(12000)
+        epoch = server.current_listener_epoch()
+        thread = server.current_accept_thread()
+        assert len(created) == 1
+        assert thread is not None
+        assert epoch is not None
+        assert thread.daemon is True
+        assert thread.name == f"{type(server).__name__}-accept-{epoch}"
+        server.stop()
+
+    def test_listener_socket_receives_the_configured_accept_poll_interval_as_its_timeout(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakeListenerSocket(address=("0.0.0.0", 12100))
+        _install_fake_listener_factory(monkeypatch, fake)
+        server = _HarnessSocketHandlerServer(
+            _logger("effective-poll-timeout"), accept_poll_interval=0.07
+        )
+        server.listen(12100)
+        assert fake.timeout_calls == [0.07]
+        server.stop()
+
+
 class TestListenSocketOptionsAndAddress:
     def test_creates_af_inet_sock_stream_socket(self, monkeypatch: pytest.MonkeyPatch) -> None:
         created = _install_fake_listener_factory(monkeypatch)
