@@ -1080,3 +1080,131 @@ class TestReceiveWorkerStartFailureRollback:
         server.stop()
         challenger_remote.close()
         admitted_remote.close()
+
+
+class _TwoWaiterGateServer(_HarnessSocketHandlerServer):
+    """Gates ``is_connected`` per waiter thread to reproduce PA25-04.
+
+    Each gated evaluation captures the *real* connected value first, then
+    coordinates, then returns that captured value. Waiter ``waiter-A``'s first
+    evaluation only signals ``a_checked`` (proving A observed "disconnected"
+    before publication) and never blocks. Waiter ``waiter-B`` (the victim)'s
+    first evaluation signals ``b_checked`` and then blocks on ``b_release`` --
+    parking B in the gap between observing "disconnected" and entering its
+    blocking wait, holding no lock, so a concurrent publication is free to
+    proceed. This is the exact interleaving the shared-``Event`` implementation
+    lost: A consumes and clears the single edge before B ever waits on it.
+    """
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self.a_checked = threading.Event()
+        self.b_checked = threading.Event()
+        self.b_release = threading.Event()
+        self._a_fired = False
+        self._b_fired = False
+
+    @property
+    def is_connected(self) -> bool:
+        value = super().is_connected
+        name = threading.current_thread().name
+        if name == "waiter-A" and not self._a_fired:
+            self._a_fired = True
+            self.a_checked.set()
+        elif name == "waiter-B" and not self._b_fired:
+            self._b_fired = True
+            self.b_checked.set()
+            if not self.b_release.wait(TEST_TIMEOUT):
+                raise WorkerTimeoutError("waiter-B gate was never released")
+        return value
+
+
+class TestConnectionWaitBroadcast:
+    """Chunk 20 (PA25-04): connection-state waiting is level-triggered and
+    safe for multiple concurrent waiters -- one waiter can never consume
+    another waiter's wake."""
+
+    def test_two_indefinite_waiters_both_return_true_for_one_connection(self) -> None:
+        server = _TwoWaiterGateServer(_logger("two-waiter-broadcast"))
+        server.listen(0)
+        epoch = server.current_listener_epoch()
+        assert epoch is not None
+
+        results: dict[str, bool] = {}
+
+        def _run_a() -> None:
+            results["A"] = server.wait_for_connection(None)
+
+        def _run_b() -> None:
+            results["B"] = server.wait_for_connection(None)
+
+        holder: list[socket.socket] = []
+        waiter_a = start_worker("waiter-A", _run_a)
+        waiter_b = start_worker("waiter-B", _run_b)
+
+        # Both waiters observed "disconnected"; B is now parked in the gap
+        # before its blocking wait, holding no lock.
+        assert server.a_checked.wait(TEST_TIMEOUT)
+        assert server.b_checked.wait(TEST_TIMEOUT)
+
+        # Publish a real connection from a third thread while B is parked.
+        local, remote = socket.socketpair()
+        holder.append(remote)
+
+        def _publish() -> None:
+            server.handle_accepted_candidate(epoch, local, ("192.0.2.40", 7300))
+
+        publisher = start_worker("publisher", _publish)
+        publisher.join()
+
+        # A wakes and returns first; on the buggy Event impl this is where A
+        # clears the single shared edge that B was relying on.
+        waiter_a.join()
+        assert results["A"] is True
+
+        # Release B. Under the fixed level-triggered broadcast, B re-checks the
+        # current state (still connected) and returns True. Under the buggy
+        # cleared-edge Event, B blocks forever and this join times out.
+        server.b_release.set()
+        waiter_b.join()
+        assert results["B"] is True
+
+        server.stop()
+        for sock in holder:
+            sock.close()
+
+    def test_detach_then_reconnect_wakes_a_waiter_without_stale_connected(self) -> None:
+        server = _HarnessSocketHandlerServer(_logger("detach-reconnect-wake"))
+        server.listen(0)
+        epoch = server.current_listener_epoch()
+        assert epoch is not None
+        holder: list[socket.socket] = []
+
+        # Connect, then detach: a stale epoch must not report connected.
+        local1, remote1 = socket.socketpair()
+        holder.append(remote1)
+        server.handle_accepted_candidate(epoch, local1, ("192.0.2.41", 7301))
+        assert server.wait_for_connection(0) is True
+        server.kick()
+        assert server.is_connected is False
+        assert server.wait_for_connection(0) is False
+
+        # A fresh waiter blocks; a reconnect must wake it and report connected.
+        results: dict[str, bool] = {}
+
+        def _run() -> None:
+            results["r"] = server.wait_for_connection(TEST_TIMEOUT)
+
+        waiter = start_worker("reconnect-waiter", _run)
+
+        local2, remote2 = socket.socketpair()
+        holder.append(remote2)
+        server.handle_accepted_candidate(epoch, local2, ("192.0.2.42", 7302))
+
+        waiter.join()
+        assert results["r"] is True
+        assert server.active_peer == ("192.0.2.42", 7302)
+
+        server.stop()
+        for sock in holder:
+            sock.close()

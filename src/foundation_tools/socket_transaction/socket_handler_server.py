@@ -90,10 +90,18 @@ class SocketHandlerServer(SocketHandler):
         self._active_peer: tuple[str, int] | None = None
         self._active_peer_epoch: int | None = None
 
-        # Wakes a `wait_for_connection` waiter on every publish/detach; the
-        # waiter always re-checks `is_connected` itself (level-triggered),
-        # never trusts the edge alone.
-        self._connection_state_changed = threading.Event()
+        # Level-triggered connection-state broadcast (PA25-04). Every
+        # publish/detach/rollback bumps `_connection_generation` and
+        # `notify_all()`s under `_connection_condition`, so no waiter can
+        # consume another waiter's wake (as a shared, clearable `Event`
+        # allowed). A waiter snapshots the generation, checks `is_connected`
+        # outside the condition lock, and only blocks if the generation has
+        # not advanced since -- so a state change that races the check is
+        # never lost. The condition lock is never held across `is_connected`
+        # (which takes `_state_lock`), a join, a callback, or socket I/O, so
+        # it never nests with `_state_lock`.
+        self._connection_condition = threading.Condition()
+        self._connection_generation = 0
 
     # -- public surface (threadedSocketTransport.md#single-client-server) ---
 
@@ -193,10 +201,16 @@ class SocketHandlerServer(SocketHandler):
         """Block until a client is active, or ``timeout`` elapses.
 
         ``None`` waits indefinitely; a finite non-negative ``timeout``
-        (``0`` performs an immediate check) bounds the wait. Level-triggered:
-        returns ``True`` only if an active client epoch exists at the
-        instant it returns, and otherwise keeps waiting until the deadline
-        rather than trusting a single edge-triggered wake.
+        (``0`` performs an immediate check) bounds the wait. Level-triggered
+        and broadcast-safe: returns ``True`` only if an active client epoch
+        exists at the instant it returns, and otherwise keeps waiting until
+        the deadline. Each iteration snapshots the connection generation
+        under the condition lock, then evaluates ``is_connected`` *outside*
+        that lock, and blocks only if the generation has not advanced since
+        the snapshot -- so a publish/detach that races the check bumps the
+        generation and is observed on the next iteration rather than lost,
+        and every waiter is woken by ``notify_all`` (never a single edge one
+        peer can consume).
         """
         if timeout is not None and (not math.isfinite(timeout) or timeout < 0):
             raise ValueError(
@@ -205,6 +219,8 @@ class SocketHandlerServer(SocketHandler):
 
         deadline = None if timeout is None else time.monotonic() + timeout
         while True:
+            with self._connection_condition:
+                generation = self._connection_generation
             if self.is_connected:
                 return True
             if deadline is not None:
@@ -213,8 +229,25 @@ class SocketHandlerServer(SocketHandler):
                     return False
             else:
                 remaining = None
-            self._connection_state_changed.wait(remaining)
-            self._connection_state_changed.clear()
+            with self._connection_condition:
+                # Block only if nothing changed since the snapshot above; a
+                # racing publish/detach advanced the generation and is picked
+                # up by the next loop's `is_connected` re-check instead.
+                if self._connection_generation == generation:
+                    self._connection_condition.wait(remaining)
+
+    def _broadcast_connection_change(self) -> None:
+        """Advance the connection generation and wake every waiter.
+
+        Called after each matching-epoch publication, detachment, and
+        rollback, once the connection state has already been updated under
+        ``_state_lock``. Holds only ``_connection_condition`` (never nested
+        inside ``_state_lock``, and never across a join, callback, or socket
+        I/O), so waiters re-evaluate the freshly published state.
+        """
+        with self._connection_condition:
+            self._connection_generation += 1
+            self._connection_condition.notify_all()
 
     def kick(self) -> None:
         """Detach the active connection, if any, leaving the listener running."""
@@ -380,7 +413,7 @@ class SocketHandlerServer(SocketHandler):
             self._pending_text = ""
             self._stop_event.clear()
 
-        self._connection_state_changed.set()
+        self._broadcast_connection_change()
         return epoch
 
     def _start_receive_worker(self, epoch: int) -> None:
@@ -441,7 +474,7 @@ class SocketHandlerServer(SocketHandler):
                 self._active_peer = None
                 self._active_peer_epoch = None
 
-        self._connection_state_changed.set()
+        self._broadcast_connection_change()
         self._notify_epoch_closed(epoch, cause="receive worker failed to start")
 
         try:
@@ -478,5 +511,5 @@ class SocketHandlerServer(SocketHandler):
 
         detached = super()._detach(expected_epoch, cause)
         if detached:
-            self._connection_state_changed.set()
+            self._broadcast_connection_change()
         return detached
