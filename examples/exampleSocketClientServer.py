@@ -11,9 +11,12 @@ The stack correlates replies by an internal transaction id assigned when
 
 Three things are demonstrated:
 1. A single request/reply round trip.
-2. Several concurrent requests (each fired from its own thread) resolving
-   correctly out of order (the transaction core correlates replies to
-   requests by transaction id, not by send order).
+2. Several concurrent requests (each fired from its own thread), each
+   correctly matched to its own reply by transaction id rather than by send
+   order. The server's inbound handler runs synchronously on that
+   connection's single receive thread, so replies are actually produced in
+   the order requests were received; correlation-by-id is what the client
+   relies on for correctness, not any observed reordering.
 3. The unsolicited channel: a server-initiated broadcast that the client
    reads through its broadcast-event handler, independent of the correlated
    request/reply channel.
@@ -68,10 +71,14 @@ def example_single_round_trip() -> None:
     print()
 
 
-def example_concurrent_out_of_order() -> None:
-    print("=== Concurrent Requests, Resolved Out of Order ===")
+def example_concurrent_requests_correlated_by_id() -> None:
+    print("=== Concurrent Requests, Correlated by Transaction ID ===")
 
     def randomized_delay_echo(inbound: InboundTransaction) -> None:
+        # Per-request jitter for demo variety only. The server's inbound
+        # handler runs synchronously on this connection's single receive
+        # thread, so this delay does not reorder replies relative to
+        # requests -- it does not demonstrate out-of-order resolution.
         inbound.reply("ack", 0)
         time.sleep(random.uniform(0, 0.03))  # noqa: S311 - demo jitter only
         inbound.reply("res", 0, payload=inbound.frame.payload)
@@ -149,7 +156,7 @@ def example_server_push_unsolicited() -> None:
 
 def main() -> None:
     example_single_round_trip()
-    example_concurrent_out_of_order()
+    example_concurrent_requests_correlated_by_id()
     example_server_push_unsolicited()
 
 

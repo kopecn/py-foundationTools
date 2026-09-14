@@ -1,9 +1,8 @@
 """
-Tests for the threaded transaction core (Action Plan 25, chunks 05-06):
-transaction id sequencing, epoch-bound registration, duplicate rejection,
-idempotent discard, race-safe ACK/completion waits (chunk 05), plus frame
-routing, epoch-scoped failure, isolated callbacks, and atomic outcome
-finalization (chunk 06).
+Tests for the threaded transaction core: transaction id sequencing,
+epoch-bound registration, duplicate rejection, idempotent discard,
+race-safe ACK/completion waits, plus frame routing, epoch-scoped failure,
+isolated callbacks, and atomic outcome finalization.
 
 Contract: ``.claude/specs/threadedTransactionProtocol.md`` ("Pending
 transaction", "Transaction core", and "Routing" sections).
@@ -154,9 +153,9 @@ class TestRegister:
     def test_duplicate_registration_preserves_incumbent_identity_and_state(self) -> None:
         core = _core()
         incumbent = core.register(epoch=1, tx_id=1)
-        # Simulate state a later routing step (chunk 06) would have applied,
-        # to prove the incumbent object — not a fresh replacement — is what
-        # the core still consults afterward.
+        # Simulate state that route()'s dispatch would apply, to prove the
+        # incumbent object — not a fresh replacement — is what the core
+        # still consults afterward.
         incumbent.ack_status = AckStatus.ACKNOWLEDGED
         incumbent.events.append(object())  # type: ignore[arg-type]
 
@@ -242,7 +241,7 @@ class TestWaitUnknownIdentifier:
 
 
 class TestNoneTimeoutWaitsWokenDeterministically:
-    """Design constraint (plan 25, chunk 24): a ``timeout=None`` wait selects
+    """Design constraint: a ``timeout=None`` wait selects
     an unbounded public wait; exercise it by actually blocking a worker on
     it and waking that block through the real ``route()``/``fail_epoch()``
     production paths (not the private ``_settle_*`` test-only shortcuts used
@@ -353,11 +352,12 @@ class TestWaitCompletionTimeoutSettlement:
 
 
 def _settle_ack(core: TransactionCore, tx_id: int, status: AckStatus) -> None:
-    """Simulate a routing-style settlement (chunk 06's job) under the core's
-    own lock, mirroring the terminal race recipe: mutate state, then signal
-    the event, all without ever holding the lock across the ``Event.wait``.
-    Reaches into the internal lock/pending map deliberately — this white-box
-    race test is standing in for chunk 06's ``route()``, not yet implemented.
+    """Simulate a routing-style settlement under the core's own lock,
+    mirroring the terminal race recipe: mutate state, then signal the event,
+    all without ever holding the lock across the ``Event.wait``. Reaches into
+    the internal lock/pending map deliberately — this white-box race test
+    isolates the core's pending-state primitives from ``route()``'s own
+    message-type dispatch logic, which is exercised separately.
     """
     with core._lock:
         pending = core._pending.get(tx_id)

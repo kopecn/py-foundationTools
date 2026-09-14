@@ -1,18 +1,22 @@
 """
-Shared threaded transacting engine (Action Plan 25, chunk 13).
+Shared threaded transacting engine.
 
 Composes an already-constructed epoch-aware socket transport (a
 ``SocketHandler`` or role subclass), an injected ``TransactionCodec``, and a
 role-configured ``TransactionCore`` into the receive pipeline (decode, route,
 dispatch) and the synchronous ``send_transaction``/``send_broadcast``
-operations shared by the client and server facades (chunks 14-15). This
+operations shared by the client and server facades
+(``TransactingSocketHandlerClient``/``TransactingSocketHandlerServer``). This
 module never constructs or owns a socket itself -- the transport is supplied
 fully formed by its caller.
 
 Contract: ``.claude/specs/transactingSocketHandlers.md`` ("Composition and
 roles", "Receive pipeline", "Synchronous transaction operation", and
-"Lifecycle coupling" sections). Not exported from the package ``__init__.py``
--- chunks 14/15 own the public client/server facades built on top of it.
+"Lifecycle coupling" sections). ``TransactingSocketHandler`` itself is not a
+package export; ``InboundTransaction``, also defined in this module, is
+exported directly, and ``TransactingSocketHandlerClient``/
+``TransactingSocketHandlerServer`` compose this engine as their public
+facades.
 """
 
 import logging
@@ -78,8 +82,7 @@ class InboundTransaction:
     to the application-level inbound handler and handed to that handler.
     ``reply`` is bound to the epoch that was active when the inbound frame
     was routed: a later replacement connection can never receive this
-    responder's frames, even if the callback retains the instance. Not a
-    package export.
+    responder's frames, even if the callback retains the instance.
     """
 
     def __init__(

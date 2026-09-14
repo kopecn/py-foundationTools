@@ -1,11 +1,11 @@
 """
-Tests for the threaded transaction codec protocol and JSON codec
-(Action Plan 25, chunk 03): ``TransactionCodec`` and ``JsonTransactionCodec``.
+Tests for the threaded transaction codec protocol and both concrete codecs:
+``TransactionCodec``, ``JsonTransactionCodec``, and
+``AngleBracketTransactionCodec``.
 
-Contract: ``.claude/specs/threadedTransactionProtocol.md`` ("Codec protocol"
-and "JSON codec" sections). This module intentionally has no socket,
-threading, transaction-core, or angle-bracket codec behavior — those are out
-of scope for this chunk.
+Contract: ``.claude/specs/threadedTransactionProtocol.md`` ("Codec protocol",
+"JSON codec", and "Angle-bracket codec" sections). This module intentionally
+has no socket, threading, or transaction-core behavior.
 """
 
 import ast

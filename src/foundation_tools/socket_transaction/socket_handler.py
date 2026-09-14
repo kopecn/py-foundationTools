@@ -1,5 +1,5 @@
 """
-SocketHandler — common threaded socket transport (plan 25, chunk 07).
+SocketHandler — common threaded socket transport.
 
 Owns an attached ``socket.socket`` by composition and gives it a monotonically
 increasing connection epoch on every attach. Provides epoch-safe sending
@@ -8,12 +8,13 @@ idempotent, epoch-conditional teardown that never joins its own receive
 thread. See ``.claude/specs/threadedSocketTransport.md#common-handler`` for
 the full behavioral contract.
 
-Socket composition, epochs, epoch-safe sending, and receive-thread
-start/stop plumbing were implemented in chunk 07. This chunk (08) fills in
-``_process_received_chunk``: raw-byte dispatch, per-epoch incremental UTF-8
-reconstruction, delimiter-token splitting, and the internal connection
-observer notification. Client connect, server listen, and binary framing are
-later chunks; this module intentionally has no package export yet.
+Also implements ``_process_received_chunk``: raw-byte dispatch, per-epoch
+incremental UTF-8 reconstruction, delimiter-token splitting, and the internal
+connection observer notification. Client connect (``SocketHandlerClient``),
+server listen (``SocketHandlerServer``), and binary framing
+(``BinaryFramedSocketHandlerClient``) build on this common handler and are
+defined in sibling modules. ``SocketHandler`` is exported from the package
+``__init__.py``.
 """
 
 from __future__ import annotations
@@ -42,9 +43,8 @@ class ConnectionObserver(Protocol):
 
     Calls execute outside all internal locks and may overlap a concurrent
     close; epoch identity makes either ordering safe for the observer to
-    handle. ``on_string_token`` is invoked by the receive-dispatch extension
-    point added in chunk 08 — this chunk only defines the contract and never
-    calls it.
+    handle. ``on_string_token`` is invoked by ``_process_received_chunk``'s
+    receive-dispatch pipeline for each complete delimiter-terminated token.
     """
 
     def on_string_token(self, epoch: int, token: str) -> None: ...
@@ -156,8 +156,8 @@ class SocketHandler:
 
     ``join_timeout`` bounds every join this handler performs on its own
     receive thread and must be finite and strictly positive. ``string_delimiter``
-    must be non-empty (used by the chunk-08 text-dispatch extension point, not
-    by this chunk).
+    must be non-empty (used by the text-dispatch pipeline in
+    ``_process_received_chunk``).
 
     State, send, callback, and observer synchronization are kept on four
     distinct locks so a slow callback or a blocking ``sendall`` can never
@@ -296,7 +296,7 @@ class SocketHandler:
         with self._observer_lock:
             self._connection_observer = observer
 
-    # -- receive-thread start/stop plumbing (dispatch itself is chunk 08) ---
+    # -- receive-thread start/stop plumbing ---------------------------------
 
     def _attach(self, sock: socket.socket) -> int:
         """Attach a connected socket, allocate the next epoch, and start the
@@ -392,7 +392,7 @@ class SocketHandler:
         and deliver complete delimiter-split tokens to the string handler and
         the connection observer, in that order, for each token.
 
-        A specialization (e.g. chunk 12's binary-framed client) MAY extend
+        A specialization (e.g. ``BinaryFramedSocketHandlerClient``) MAY extend
         this but SHALL preserve these default channels unless its own public
         contract says otherwise.
 

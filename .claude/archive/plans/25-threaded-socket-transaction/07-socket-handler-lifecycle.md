@@ -11,7 +11,7 @@ status: completed
 
 # 07 — Socket handler epochs, teardown, and sends
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [common handler and detachment](../../specs/threadedSocketTransport.md#common-handler)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [common handler and detachment](../../../specs/threadedSocketTransport.md#common-handler)
 
 ## Deliverable
 

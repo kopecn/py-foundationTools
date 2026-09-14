@@ -3,10 +3,10 @@ human_ask: >
   I want you to take top level spec: /Users/nbergantz/**Workspaces**/pythonWorkspaces/py-foundationTools/.claude/plans/25-threaded-socket-transaction.md and reduce it to a plural set of bite sized tasks that will rip and tear /Users/nbergantz/**Workspaces**/pythonWorkspaces/py-foundationTools/src/foundation_tools/socket_transaction/...   I do not want to use asyncio for the socket handling and want it reduced to threading and sockets.
 goal: >
   Replace the asyncio socket stack with a synchronous, threaded client/server transaction family through small delegated execution chunks.
-last_updated: 2026-09-12
-semver: 0.2.0
+last_updated: 2026-09-13
+semver: 0.3.0
 author: Nicholas Bergantz
-status: active
+status: completed
 ---
 
 # Plan 25 execution overview — threaded socket transaction
@@ -21,12 +21,12 @@ The complete initiating request and subsequent planning clarifications are prese
 
 ## Accepted contracts
 
-- [Threaded socket architecture](../../specs/threadedSocketTransaction.md)
-- [Threaded transport](../../specs/threadedSocketTransport.md)
-- [Transaction protocol](../../specs/threadedTransactionProtocol.md)
-- [Transacting handlers](../../specs/transactingSocketHandlers.md)
+- [Threaded socket architecture](../../../specs/threadedSocketTransaction.md)
+- [Threaded transport](../../../specs/threadedSocketTransport.md)
+- [Transaction protocol](../../../specs/threadedTransactionProtocol.md)
+- [Transacting handlers](../../../specs/transactingSocketHandlers.md)
 
-The 856-line source scaffold remains at [../25-threaded-socket-transaction.md](../25-threaded-socket-transaction.md). Future agents implement the accepted sibling specs, not the superseded asyncio behavior in `.claude/specs/socketTransact.md`.
+The source scaffold remains at [../../../plans/25-threaded-socket-transaction.md](../../../plans/25-threaded-socket-transaction.md). This executed chunk set implemented the accepted sibling specs, not the superseded asyncio behavior recorded historically in `.claude/specs/socketTransact.md`.
 
 ## Usability north star
 

@@ -11,7 +11,7 @@ status: completed
 
 # 11 — Server admission and client replacement
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [server admission and connection state](../../specs/threadedSocketTransport.md#single-client-server)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [server admission and connection state](../../../specs/threadedSocketTransport.md#single-client-server)
 
 ## Deliverable
 

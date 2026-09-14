@@ -11,7 +11,7 @@ status: completed
 
 # 14 — Transacting client role
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [client facade](../../specs/transactingSocketHandlers.md#composition-and-roles)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [client facade](../../../specs/transactingSocketHandlers.md#composition-and-roles)
 
 ## Deliverable
 

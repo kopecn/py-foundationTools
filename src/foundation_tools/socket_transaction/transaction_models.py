@@ -1,5 +1,5 @@
 """
-Threaded transaction protocol values (Action Plan 25, chunk 02).
+Threaded transaction protocol values.
 
 Defines the immutable wire-frame and outcome types shared by the codec,
 transaction-core, and facade layers of the threaded socket transaction stack:
@@ -8,9 +8,9 @@ enums, and the immutable ``TransactionOutcome``.
 
 Contract: ``.claude/specs/threadedTransactionProtocol.md`` ("Transaction
 frame" and "Pending transaction" sections). This module intentionally has no
-socket or transaction-core behavior: no codec serialization, no mutable
-pending transaction state, and it is not exported from the package
-``__init__.py`` (chunk 15/16 own the atomic cutover).
+socket or transaction-core behavior: no codec serialization and no mutable
+pending transaction state. ``TransactionFrame``, ``TransactionOutcome``, and
+the three status enums are exported from the package ``__init__.py``.
 """
 
 from dataclasses import dataclass, field

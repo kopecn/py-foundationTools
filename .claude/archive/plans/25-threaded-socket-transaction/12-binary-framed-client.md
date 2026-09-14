@@ -11,7 +11,7 @@ status: completed
 
 # 12 — Binary-framed socket client
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [binary-framed client](../../specs/threadedSocketTransport.md#binary-framed-client)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [binary-framed client](../../../specs/threadedSocketTransport.md#binary-framed-client)
 
 ## Deliverable
 

@@ -11,7 +11,7 @@ status: completed
 
 # 16 - Rip-and-tear cleanup
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [public surface](../../specs/threadedSocketTransaction.md#public-surface)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [public surface](../../../specs/threadedSocketTransaction.md#public-surface)
 
 ## Deliverable
 

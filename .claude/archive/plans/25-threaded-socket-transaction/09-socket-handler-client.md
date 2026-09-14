@@ -11,7 +11,7 @@ status: completed
 
 # 09 — Threaded socket client
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [client](../../specs/threadedSocketTransport.md#client)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [client](../../../specs/threadedSocketTransport.md#client)
 
 ## Deliverable
 

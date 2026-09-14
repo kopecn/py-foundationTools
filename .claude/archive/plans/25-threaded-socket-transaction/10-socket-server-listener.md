@@ -11,7 +11,7 @@ status: completed
 
 # 10 — Server listener lifecycle
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [single-client server](../../specs/threadedSocketTransport.md#single-client-server)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [single-client server](../../../specs/threadedSocketTransport.md#single-client-server)
 
 ## Deliverable
 

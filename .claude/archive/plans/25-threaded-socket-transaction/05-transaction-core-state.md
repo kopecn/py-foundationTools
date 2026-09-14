@@ -11,7 +11,7 @@ status: completed
 
 # 05 — Transaction core registration and waits
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [pending transaction and core](../../specs/threadedTransactionProtocol.md#pending-transaction)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [pending transaction and core](../../../specs/threadedTransactionProtocol.md#pending-transaction)
 
 ## Deliverable
 

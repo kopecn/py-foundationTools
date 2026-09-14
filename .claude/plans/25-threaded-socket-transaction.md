@@ -3,8 +3,8 @@ human_ask: >
   the socket handler in src/foundation_tools/socket_transaction was built out with asyncio and this was a break from my expectation.  I was expecting to have this built out from threading and import socket this way we would have much more fidelity to refine the socket handling characteristics.  please author a rip and tear plan to unfuck this code section.  it should cover both client and server socket handling.  be very brief, only put in a few lines to scaffold under goal and I will be authoring the rest.
 goal: >
   Replace the asyncio-based socket transaction client and server with threading and the standard socket module.
-last_updated: 2026-09-12
-semver: 0.0.1
+last_updated: 2026-09-13
+semver: 0.0.2
 author: Nicholas Bergantz
 status: active
 ---
@@ -17,7 +17,7 @@ Replace the `asyncio`-based client and server in `src/foundation_tools/socket_tr
 
 ## Delegated execution plans
 
-The future-agent work is decomposed in [25-threaded-socket-transaction/00-overview.md](25-threaded-socket-transaction/00-overview.md), with numbered chunks `01`–`16`. The accepted behavioral contracts live in `.claude/specs/threadedSocketTransaction.md` and its linked sibling specs; this file remains the original source scaffold. Chunk `16` ([25-threaded-socket-transaction/16-public-cutover.md](25-threaded-socket-transaction/16-public-cutover.md)) is the final breaking public-surface cutover: it exports the accepted threaded surface and removes the superseded asyncio implementation described in the Body below. Read the executed chunk set, not this scaffold's Body, for current behavior.
+The original build-out was decomposed into numbered chunks `01`–`16`, all completed, tracked in the archived [historical execution overview](../archive/plans/25-threaded-socket-transaction/00-overview.md). A subsequent post-audit's corrective chunks `17`–`25` are tracked in the active [corrective execution overview](25-threaded-socket-transaction/00-overview.md). The accepted behavioral contracts live in `.claude/specs/threadedSocketTransaction.md` and its linked sibling specs; this file remains the original source scaffold. Chunk `16` ([25-threaded-socket-transaction/16-rip-and-tear-cleanup.md](../archive/plans/25-threaded-socket-transaction/16-rip-and-tear-cleanup.md)) was the final breaking public-surface cutover: it exported the accepted threaded surface and removed the superseded asyncio implementation described in the Body below. Read the executed chunk set, not this scaffold's Body, for current behavior.
 
 ## Body
 

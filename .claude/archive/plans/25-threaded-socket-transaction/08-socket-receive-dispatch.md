@@ -11,7 +11,7 @@ status: completed
 
 # 08 — Raw and delimiter-text receive dispatch
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [receive dispatch](../../specs/threadedSocketTransport.md#receive-dispatch)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [receive dispatch](../../../specs/threadedSocketTransport.md#receive-dispatch)
 
 ## Deliverable
 

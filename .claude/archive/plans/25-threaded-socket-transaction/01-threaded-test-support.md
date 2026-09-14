@@ -11,7 +11,7 @@ status: completed
 
 # 01 — Deterministic threaded socket test support
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [threading model](../../specs/threadedSocketTransaction.md#concurrency-model)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [threading model](../../../specs/threadedSocketTransaction.md#concurrency-model)
 
 ## Deliverable
 

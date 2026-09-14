@@ -11,7 +11,7 @@ status: completed
 
 # 15 — Transacting server role and bidirectional E2E
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [server facade and lifecycle coupling](../../specs/transactingSocketHandlers.md#lifecycle-coupling)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [server facade and lifecycle coupling](../../../specs/transactingSocketHandlers.md#lifecycle-coupling)
 
 ## Deliverable
 

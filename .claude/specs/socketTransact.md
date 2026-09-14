@@ -5,7 +5,7 @@ status: superseded
 superseded_by: threadedSocketTransaction.md
 applies_to: src/foundation_tools/socket_transaction/
 last_updated: 2026-09-13
-semver: 0.6.1
+semver: 0.6.2
 author: Nicholas Bergantz
 ---
 
@@ -13,13 +13,16 @@ author: Nicholas Bergantz
 
 > **Superseded on 2026-09-12.** The accepted replacement contract is [threadedSocketTransaction.md](threadedSocketTransaction.md) and its linked transport, protocol, and facade specifications. The breaking cutover (Action Plan 25, chunk 16) has been executed: `src/foundation_tools/socket_transaction/` now implements only the threaded contract. This document retains the asyncio-era contract as implementation history only.
 
-> **Status — implemented.** All layers described below — the raw transport, the
-> framing codecs, the transaction router, and both the client (`SocketTransact`)
-> and server (`SocketTransactServer`) facades — are implemented in
-> `foundation_tools/socket_transaction/`: an **asyncio-native**, long-lived-connection
-> counterpart to the process-transaction family. It supersedes an earlier
+> **Status — historical (asyncio-era; superseded, see above).** All layers
+> described below — the raw transport, the framing codecs, the transaction
+> router, and both the client (`SocketTransact`) and server
+> (`SocketTransactServer`) facades — were implemented in
+> `foundation_tools/socket_transaction/` as an **asyncio-native**,
+> long-lived-connection counterpart to the process-transaction family, and have
+> since been deleted by the Action Plan 25 cutover. It superseded an earlier
 > thread-driven draft; the thread/callback model was intentionally replaced by
-> asyncio primitives (see [Learned Behaviors](#learned-behaviors)).
+> asyncio primitives (see [Learned Behaviors](#learned-behaviors)) before this
+> whole contract was itself superseded by the threaded replacement.
 >
 > This is the stream-transport family of the umbrella
 > [transport_transaction_architecture.md](transport_transaction_architecture.md);
@@ -103,7 +106,7 @@ idea of the original draft, recast from callback threads to async streams.)
 
 # Layer 1 — SocketByteTransport
 
-Status: Implemented (`socket_byte_transport.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`socket_byte_transport.py`)
 
 An asyncio TCP client implementing `foundation_abc.PeripheralByteTransport`
 (`connect` / `disconnect` / `send` / `receive` / `is_connected`, plus the async
@@ -134,7 +137,7 @@ Guarantees:
 
 # Layer 2 — Framing Codecs
 
-Status: Implemented (`framing_codecs.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`framing_codecs.py`)
 
 A codec converts between a byte stream and discrete frames. Codecs are pluggable
 behind one protocol (structural typing / `typing.Protocol`):
@@ -179,7 +182,7 @@ Bridge** section of
 
 # Layer 3 — Transaction Router
 
-Status: Implemented (`transaction_router.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`transaction_router.py`)
 
 The router owns the single reader task and correlates request/response traffic.
 
@@ -257,7 +260,7 @@ Invariants:
 
 # Layer 4 — SocketTransact (public facade)
 
-Status: Implemented (`socketTransact.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`socketTransact.py`)
 
 `SocketTransact` is the only class end users need. It mirrors the process family's
 ethos: minimal surface, result objects, no exceptions on the transaction surface.
@@ -324,7 +327,7 @@ class SocketTransactResult:
 
 # Layer 4b — SocketTransactServer (server role)
 
-Status: Implemented (`socketTransactServer.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`socketTransactServer.py`)
 
 `SocketTransactServer` is the server-side counterpart of `SocketTransact`: it
 accepts connections, services **plural inbound requests simultaneously**, and feeds

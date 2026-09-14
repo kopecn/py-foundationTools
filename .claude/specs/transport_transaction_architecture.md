@@ -4,7 +4,7 @@ scope: project
 status: accepted
 applies_to: src/foundation_tools/cli_transaction/, src/foundation_tools/builders/, src/foundation_tools/policies/, src/foundation_tools/socket_transaction/
 last_updated: 2026-09-13
-semver: 0.6.0
+semver: 0.6.1
 author: Nicholas Bergantz
 ---
 
@@ -428,9 +428,12 @@ data-model layer:
   `from_dict`-based parser) is the canonical `output_parser` for the
   `run_*_with_model` methods. Models parsed from CLI output should be
   schema-generated `DataModelHelper` subclasses, not ad-hoc classes.
-- **Stream family:** `TransactionCodec` implementations encode outbound payloads
-  with `DataModelHelper.to_wire` and decode inbound frames with
-  `DataModelHelper.from_wire` (via the `wire_encode` / `wire_decode` ClassVars).
+- **Stream family:** `TransactionCodec` implementations encode a `DataModelHelper`
+  payload with `to_dict()` (`JsonTransactionCodec`) or `to_bytes()`
+  (`AngleBracketTransactionCodec`); `decode()` returns a `TransactionFrame` whose
+  `payload` is plain bytes/string/dict data, with no automatic model
+  reconstruction. The `wire_encode`/`wire_decode`/`to_wire`/`from_wire` bridge
+  described below is not used by this family.
 
 No transport module defines its own serialization format; they compose the bridge.
 

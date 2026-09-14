@@ -2,7 +2,7 @@
 
 Runnable scripts demonstrating how to use `pyFoundationTools`. Each file is
 self-contained and runs standalone: `python examples/<file>.py`. Install the
-package first (`make devInstall` / `make e`, or `uv-sync`).
+package first (`make installDev` / `make e`, or `uv-sync`).
 
 | File | Demonstrates |
 | --- | --- |

@@ -11,7 +11,7 @@ status: completed
 
 # 02 — Transaction values and outcomes
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [transaction frame and pending values](../../specs/threadedTransactionProtocol.md#transaction-frame)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [transaction frame and pending values](../../../specs/threadedTransactionProtocol.md#transaction-frame)
 
 ## Deliverable
 

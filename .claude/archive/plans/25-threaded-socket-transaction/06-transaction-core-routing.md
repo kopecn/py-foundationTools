@@ -11,7 +11,7 @@ status: completed
 
 # 06 — Transaction core routing and finalization
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [routing and identifier rules](../../specs/threadedTransactionProtocol.md#routing)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [routing and identifier rules](../../../specs/threadedTransactionProtocol.md#routing)
 
 ## Deliverable
 

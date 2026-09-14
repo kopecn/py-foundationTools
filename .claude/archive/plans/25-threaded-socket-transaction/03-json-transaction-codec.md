@@ -11,7 +11,7 @@ status: completed
 
 # 03 — Transaction codec protocol and JSON codec
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [codec protocol and JSON codec](../../specs/threadedTransactionProtocol.md#codec-protocol)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [codec protocol and JSON codec](../../../specs/threadedTransactionProtocol.md#codec-protocol)
 
 ## Deliverable
 

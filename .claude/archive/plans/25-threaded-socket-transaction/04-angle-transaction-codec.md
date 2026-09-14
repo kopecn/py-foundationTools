@@ -11,7 +11,7 @@ status: completed
 
 # 04 — Angle-bracket transaction codec
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [angle-bracket codec](../../specs/threadedTransactionProtocol.md#angle-bracket-codec)
+Scope: [summary goal](00-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [angle-bracket codec](../../../specs/threadedTransactionProtocol.md#angle-bracket-codec)
 
 ## Deliverable
 
