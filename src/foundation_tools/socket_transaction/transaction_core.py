@@ -237,35 +237,66 @@ class TransactionCore:
         """Settle the ACK stage (and, on failure, an unresolved completion stage).
 
         Must be called while holding ``self._lock``. A second ACK arriving
-        after the stage has already settled is a losing/late frame: logged
-        and ignored rather than overwriting the first settlement.
+        after the ACK stage has already settled is normally a losing/late
+        frame: logged and ignored rather than overwriting the first
+        settlement. The one exception is a failed ACK arriving after the ACK
+        wait already timed out (``AckStatus.TIMED_OUT``): ACK and completion
+        are independent stages, so that late failure must still be able to
+        settle an independently unresolved completion stage as ``ERROR`` --
+        without ever overwriting ``TIMED_OUT`` itself, and without touching
+        completion if a result, protocol error, completion timeout, or
+        connection closure already settled it first. A late *successful* ACK
+        after timeout stays non-terminal for completion either way.
         """
-        if pending.ack_status is not None:
-            self._logger.debug(
-                "dropping late/duplicate ack for tx_id=%s (ack already settled)", frame.tx_id
-            )
-            return
-        if frame.code == 0:
-            pending.acked = True
-            pending.ack_status = AckStatus.ACKNOWLEDGED
+        if pending.ack_status is None:
+            if frame.code == 0:
+                pending.acked = True
+                pending.ack_status = AckStatus.ACKNOWLEDGED
+                pending.ack_event.set()
+                return
+
+            error_text = self._failed_ack_error_text(frame)
+            pending.ack_status = AckStatus.REJECTED
+            pending.ack_error = error_text
             pending.ack_event.set()
+            self._settle_completion_from_failed_ack(pending, error_text)
             return
 
-        error_text = (
+        if pending.ack_status is AckStatus.TIMED_OUT and frame.code != 0:
+            self._settle_completion_from_failed_ack(pending, self._failed_ack_error_text(frame))
+            return
+
+        self._logger.debug(
+            "dropping late/duplicate ack for tx_id=%s (ack already settled)", frame.tx_id
+        )
+
+    @staticmethod
+    def _failed_ack_error_text(frame: TransactionFrame) -> str:
+        """Build the exact failed-ACK diagnostic text for ``frame``."""
+        return (
             f"ack code {frame.code}: {_payload_text(frame.payload)}"
             if frame.payload is not None
             else f"ack code {frame.code}"
         )
-        pending.ack_status = AckStatus.REJECTED
-        pending.ack_error = error_text
-        pending.ack_event.set()
-        # A failed ACK settles completion as ERROR only while completion
-        # remains unresolved; it must never overwrite a result/error/timeout
-        # that already settled completion first.
-        if pending.completion_status is None:
-            pending.completion_status = CompletionStatus.ERROR
-            pending.completion_error = error_text
-            pending.done_event.set()
+
+    def _settle_completion_from_failed_ack(
+        self, pending: PendingTransaction, error_text: str
+    ) -> None:
+        """Settle completion as ``ERROR`` from a failed ACK, only while
+        completion remains unresolved. Must be called while holding
+        ``self._lock``. Never overwrites a result/error/timeout/connection-
+        closed status that already settled completion first.
+        """
+        if pending.completion_status is not None:
+            self._logger.debug(
+                "dropping late failed-ack completion settlement for tx_id=%s "
+                "(completion already settled)",
+                pending.tx_id,
+            )
+            return
+        pending.completion_status = CompletionStatus.ERROR
+        pending.completion_error = error_text
+        pending.done_event.set()
 
     def _route_res(self, pending: PendingTransaction, frame: TransactionFrame) -> None:
         """Settle the completion stage with a result. Must be called under ``self._lock``."""

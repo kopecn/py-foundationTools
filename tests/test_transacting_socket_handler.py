@@ -45,7 +45,12 @@ from foundation_tools.socket_transaction.transaction_models import (
     TransactionOutcome,
 )
 from foundationTypes.data_model_helper import DataModelHelper
-from tests.threaded_socket_helpers import TEST_TIMEOUT, WorkerTimeoutError, start_worker
+from tests.threaded_socket_helpers import (
+    TEST_TIMEOUT,
+    WorkerHandle,
+    WorkerTimeoutError,
+    start_worker,
+)
 
 SHORT_TIMEOUT = 0.1
 
@@ -417,6 +422,57 @@ class TestCloseWakeup:
         assert outcome.send_status is SendStatus.SENT
         assert outcome.ack_status is AckStatus.CONNECTION_CLOSED
         assert outcome.completion_status is CompletionStatus.NOT_REQUESTED
+        assert len(core._pending) == 0
+
+
+class TestSequentialAckAndResultWaits:
+    """PA25-07 at the facade level: within one ``send_transaction(wait_ack=True,
+    wait_result=True)`` call, a failed ACK arriving only after the ACK wait has
+    already settled to ``TIMED_OUT`` must still settle the subsequent, still-
+    pending result wait -- rather than leaving it to time out separately.
+    """
+
+    def test_late_failed_ack_after_ack_timeout_settles_the_pending_result_wait(self) -> None:
+        class _AckSettledCore(TransactionCore):
+            """Signals ``ack_settled`` the instant ``wait_ack`` has settled,
+            so a delivery can be held back until strictly after that point."""
+
+            def __init__(self, logger: logging.Logger) -> None:
+                super().__init__(logger)
+                self.ack_settled = threading.Event()
+
+            def wait_ack(self, tx_id: int, timeout: float | None = None) -> AckStatus | None:
+                status = super().wait_ack(tx_id, timeout)
+                self.ack_settled.set()
+                return status
+
+        transport = FakeTransport()
+        core = _AckSettledCore(_logger("core"))
+        engine = TransactingSocketHandler(_logger("engine"), transport, _JSON_CODEC, core)
+        transport.attach(1)
+
+        delivery_workers: list[WorkerHandle] = []
+
+        def _schedule_late_failed_ack(epoch: int, wire: bytes) -> None:
+            frame = _JSON_CODEC.decode(wire)
+
+            def _deliver_once_ack_settled(core: _AckSettledCore = core) -> None:
+                assert core.ack_settled.wait(TEST_TIMEOUT)
+                transport.deliver(epoch, _token(frame.tx_id, "ack", 5, "too late"))
+
+            delivery_workers.append(start_worker("late-failed-ack", _deliver_once_ack_settled))
+
+        transport.on_send_reply = _schedule_late_failed_ack
+
+        outcome = engine.send_transaction(
+            "ping", 1, wait_ack=True, wait_result=True, timeout=SHORT_TIMEOUT
+        )
+        for worker in delivery_workers:
+            worker.join(TEST_TIMEOUT)
+
+        assert outcome.ack_status is AckStatus.TIMED_OUT
+        assert outcome.completion_status is CompletionStatus.ERROR
+        assert outcome.completion_error == "ack code 5: too late"
         assert len(core._pending) == 0
 
 

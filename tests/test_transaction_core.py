@@ -607,6 +607,119 @@ class TestRouteAckFailure:
         assert pending.ack_status is AckStatus.REJECTED
 
 
+class TestLateFailedAckAfterAckTimeout:
+    """PA25-07: a failed ACK arriving after ACK timeout must still settle an
+    independently unresolved completion stage, without ever overwriting the
+    already-settled ``AckStatus.TIMED_OUT``.
+
+    ``timeout=0`` deterministically settles the ACK stage to ``TIMED_OUT`` in
+    the calling thread (an immediate check, per ``TestWaitAckTimeoutSettlement``)
+    with no real wait, so these synchronous cases need no worker thread.
+    """
+
+    def test_late_failed_ack_settles_unresolved_completion_as_error(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="bad"))
+
+        assert pending.completion_status is CompletionStatus.ERROR
+        assert pending.completion_error == "ack code 5: bad"
+        assert pending.done_event.is_set()
+
+    def test_late_failed_ack_never_overwrites_ack_timed_out(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="bad"))
+
+        assert pending.ack_status is AckStatus.TIMED_OUT
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+
+    def test_late_successful_ack_after_ack_timeout_remains_non_terminal(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=0, payload=None))
+
+        assert pending.ack_status is AckStatus.TIMED_OUT
+        assert pending.acked is False
+        assert pending.completion_status is None
+        assert not pending.done_event.is_set()
+
+    def test_late_failed_ack_does_not_overwrite_a_result_settled_first(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+        res = TransactionFrame(tx_id=1, msg_type="res", code=0, payload="ok")
+        core.route(epoch=1, frame=res)
+
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="late"))
+
+        assert pending.completion_status is CompletionStatus.RESULT
+        assert pending.result is res
+        assert pending.completion_error is None
+
+    def test_late_failed_ack_does_not_overwrite_a_protocol_error_settled_first(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="err", code=1, payload="no"))
+
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="late"))
+
+        assert pending.completion_status is CompletionStatus.ERROR
+        assert pending.completion_error == "no"
+
+    def test_late_failed_ack_does_not_overwrite_a_completion_timeout_settled_first(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+        assert core.wait_completion(1, timeout=0) is CompletionStatus.TIMED_OUT
+
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="late"))
+
+        assert pending.completion_status is CompletionStatus.TIMED_OUT
+        assert pending.completion_error is None
+
+    def test_late_failed_ack_does_not_overwrite_connection_closed_settled_first(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+        core.fail_epoch(1, "connection lost")
+
+        core.route(epoch=1, frame=TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="late"))
+
+        assert pending.completion_status is CompletionStatus.CONNECTION_CLOSED
+        assert pending.completion_error == "connection lost"
+        assert pending.ack_status is AckStatus.TIMED_OUT
+
+
+class TestLateFailedAckWakesBlockedCompletionWait:
+    def test_late_failed_ack_wakes_a_blocked_completion_wait(self) -> None:
+        core = _core()
+        pending = core.register(epoch=1, tx_id=1)
+        assert core.wait_ack(1, timeout=0) is AckStatus.TIMED_OUT
+        barrier = threading.Barrier(2)
+
+        def _late_failed_ack(
+            core: TransactionCore = core, barrier: threading.Barrier = barrier
+        ) -> None:
+            barrier.wait(TEST_TIMEOUT)
+            core.route(1, TransactionFrame(tx_id=1, msg_type="ack", code=5, payload="late"))
+
+        handle = start_worker("late-failed-ack", _late_failed_ack)
+        barrier.wait(TEST_TIMEOUT)
+        status = core.wait_completion(1, timeout=TEST_TIMEOUT)
+        handle.join(TEST_TIMEOUT)
+
+        assert status is CompletionStatus.ERROR
+        assert pending.completion_error == "ack code 5: late"
+
+
 class TestRouteResult:
     """Routing table row: ``msg_type == "res"``."""
 
