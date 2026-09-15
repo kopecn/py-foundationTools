@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_bool,
+    from_dict,
     from_float,
     from_int,
     from_list,
@@ -19,7 +20,7 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
-from typing import Optional, Any, List, TypeVar, Type, cast, Callable
+from typing import Optional, Any, List, Dict, TypeVar, Type, cast, Callable
 from enum import Enum
 
 T = TypeVar("T")
@@ -248,6 +249,35 @@ class ThemeColorRef(Enum):
     Semantic color name resolved from PresentationColorTheme.
 
     Semantic color resolved from PresentationColorTheme.
+
+    Diagram canvas background color role. No default -- absence means the renderer chooses.
+
+    Node and edge border color role. No default -- absence means the renderer chooses.
+
+    Border color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+
+    Fill color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+
+    Text color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+
+    Semantic error/failure state color role. No default -- absence means the renderer
+    chooses.
+
+    Edge/connector line color role. No default -- absence means the renderer chooses.
+
+    Primary node fill color role. No default -- absence means the renderer chooses.
+
+    Secondary node fill color role. No default -- absence means the renderer chooses.
+
+    Semantic success/healthy state color role. No default -- absence means the renderer
+    chooses.
+
+    Tertiary node fill color role. No default -- absence means the renderer chooses.
+
+    Diagram text color role. No default -- absence means the renderer chooses.
 
     Optional semantic series color resolved from PresentationColorTheme.
     """
@@ -1118,6 +1148,190 @@ class ChartKind(Enum):
     LINE = "line"
 
 
+@dataclass
+class DiagramClassRole(DataModelHelper):
+    """Semantic color roles bound to a custom Mermaid node-class name (R19): fill, border, and
+    text, each a themeColorRef (R4) address, never a literal.
+    """
+
+    border: Optional[ThemeColorRef] = None
+    """Border color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+    """
+    fill: Optional[ThemeColorRef] = None
+    """Fill color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+    """
+    text: Optional[ThemeColorRef] = None
+    """Text color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+    """
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "DiagramClassRole":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        border = from_union([ThemeColorRef, from_none], obj.get("border"))
+        fill = from_union([ThemeColorRef, from_none], obj.get("fill"))
+        text = from_union([ThemeColorRef, from_none], obj.get("text"))
+        return DiagramClassRole(border, fill, text)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.border is not None:
+            result["border"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.border
+            )
+        if self.fill is not None:
+            result["fill"] = from_union([lambda x: to_enum(ThemeColorRef, x), from_none], self.fill)
+        if self.text is not None:
+            result["text"] = from_union([lambda x: to_enum(ThemeColorRef, x), from_none], self.text)
+        return result
+
+
+class ThemeBinding(Enum):
+    """Whether this diagram's colors resolve against the active PresentationColorTheme
+    ('themed') or are an intentional, inspectable literal-color opt-out ('fixed'). No
+    schema-declared default -- absence means 'themed' (documented here rather than declared
+    as a JSON Schema default, per R12, to avoid a second semver bump).
+    """
+
+    FIXED = "fixed"
+    THEMED = "themed"
+
+
+@dataclass
+class DiagramStyle(DataModelHelper):
+    """Semantic diagram style for a 'mermaid' block (R19): diagram colors expressed as semantic
+    theme references, never CSS/hex literals. No default -- absence means the renderer
+    applies no diagram-specific theming.
+
+    Semantic diagram color roles and node-class bindings for a 'mermaid' block (R19). Every
+    color-role value is a themeColorRef (R4) -- a semantic address into
+    PresentationColorTheme -- never a literal CSS/hex string, so an intentional literal-color
+    diagram must go through the explicit 'fixed' themeBinding opt-out rather than a raw value
+    here. Resolving these references into a concrete diagram configuration (e.g. mermaid
+    themeVariables) is a downstream concern; this repository owns only the typed shape and
+    the reference enumeration.
+    """
+
+    background: Optional[ThemeColorRef] = None
+    """Diagram canvas background color role. No default -- absence means the renderer chooses."""
+
+    border: Optional[ThemeColorRef] = None
+    """Node and edge border color role. No default -- absence means the renderer chooses."""
+
+    class_roles: Optional[Dict[str, DiagramClassRole]] = None
+    """Bounded map from a custom Mermaid node-class name (as used in the diagram source's
+    classDef) to semantic role colors (R19). Keys are author-chosen class names; values are
+    the bounded diagramClassRole shape -- never free-form string interpolation.
+    """
+    error: Optional[ThemeColorRef] = None
+    """Semantic error/failure state color role. No default -- absence means the renderer chooses."""
+
+    line: Optional[ThemeColorRef] = None
+    """Edge/connector line color role. No default -- absence means the renderer chooses."""
+
+    primary_fill: Optional[ThemeColorRef] = None
+    """Primary node fill color role. No default -- absence means the renderer chooses."""
+
+    secondary_fill: Optional[ThemeColorRef] = None
+    """Secondary node fill color role. No default -- absence means the renderer chooses."""
+
+    success: Optional[ThemeColorRef] = None
+    """Semantic success/healthy state color role. No default -- absence means the renderer
+    chooses.
+    """
+    tertiary_fill: Optional[ThemeColorRef] = None
+    """Tertiary node fill color role. No default -- absence means the renderer chooses."""
+
+    text: Optional[ThemeColorRef] = None
+    """Diagram text color role. No default -- absence means the renderer chooses."""
+
+    theme_binding: Optional[ThemeBinding] = None
+    """Whether this diagram's colors resolve against the active PresentationColorTheme
+    ('themed') or are an intentional, inspectable literal-color opt-out ('fixed'). No
+    schema-declared default -- absence means 'themed' (documented here rather than declared
+    as a JSON Schema default, per R12, to avoid a second semver bump).
+    """
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "DiagramStyle":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        background = from_union([ThemeColorRef, from_none], obj.get("background"))
+        border = from_union([ThemeColorRef, from_none], obj.get("border"))
+        class_roles = from_union(
+            [lambda x: from_dict(DiagramClassRole.from_dict, x), from_none], obj.get("classRoles")
+        )
+        error = from_union([ThemeColorRef, from_none], obj.get("error"))
+        line = from_union([ThemeColorRef, from_none], obj.get("line"))
+        primary_fill = from_union([ThemeColorRef, from_none], obj.get("primaryFill"))
+        secondary_fill = from_union([ThemeColorRef, from_none], obj.get("secondaryFill"))
+        success = from_union([ThemeColorRef, from_none], obj.get("success"))
+        tertiary_fill = from_union([ThemeColorRef, from_none], obj.get("tertiaryFill"))
+        text = from_union([ThemeColorRef, from_none], obj.get("text"))
+        theme_binding = from_union([ThemeBinding, from_none], obj.get("themeBinding"))
+        return DiagramStyle(
+            background,
+            border,
+            class_roles,
+            error,
+            line,
+            primary_fill,
+            secondary_fill,
+            success,
+            tertiary_fill,
+            text,
+            theme_binding,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.background is not None:
+            result["background"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.background
+            )
+        if self.border is not None:
+            result["border"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.border
+            )
+        if self.class_roles is not None:
+            result["classRoles"] = from_union(
+                [lambda x: from_dict(lambda x: to_class(DiagramClassRole, x), x), from_none],
+                self.class_roles,
+            )
+        if self.error is not None:
+            result["error"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.error
+            )
+        if self.line is not None:
+            result["line"] = from_union([lambda x: to_enum(ThemeColorRef, x), from_none], self.line)
+        if self.primary_fill is not None:
+            result["primaryFill"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.primary_fill
+            )
+        if self.secondary_fill is not None:
+            result["secondaryFill"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.secondary_fill
+            )
+        if self.success is not None:
+            result["success"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.success
+            )
+        if self.tertiary_fill is not None:
+            result["tertiaryFill"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.tertiary_fill
+            )
+        if self.text is not None:
+            result["text"] = from_union([lambda x: to_enum(ThemeColorRef, x), from_none], self.text)
+        if self.theme_binding is not None:
+            result["themeBinding"] = from_union(
+                [lambda x: to_enum(ThemeBinding, x), from_none], self.theme_binding
+            )
+        return result
+
+
 class Fit(Enum):
     """Media fit mode for 'image' and 'mermaid' blocks (R18): how intrinsic media dimensions map
     into the layout region. 'contain' scales to fit entirely inside the region without
@@ -1290,6 +1504,11 @@ class ContentBlock(DataModelHelper):
     """Optional change indicator for a 'metric' block, e.g. '+3.1pp QoQ'. Empty when the metric
     shows no comparison.
     """
+    diagram_style: Optional[DiagramStyle] = None
+    """Semantic diagram style for a 'mermaid' block (R19): diagram colors expressed as semantic
+    theme references, never CSS/hex literals. No default -- absence means the renderer
+    applies no diagram-specific theming.
+    """
     fit: Optional[Fit] = None
     """Media fit mode for 'image' and 'mermaid' blocks (R18): how intrinsic media dimensions map
     into the layout region. 'contain' scales to fit entirely inside the region without
@@ -1363,6 +1582,7 @@ class ContentBlock(DataModelHelper):
         )
         chart_kind = from_union([ChartKind, from_none], obj.get("chartKind"))
         delta = from_union([from_str, from_none], obj.get("delta"))
+        diagram_style = from_union([DiagramStyle.from_dict, from_none], obj.get("diagramStyle"))
         fit = from_union([Fit, from_none], obj.get("fit"))
         focal_point = from_union([FocalPoint.from_dict, from_none], obj.get("focalPoint"))
         headers = from_union([lambda x: from_list(from_str, x), from_none], obj.get("headers"))
@@ -1390,6 +1610,7 @@ class ContentBlock(DataModelHelper):
             categories,
             chart_kind,
             delta,
+            diagram_style,
             fit,
             focal_point,
             headers,
@@ -1435,6 +1656,10 @@ class ContentBlock(DataModelHelper):
             )
         if self.delta is not None:
             result["delta"] = from_union([from_str, from_none], self.delta)
+        if self.diagram_style is not None:
+            result["diagramStyle"] = from_union(
+                [lambda x: to_class(DiagramStyle, x), from_none], self.diagram_style
+            )
         if self.fit is not None:
             result["fit"] = from_union([lambda x: to_enum(Fit, x), from_none], self.fit)
         if self.focal_point is not None:

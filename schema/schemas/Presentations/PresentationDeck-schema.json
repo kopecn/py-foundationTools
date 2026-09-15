@@ -218,6 +218,10 @@
           "default": "",
           "description": "Raw Mermaid diagram source text for a 'mermaid' block. This repository stores the source only; it does not parse, lay out, or render Mermaid diagrams. Rendering, if ever added, is a downstream (clerical-tools) concern."
         },
+        "diagramStyle": {
+          "$ref": "#/definitions/diagramStyle",
+          "description": "Semantic diagram style for a 'mermaid' block (R19): diagram colors expressed as semantic theme references, never CSS/hex literals. No default -- absence means the renderer applies no diagram-specific theming."
+        },
         "source": {
           "type": "string",
           "default": "",
@@ -309,6 +313,81 @@
           "minimum": 0,
           "maximum": 1,
           "description": "Vertical focal point as a fraction of intrinsic height, 0 (top) to 1 (bottom). No default -- absence means centered (0.5)."
+        }
+      }
+    },
+    "diagramStyle": {
+      "type": "object",
+      "description": "Semantic diagram color roles and node-class bindings for a 'mermaid' block (R19). Every color-role value is a themeColorRef (R4) -- a semantic address into PresentationColorTheme -- never a literal CSS/hex string, so an intentional literal-color diagram must go through the explicit 'fixed' themeBinding opt-out rather than a raw value here. Resolving these references into a concrete diagram configuration (e.g. mermaid themeVariables) is a downstream concern; this repository owns only the typed shape and the reference enumeration.",
+      "properties": {
+        "background": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Diagram canvas background color role. No default -- absence means the renderer chooses."
+        },
+        "primaryFill": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Primary node fill color role. No default -- absence means the renderer chooses."
+        },
+        "secondaryFill": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Secondary node fill color role. No default -- absence means the renderer chooses."
+        },
+        "tertiaryFill": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Tertiary node fill color role. No default -- absence means the renderer chooses."
+        },
+        "border": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Node and edge border color role. No default -- absence means the renderer chooses."
+        },
+        "text": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Diagram text color role. No default -- absence means the renderer chooses."
+        },
+        "line": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Edge/connector line color role. No default -- absence means the renderer chooses."
+        },
+        "error": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Semantic error/failure state color role. No default -- absence means the renderer chooses."
+        },
+        "success": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Semantic success/healthy state color role. No default -- absence means the renderer chooses."
+        },
+        "classRoles": {
+          "type": "object",
+          "description": "Bounded map from a custom Mermaid node-class name (as used in the diagram source's classDef) to semantic role colors (R19). Keys are author-chosen class names; values are the bounded diagramClassRole shape -- never free-form string interpolation.",
+          "additionalProperties": {
+            "$ref": "#/definitions/diagramClassRole"
+          }
+        },
+        "themeBinding": {
+          "type": "string",
+          "enum": [
+            "themed",
+            "fixed"
+          ],
+          "description": "Whether this diagram's colors resolve against the active PresentationColorTheme ('themed') or are an intentional, inspectable literal-color opt-out ('fixed'). No schema-declared default -- absence means 'themed' (documented here rather than declared as a JSON Schema default, per R12, to avoid a second semver bump)."
+        }
+      }
+    },
+    "diagramClassRole": {
+      "type": "object",
+      "description": "Semantic color roles bound to a custom Mermaid node-class name (R19): fill, border, and text, each a themeColorRef (R4) address, never a literal.",
+      "properties": {
+        "fill": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Fill color role for nodes carrying this class. No default -- absence means the renderer chooses."
+        },
+        "border": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Border color role for nodes carrying this class. No default -- absence means the renderer chooses."
+        },
+        "text": {
+          "$ref": "PresentationSlideLayouts-schema.json#/definitions/themeColorRef",
+          "description": "Text color role for nodes carrying this class. No default -- absence means the renderer chooses."
         }
       }
     },

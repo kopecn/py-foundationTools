@@ -37,6 +37,8 @@ CLASSES_FOR_BASE_PARENT=(
     "TextRun"
     "ChartSeries"
     "FocalPoint"
+    "DiagramStyle"
+    "DiagramClassRole"
     "ContentBlock"
     "Slide"
     "PresentationColorTheme"
