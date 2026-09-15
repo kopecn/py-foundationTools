@@ -247,9 +247,9 @@ class ThemeColorRef(Enum):
 
     Semantic color name resolved from PresentationColorTheme.
 
-    Optional semantic series color resolved from PresentationColorTheme.
-
     Semantic color resolved from PresentationColorTheme.
+
+    Optional semantic series color resolved from PresentationColorTheme.
     """
 
     ACCENT_AMBER_ACCENT = "accentAmber.accent"
@@ -433,6 +433,60 @@ class Align(Enum):
     RIGHT = "right"
 
 
+@dataclass
+class Style(DataModelHelper):
+    """Metric style roles (R17): style override for a metric region's delta field. Reuses the
+    existing style shape (R2) rather than re-declaring it. No default -- absence means the
+    renderer chooses.
+
+    Optional style overrides for this content block.
+
+    Metric style roles (R17): style override for a metric region's label field. Reuses the
+    existing style shape (R2) rather than re-declaring it. No default -- absence means the
+    renderer chooses.
+
+    Metric style roles (R17): style override for a metric region's headline value field.
+    Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence
+    means the renderer chooses.
+    """
+
+    align: Optional[Align] = None
+    """Horizontal text alignment."""
+
+    bold: Optional[bool] = None
+    """Whether the content renders bold."""
+
+    color: Optional[ThemeColorRef] = None
+    """Semantic color resolved from PresentationColorTheme."""
+
+    font_size: Optional[float] = None
+    """Font size override in points."""
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "Style":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        align = from_union([Align, from_none], obj.get("align"))
+        bold = from_union([from_bool, from_none], obj.get("bold"))
+        color = from_union([ThemeColorRef, from_none], obj.get("color"))
+        font_size = from_union([from_float, from_none], obj.get("fontSize"))
+        return Style(align, bold, color, font_size)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.align is not None:
+            result["align"] = from_union([lambda x: to_enum(Align, x), from_none], self.align)
+        if self.bold is not None:
+            result["bold"] = from_union([from_bool, from_none], self.bold)
+        if self.color is not None:
+            result["color"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
+            )
+        if self.font_size is not None:
+            result["fontSize"] = from_union([to_float, from_none], self.font_size)
+        return result
+
+
 class Overflow(Enum):
     """Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip'
     truncates at the boundary; 'shrink' deterministically reduces font size within the bounds
@@ -480,6 +534,15 @@ class Region(DataModelHelper):
     color: Optional[ThemeColorRef] = None
     """Semantic color name resolved from PresentationColorTheme."""
 
+    delta_permitted: Optional[bool] = None
+    """Metric style roles (R17): whether a metric region's delta field is permitted. No default
+    -- absence means permitted.
+    """
+    delta_style: Optional[Style] = None
+    """Metric style roles (R17): style override for a metric region's delta field. Reuses the
+    existing style shape (R2) rather than re-declaring it. No default -- absence means the
+    renderer chooses.
+    """
     font_family: Optional[str] = None
     """Font family override. When unset, inherits `metadata.defaults.fontFamily`."""
 
@@ -489,6 +552,15 @@ class Region(DataModelHelper):
     height: Optional[float] = None
     """Region height in pixels."""
 
+    label_permitted: Optional[bool] = None
+    """Metric style roles (R17): whether a metric region's label field is permitted. No default
+    -- absence means permitted.
+    """
+    label_style: Optional[Style] = None
+    """Metric style roles (R17): style override for a metric region's label field. Reuses the
+    existing style shape (R2) rather than re-declaring it. No default -- absence means the
+    renderer chooses.
+    """
     line_spacing: Optional[float] = None
     """Paragraph rhythm (R16): line spacing multiplier for text in this region, e.g. 1.15 for
     115%. No default -- absence means the renderer chooses.
@@ -496,6 +568,10 @@ class Region(DataModelHelper):
     max_lines: Optional[int] = None
     """Responsive fit budget (R15): the maximum number of lines the renderer may use when
     shrinking under overflow 'shrink'. No default -- absence means no responsive budget.
+    """
+    metric_gap: Optional[float] = None
+    """Metric style roles (R17): inter-field gap in pixels between a metric region's
+    value/label/delta fields. No default -- absence means the renderer chooses.
     """
     min_font_size: Optional[float] = None
     """Responsive fit budget (R15): the smallest font size in points the renderer may shrink to
@@ -525,6 +601,11 @@ class Region(DataModelHelper):
     type: Optional[RegionType] = None
     """Region kind, informing default styling."""
 
+    value_style: Optional[Style] = None
+    """Metric style roles (R17): style override for a metric region's headline value field.
+    Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence
+    means the renderer chooses.
+    """
     vertical_align: Optional[VerticalAlign] = None
     """Vertical text alignment."""
 
@@ -544,11 +625,16 @@ class Region(DataModelHelper):
         id = from_str(obj.get("id"))
         align = from_union([Align, from_none], obj.get("align"))
         color = from_union([ThemeColorRef, from_none], obj.get("color"))
+        delta_permitted = from_union([from_bool, from_none], obj.get("deltaPermitted"))
+        delta_style = from_union([Style.from_dict, from_none], obj.get("deltaStyle"))
         font_family = from_union([from_str, from_none], obj.get("fontFamily"))
         font_size = from_union([from_float, from_none], obj.get("fontSize"))
         height = from_union([from_float, from_none], obj.get("height"))
+        label_permitted = from_union([from_bool, from_none], obj.get("labelPermitted"))
+        label_style = from_union([Style.from_dict, from_none], obj.get("labelStyle"))
         line_spacing = from_union([from_float, from_none], obj.get("lineSpacing"))
         max_lines = from_union([from_int, from_none], obj.get("maxLines"))
+        metric_gap = from_union([from_float, from_none], obj.get("metricGap"))
         min_font_size = from_union([from_float, from_none], obj.get("minFontSize"))
         overflow = from_union([Overflow, from_none], obj.get("overflow"))
         padding = from_union([from_float, from_none], obj.get("padding"))
@@ -558,6 +644,7 @@ class Region(DataModelHelper):
         space_after = from_union([from_float, from_none], obj.get("spaceAfter"))
         space_before = from_union([from_float, from_none], obj.get("spaceBefore"))
         type = from_union([RegionType, from_none], obj.get("type"))
+        value_style = from_union([Style.from_dict, from_none], obj.get("valueStyle"))
         vertical_align = from_union([VerticalAlign, from_none], obj.get("verticalAlign"))
         width = from_union([from_float, from_none], obj.get("width"))
         x = from_union([from_float, from_none], obj.get("x"))
@@ -566,11 +653,16 @@ class Region(DataModelHelper):
             id,
             align,
             color,
+            delta_permitted,
+            delta_style,
             font_family,
             font_size,
             height,
+            label_permitted,
+            label_style,
             line_spacing,
             max_lines,
+            metric_gap,
             min_font_size,
             overflow,
             padding,
@@ -578,6 +670,7 @@ class Region(DataModelHelper):
             space_after,
             space_before,
             type,
+            value_style,
             vertical_align,
             width,
             x,
@@ -593,16 +686,30 @@ class Region(DataModelHelper):
             result["color"] = from_union(
                 [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
             )
+        if self.delta_permitted is not None:
+            result["deltaPermitted"] = from_union([from_bool, from_none], self.delta_permitted)
+        if self.delta_style is not None:
+            result["deltaStyle"] = from_union(
+                [lambda x: to_class(Style, x), from_none], self.delta_style
+            )
         if self.font_family is not None:
             result["fontFamily"] = from_union([from_str, from_none], self.font_family)
         if self.font_size is not None:
             result["fontSize"] = from_union([to_float, from_none], self.font_size)
         if self.height is not None:
             result["height"] = from_union([to_float, from_none], self.height)
+        if self.label_permitted is not None:
+            result["labelPermitted"] = from_union([from_bool, from_none], self.label_permitted)
+        if self.label_style is not None:
+            result["labelStyle"] = from_union(
+                [lambda x: to_class(Style, x), from_none], self.label_style
+            )
         if self.line_spacing is not None:
             result["lineSpacing"] = from_union([to_float, from_none], self.line_spacing)
         if self.max_lines is not None:
             result["maxLines"] = from_union([from_int, from_none], self.max_lines)
+        if self.metric_gap is not None:
+            result["metricGap"] = from_union([to_float, from_none], self.metric_gap)
         if self.min_font_size is not None:
             result["minFontSize"] = from_union([to_float, from_none], self.min_font_size)
         if self.overflow is not None:
@@ -621,6 +728,10 @@ class Region(DataModelHelper):
             result["spaceBefore"] = from_union([to_float, from_none], self.space_before)
         if self.type is not None:
             result["type"] = from_union([lambda x: to_enum(RegionType, x), from_none], self.type)
+        if self.value_style is not None:
+            result["valueStyle"] = from_union(
+                [lambda x: to_class(Style, x), from_none], self.value_style
+            )
         if self.vertical_align is not None:
             result["verticalAlign"] = from_union(
                 [lambda x: to_enum(VerticalAlign, x), from_none], self.vertical_align
@@ -1030,47 +1141,6 @@ class ChartSeries(DataModelHelper):
             result["color"] = from_union(
                 [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
             )
-        return result
-
-
-@dataclass
-class Style(DataModelHelper):
-    """Optional style overrides for this content block."""
-
-    align: Optional[Align] = None
-    """Horizontal text alignment."""
-
-    bold: Optional[bool] = None
-    """Whether the content renders bold."""
-
-    color: Optional[ThemeColorRef] = None
-    """Semantic color resolved from PresentationColorTheme."""
-
-    font_size: Optional[float] = None
-    """Font size override in points."""
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "Style":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        align = from_union([Align, from_none], obj.get("align"))
-        bold = from_union([from_bool, from_none], obj.get("bold"))
-        color = from_union([ThemeColorRef, from_none], obj.get("color"))
-        font_size = from_union([from_float, from_none], obj.get("fontSize"))
-        return Style(align, bold, color, font_size)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        if self.align is not None:
-            result["align"] = from_union([lambda x: to_enum(Align, x), from_none], self.align)
-        if self.bold is not None:
-            result["bold"] = from_union([from_bool, from_none], self.bold)
-        if self.color is not None:
-            result["color"] = from_union(
-                [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
-            )
-        if self.font_size is not None:
-            result["fontSize"] = from_union([to_float, from_none], self.font_size)
         return result
 
 

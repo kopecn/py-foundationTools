@@ -262,6 +262,31 @@
           "type": "number",
           "minimum": 0,
           "description": "Paragraph rhythm (R16): space in pixels added after each paragraph in this region. No default -- absence means the renderer chooses."
+        },
+        "valueStyle": {
+          "$ref": "PresentationDeck-schema.json#/definitions/contentBlock/properties/style",
+          "description": "Metric style roles (R17): style override for a metric region's headline value field. Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence means the renderer chooses."
+        },
+        "labelStyle": {
+          "$ref": "PresentationDeck-schema.json#/definitions/contentBlock/properties/style",
+          "description": "Metric style roles (R17): style override for a metric region's label field. Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence means the renderer chooses."
+        },
+        "deltaStyle": {
+          "$ref": "PresentationDeck-schema.json#/definitions/contentBlock/properties/style",
+          "description": "Metric style roles (R17): style override for a metric region's delta field. Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence means the renderer chooses."
+        },
+        "metricGap": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Metric style roles (R17): inter-field gap in pixels between a metric region's value/label/delta fields. No default -- absence means the renderer chooses."
+        },
+        "labelPermitted": {
+          "type": "boolean",
+          "description": "Metric style roles (R17): whether a metric region's label field is permitted. No default -- absence means permitted."
+        },
+        "deltaPermitted": {
+          "type": "boolean",
+          "description": "Metric style roles (R17): whether a metric region's delta field is permitted. No default -- absence means permitted."
         }
       }
     },

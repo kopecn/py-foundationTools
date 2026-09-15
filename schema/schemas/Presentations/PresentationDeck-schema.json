@@ -225,6 +225,7 @@
         },
         "style": {
           "type": "object",
+          "title": "Style",
           "description": "Optional style overrides for this content block.",
           "properties": {
             "color": {
