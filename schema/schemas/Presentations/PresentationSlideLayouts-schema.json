@@ -148,6 +148,7 @@
         },
         "type": {
           "type": "string",
+          "title": "RegionType",
           "enum": [
             "title",
             "subtitle",
@@ -239,7 +240,7 @@
         "maxLines": {
           "type": "integer",
           "minimum": 1,
-          "description": "Responsive fit budget (R15): the maximum number of lines the renderer may use when shrinking under overflow 'shrink'. No default -- absence means no responsive budget."
+          "description": "Responsive fit budget (R15): the maximum number of lines the renderer may use when shrinking under overflow 'shrink'. Also the layout capacity bound (R20) consumed by the downstream design-lint tier -- one field, two consumers, per the single-definition rule. No default -- absence means no responsive budget / no capacity bound."
         },
         "scaleLadder": {
           "type": "array",
@@ -308,6 +309,47 @@
           "minimum": 0,
           "maximum": 1,
           "description": "Media fit and aspect (R18): minimum fraction of the region's area that placed media must fill before a downstream lint warns that a source cannot satisfy the region without an author decision. No default -- absence means no fill-ratio floor."
+        },
+        "allowedContentTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "PresentationDeck-schema.json#/definitions/contentBlock/properties/type"
+          },
+          "description": "Layout capacity and semantic roles (R20): the set of content block kinds this region accepts, reusing the block 'type' enum by reference rather than redeclaring it. Consumed by the downstream design-lint tier. No default -- absence means no content-type restriction."
+        },
+        "occupancy": {
+          "type": "string",
+          "enum": [
+            "required",
+            "recommended",
+            "optional"
+          ],
+          "description": "Layout capacity and semantic roles (R20): whether a slide using this layout must, should, or may populate this region. Consumed by the downstream design-lint tier. No default -- absence means no occupancy constraint."
+        },
+        "maxCharacters": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Layout capacity and semantic roles (R20): the maximum total character count this region's content may contain. Consumed by the downstream design-lint tier. No default -- absence means no character-count bound."
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Layout capacity and semantic roles (R20): the maximum number of list items (e.g. bullets) this region may contain. Consumed by the downstream design-lint tier. No default -- absence means no item-count bound."
+        },
+        "maxCharactersPerItem": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Layout capacity and semantic roles (R20): the maximum character count for any single list item in this region. Consumed by the downstream design-lint tier. No default -- absence means no per-item character bound."
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "presenterName",
+            "deckTitle",
+            "metricValue",
+            "evidence"
+          ],
+          "description": "Layout capacity and semantic roles (R20): the region's semantic identity, consumed by the downstream renderer for shape identity and reading order. No default -- absence means no declared semantic role."
         }
       }
     },
@@ -345,6 +387,31 @@
           "type": "string",
           "default": "",
           "description": "Authoring guidance for agents or presentation generators."
+        },
+        "purpose": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "section",
+              "statement",
+              "evidence",
+              "comparison",
+              "process",
+              "metric",
+              "closing"
+            ]
+          },
+          "description": "Layout capacity and semantic roles (R20): the communication purpose tag set this layout serves, consumed by the downstream authoring skill for layout selection (not by the renderer). No default -- absence means no declared purpose."
+        },
+        "density": {
+          "type": "string",
+          "enum": [
+            "sparse",
+            "balanced",
+            "dense"
+          ],
+          "description": "Layout capacity and semantic roles (R20): the overall content density this layout is designed for, consumed by the downstream authoring skill for layout selection (not by the renderer). No default -- absence means no declared density class."
         }
       }
     }

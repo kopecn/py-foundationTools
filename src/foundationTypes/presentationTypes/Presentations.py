@@ -455,12 +455,48 @@ class LayoutDefaults(DataModelHelper):
         return result
 
 
+class Density(Enum):
+    """Layout capacity and semantic roles (R20): the overall content density this layout is
+    designed for, consumed by the downstream authoring skill for layout selection (not by the
+    renderer). No default -- absence means no declared density class.
+    """
+
+    BALANCED = "balanced"
+    DENSE = "dense"
+    SPARSE = "sparse"
+
+
+class Purpose(Enum):
+    CLOSING = "closing"
+    COMPARISON = "comparison"
+    EVIDENCE = "evidence"
+    METRIC = "metric"
+    PROCESS = "process"
+    SECTION = "section"
+    STATEMENT = "statement"
+
+
 class Align(Enum):
     """Horizontal text alignment."""
 
     CENTER = "center"
     LEFT = "left"
     RIGHT = "right"
+
+
+class ContentType(Enum):
+    """Content block kind. Each arm has a payload capable of expressing it and a renderer
+    capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
+    diagram source with no renderer yet (see 'mermaidSource').
+    """
+
+    BULLETS = "bullets"
+    CHART = "chart"
+    IMAGE = "image"
+    MERMAID = "mermaid"
+    METRIC = "metric"
+    TABLE = "table"
+    TEXT = "text"
 
 
 @dataclass
@@ -517,6 +553,17 @@ class Style(DataModelHelper):
         return result
 
 
+class Occupancy(Enum):
+    """Layout capacity and semantic roles (R20): whether a slide using this layout must, should,
+    or may populate this region. Consumed by the downstream design-lint tier. No default --
+    absence means no occupancy constraint.
+    """
+
+    OPTIONAL = "optional"
+    RECOMMENDED = "recommended"
+    REQUIRED = "required"
+
+
 class Overflow(Enum):
     """Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip'
     truncates at the boundary; 'shrink' deterministically reduces font size within the bounds
@@ -526,6 +573,18 @@ class Overflow(Enum):
     CLIP = "clip"
     SHRINK = "shrink"
     WRAP = "wrap"
+
+
+class Role(Enum):
+    """Layout capacity and semantic roles (R20): the region's semantic identity, consumed by the
+    downstream renderer for shape identity and reading order. No default -- absence means no
+    declared semantic role.
+    """
+
+    DECK_TITLE = "deckTitle"
+    EVIDENCE = "evidence"
+    METRIC_VALUE = "metricValue"
+    PRESENTER_NAME = "presenterName"
 
 
 class RegionType(Enum):
@@ -561,6 +620,12 @@ class Region(DataModelHelper):
     align: Optional[Align] = None
     """Horizontal text alignment."""
 
+    allowed_content_types: Optional[List[ContentType]] = None
+    """Layout capacity and semantic roles (R20): the set of content block kinds this region
+    accepts, reusing the block 'type' enum by reference rather than redeclaring it. Consumed
+    by the downstream design-lint tier. No default -- absence means no content-type
+    restriction.
+    """
     color: Optional[ThemeColorRef] = None
     """Semantic color name resolved from PresentationColorTheme."""
 
@@ -599,9 +664,26 @@ class Region(DataModelHelper):
     """Media fit and aspect (R18): upper bound of an acceptable width/height aspect-ratio range
     for media placed in this region. No default -- absence means no upper bound.
     """
+    max_characters: Optional[int] = None
+    """Layout capacity and semantic roles (R20): the maximum total character count this region's
+    content may contain. Consumed by the downstream design-lint tier. No default -- absence
+    means no character-count bound.
+    """
+    max_characters_per_item: Optional[int] = None
+    """Layout capacity and semantic roles (R20): the maximum character count for any single list
+    item in this region. Consumed by the downstream design-lint tier. No default -- absence
+    means no per-item character bound.
+    """
+    max_items: Optional[int] = None
+    """Layout capacity and semantic roles (R20): the maximum number of list items (e.g. bullets)
+    this region may contain. Consumed by the downstream design-lint tier. No default --
+    absence means no item-count bound.
+    """
     max_lines: Optional[int] = None
     """Responsive fit budget (R15): the maximum number of lines the renderer may use when
-    shrinking under overflow 'shrink'. No default -- absence means no responsive budget.
+    shrinking under overflow 'shrink'. Also the layout capacity bound (R20) consumed by the
+    downstream design-lint tier -- one field, two consumers, per the single-definition rule.
+    No default -- absence means no responsive budget / no capacity bound.
     """
     metric_gap: Optional[float] = None
     """Metric style roles (R17): inter-field gap in pixels between a metric region's
@@ -621,6 +703,11 @@ class Region(DataModelHelper):
     """Responsive fit budget (R15): the smallest font size in points the renderer may shrink to
     under overflow 'shrink'. No default -- absence means no responsive budget.
     """
+    occupancy: Optional[Occupancy] = None
+    """Layout capacity and semantic roles (R20): whether a slide using this layout must, should,
+    or may populate this region. Consumed by the downstream design-lint tier. No default --
+    absence means no occupancy constraint.
+    """
     overflow: Optional[Overflow] = None
     """Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip'
     truncates at the boundary; 'shrink' deterministically reduces font size within the bounds
@@ -633,6 +720,11 @@ class Region(DataModelHelper):
     """Media fit and aspect (R18): the region's preferred width/height ratio for media content,
     e.g. 1.778 for 16:9. Defined once here -- R20 (layout capacity) $refs this field rather
     than redeclaring it. No default -- absence means no aspect preference.
+    """
+    role: Optional[Role] = None
+    """Layout capacity and semantic roles (R20): the region's semantic identity, consumed by the
+    downstream renderer for shape identity and reading order. No default -- absence means no
+    declared semantic role.
     """
     scale_ladder: Optional[List[float]] = None
     """Responsive fit budget (R15): an optional array of descending font sizes in points the
@@ -673,6 +765,9 @@ class Region(DataModelHelper):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_str(obj.get("id"))
         align = from_union([Align, from_none], obj.get("align"))
+        allowed_content_types = from_union(
+            [lambda x: from_list(ContentType, x), from_none], obj.get("allowedContentTypes")
+        )
         color = from_union([ThemeColorRef, from_none], obj.get("color"))
         delta_permitted = from_union([from_bool, from_none], obj.get("deltaPermitted"))
         delta_style = from_union([Style.from_dict, from_none], obj.get("deltaStyle"))
@@ -683,16 +778,21 @@ class Region(DataModelHelper):
         label_style = from_union([Style.from_dict, from_none], obj.get("labelStyle"))
         line_spacing = from_union([from_float, from_none], obj.get("lineSpacing"))
         max_aspect_ratio = from_union([from_float, from_none], obj.get("maxAspectRatio"))
+        max_characters = from_union([from_int, from_none], obj.get("maxCharacters"))
+        max_characters_per_item = from_union([from_int, from_none], obj.get("maxCharactersPerItem"))
+        max_items = from_union([from_int, from_none], obj.get("maxItems"))
         max_lines = from_union([from_int, from_none], obj.get("maxLines"))
         metric_gap = from_union([from_float, from_none], obj.get("metricGap"))
         min_aspect_ratio = from_union([from_float, from_none], obj.get("minAspectRatio"))
         min_fill_ratio = from_union([from_float, from_none], obj.get("minFillRatio"))
         min_font_size = from_union([from_float, from_none], obj.get("minFontSize"))
+        occupancy = from_union([Occupancy, from_none], obj.get("occupancy"))
         overflow = from_union([Overflow, from_none], obj.get("overflow"))
         padding = from_union([from_float, from_none], obj.get("padding"))
         preferred_aspect_ratio = from_union(
             [from_float, from_none], obj.get("preferredAspectRatio")
         )
+        role = from_union([Role, from_none], obj.get("role"))
         scale_ladder = from_union(
             [lambda x: from_list(from_float, x), from_none], obj.get("scaleLadder")
         )
@@ -707,6 +807,7 @@ class Region(DataModelHelper):
         return Region(
             id,
             align,
+            allowed_content_types,
             color,
             delta_permitted,
             delta_style,
@@ -717,14 +818,19 @@ class Region(DataModelHelper):
             label_style,
             line_spacing,
             max_aspect_ratio,
+            max_characters,
+            max_characters_per_item,
+            max_items,
             max_lines,
             metric_gap,
             min_aspect_ratio,
             min_fill_ratio,
             min_font_size,
+            occupancy,
             overflow,
             padding,
             preferred_aspect_ratio,
+            role,
             scale_ladder,
             space_after,
             space_before,
@@ -741,6 +847,11 @@ class Region(DataModelHelper):
         result["id"] = from_str(self.id)
         if self.align is not None:
             result["align"] = from_union([lambda x: to_enum(Align, x), from_none], self.align)
+        if self.allowed_content_types is not None:
+            result["allowedContentTypes"] = from_union(
+                [lambda x: from_list(lambda x: to_enum(ContentType, x), x), from_none],
+                self.allowed_content_types,
+            )
         if self.color is not None:
             result["color"] = from_union(
                 [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
@@ -767,6 +878,14 @@ class Region(DataModelHelper):
             result["lineSpacing"] = from_union([to_float, from_none], self.line_spacing)
         if self.max_aspect_ratio is not None:
             result["maxAspectRatio"] = from_union([to_float, from_none], self.max_aspect_ratio)
+        if self.max_characters is not None:
+            result["maxCharacters"] = from_union([from_int, from_none], self.max_characters)
+        if self.max_characters_per_item is not None:
+            result["maxCharactersPerItem"] = from_union(
+                [from_int, from_none], self.max_characters_per_item
+            )
+        if self.max_items is not None:
+            result["maxItems"] = from_union([from_int, from_none], self.max_items)
         if self.max_lines is not None:
             result["maxLines"] = from_union([from_int, from_none], self.max_lines)
         if self.metric_gap is not None:
@@ -777,6 +896,10 @@ class Region(DataModelHelper):
             result["minFillRatio"] = from_union([to_float, from_none], self.min_fill_ratio)
         if self.min_font_size is not None:
             result["minFontSize"] = from_union([to_float, from_none], self.min_font_size)
+        if self.occupancy is not None:
+            result["occupancy"] = from_union(
+                [lambda x: to_enum(Occupancy, x), from_none], self.occupancy
+            )
         if self.overflow is not None:
             result["overflow"] = from_union(
                 [lambda x: to_enum(Overflow, x), from_none], self.overflow
@@ -787,6 +910,8 @@ class Region(DataModelHelper):
             result["preferredAspectRatio"] = from_union(
                 [to_float, from_none], self.preferred_aspect_ratio
             )
+        if self.role is not None:
+            result["role"] = from_union([lambda x: to_enum(Role, x), from_none], self.role)
         if self.scale_ladder is not None:
             result["scaleLadder"] = from_union(
                 [lambda x: from_list(to_float, x), from_none], self.scale_ladder
@@ -827,11 +952,22 @@ class SlideLayout(DataModelHelper):
     regions: List[Region]
     """The regions making up this layout."""
 
+    density: Optional[Density] = None
+    """Layout capacity and semantic roles (R20): the overall content density this layout is
+    designed for, consumed by the downstream authoring skill for layout selection (not by the
+    renderer). No default -- absence means no declared density class.
+    """
     description: Optional[str] = None
     """Human-readable layout description."""
 
     notes: Optional[str] = None
     """Authoring guidance for agents or presentation generators."""
+
+    purpose: Optional[List[Purpose]] = None
+    """Layout capacity and semantic roles (R20): the communication purpose tag set this layout
+    serves, consumed by the downstream authoring skill for layout selection (not by the
+    renderer). No default -- absence means no declared purpose.
+    """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SlideLayout":
@@ -840,19 +976,27 @@ class SlideLayout(DataModelHelper):
         id = from_str(obj.get("id"))
         name = from_str(obj.get("name"))
         regions = from_list(Region.from_dict, obj.get("regions"))
+        density = from_union([Density, from_none], obj.get("density"))
         description = from_union([from_str, from_none], obj.get("description"))
         notes = from_union([from_str, from_none], obj.get("notes"))
-        return SlideLayout(id, name, regions, description, notes)
+        purpose = from_union([lambda x: from_list(Purpose, x), from_none], obj.get("purpose"))
+        return SlideLayout(id, name, regions, density, description, notes, purpose)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         result["id"] = from_str(self.id)
         result["name"] = from_str(self.name)
         result["regions"] = from_list(lambda x: to_class(Region, x), self.regions)
+        if self.density is not None:
+            result["density"] = from_union([lambda x: to_enum(Density, x), from_none], self.density)
         if self.description is not None:
             result["description"] = from_union([from_str, from_none], self.description)
         if self.notes is not None:
             result["notes"] = from_union([from_str, from_none], self.notes)
+        if self.purpose is not None:
+            result["purpose"] = from_union(
+                [lambda x: from_list(lambda x: to_enum(Purpose, x), x), from_none], self.purpose
+            )
         return result
 
 
@@ -1446,21 +1590,6 @@ class ChartSeries(DataModelHelper):
                 [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
             )
         return result
-
-
-class ContentType(Enum):
-    """Content block kind. Each arm has a payload capable of expressing it and a renderer
-    capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
-    diagram source with no renderer yet (see 'mermaidSource').
-    """
-
-    BULLETS = "bullets"
-    CHART = "chart"
-    IMAGE = "image"
-    MERMAID = "mermaid"
-    METRIC = "metric"
-    TABLE = "table"
-    TEXT = "text"
 
 
 @dataclass

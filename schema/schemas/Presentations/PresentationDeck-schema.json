@@ -85,6 +85,7 @@
         },
         "type": {
           "type": "string",
+          "title": "ContentType",
           "enum": [
             "text",
             "bullets",
