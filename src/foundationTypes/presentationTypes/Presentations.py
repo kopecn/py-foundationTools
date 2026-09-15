@@ -565,6 +565,10 @@ class Region(DataModelHelper):
     """Paragraph rhythm (R16): line spacing multiplier for text in this region, e.g. 1.15 for
     115%. No default -- absence means the renderer chooses.
     """
+    max_aspect_ratio: Optional[float] = None
+    """Media fit and aspect (R18): upper bound of an acceptable width/height aspect-ratio range
+    for media placed in this region. No default -- absence means no upper bound.
+    """
     max_lines: Optional[int] = None
     """Responsive fit budget (R15): the maximum number of lines the renderer may use when
     shrinking under overflow 'shrink'. No default -- absence means no responsive budget.
@@ -572,6 +576,16 @@ class Region(DataModelHelper):
     metric_gap: Optional[float] = None
     """Metric style roles (R17): inter-field gap in pixels between a metric region's
     value/label/delta fields. No default -- absence means the renderer chooses.
+    """
+    min_aspect_ratio: Optional[float] = None
+    """Media fit and aspect (R18): lower bound of an acceptable width/height aspect-ratio range
+    for media placed in this region, an alternative to a single 'preferredAspectRatio' when a
+    range is acceptable. No default -- absence means no lower bound.
+    """
+    min_fill_ratio: Optional[float] = None
+    """Media fit and aspect (R18): minimum fraction of the region's area that placed media must
+    fill before a downstream lint warns that a source cannot satisfy the region without an
+    author decision. No default -- absence means no fill-ratio floor.
     """
     min_font_size: Optional[float] = None
     """Responsive fit budget (R15): the smallest font size in points the renderer may shrink to
@@ -585,6 +599,11 @@ class Region(DataModelHelper):
     padding: Optional[float] = None
     """Inner padding in pixels."""
 
+    preferred_aspect_ratio: Optional[float] = None
+    """Media fit and aspect (R18): the region's preferred width/height ratio for media content,
+    e.g. 1.778 for 16:9. Defined once here -- R20 (layout capacity) $refs this field rather
+    than redeclaring it. No default -- absence means no aspect preference.
+    """
     scale_ladder: Optional[List[float]] = None
     """Responsive fit budget (R15): an optional array of descending font sizes in points the
     renderer steps through under overflow 'shrink', never going below minFontSize. No default
@@ -633,11 +652,17 @@ class Region(DataModelHelper):
         label_permitted = from_union([from_bool, from_none], obj.get("labelPermitted"))
         label_style = from_union([Style.from_dict, from_none], obj.get("labelStyle"))
         line_spacing = from_union([from_float, from_none], obj.get("lineSpacing"))
+        max_aspect_ratio = from_union([from_float, from_none], obj.get("maxAspectRatio"))
         max_lines = from_union([from_int, from_none], obj.get("maxLines"))
         metric_gap = from_union([from_float, from_none], obj.get("metricGap"))
+        min_aspect_ratio = from_union([from_float, from_none], obj.get("minAspectRatio"))
+        min_fill_ratio = from_union([from_float, from_none], obj.get("minFillRatio"))
         min_font_size = from_union([from_float, from_none], obj.get("minFontSize"))
         overflow = from_union([Overflow, from_none], obj.get("overflow"))
         padding = from_union([from_float, from_none], obj.get("padding"))
+        preferred_aspect_ratio = from_union(
+            [from_float, from_none], obj.get("preferredAspectRatio")
+        )
         scale_ladder = from_union(
             [lambda x: from_list(from_float, x), from_none], obj.get("scaleLadder")
         )
@@ -661,11 +686,15 @@ class Region(DataModelHelper):
             label_permitted,
             label_style,
             line_spacing,
+            max_aspect_ratio,
             max_lines,
             metric_gap,
+            min_aspect_ratio,
+            min_fill_ratio,
             min_font_size,
             overflow,
             padding,
+            preferred_aspect_ratio,
             scale_ladder,
             space_after,
             space_before,
@@ -706,10 +735,16 @@ class Region(DataModelHelper):
             )
         if self.line_spacing is not None:
             result["lineSpacing"] = from_union([to_float, from_none], self.line_spacing)
+        if self.max_aspect_ratio is not None:
+            result["maxAspectRatio"] = from_union([to_float, from_none], self.max_aspect_ratio)
         if self.max_lines is not None:
             result["maxLines"] = from_union([from_int, from_none], self.max_lines)
         if self.metric_gap is not None:
             result["metricGap"] = from_union([to_float, from_none], self.metric_gap)
+        if self.min_aspect_ratio is not None:
+            result["minAspectRatio"] = from_union([to_float, from_none], self.min_aspect_ratio)
+        if self.min_fill_ratio is not None:
+            result["minFillRatio"] = from_union([to_float, from_none], self.min_fill_ratio)
         if self.min_font_size is not None:
             result["minFontSize"] = from_union([to_float, from_none], self.min_font_size)
         if self.overflow is not None:
@@ -718,6 +753,10 @@ class Region(DataModelHelper):
             )
         if self.padding is not None:
             result["padding"] = from_union([to_float, from_none], self.padding)
+        if self.preferred_aspect_ratio is not None:
+            result["preferredAspectRatio"] = from_union(
+                [to_float, from_none], self.preferred_aspect_ratio
+            )
         if self.scale_ladder is not None:
             result["scaleLadder"] = from_union(
                 [lambda x: from_list(to_float, x), from_none], self.scale_ladder
@@ -1079,6 +1118,57 @@ class ChartKind(Enum):
     LINE = "line"
 
 
+class Fit(Enum):
+    """Media fit mode for 'image' and 'mermaid' blocks (R18): how intrinsic media dimensions map
+    into the layout region. 'contain' scales to fit entirely inside the region without
+    cropping or distortion; 'cover' scales to fully fill the region, cropping the overflow
+    (optionally guided by 'focalPoint'); 'fitWidth'/'fitHeight' scale to match one region
+    dimension exactly, allowing the other to overflow or underflow. Declares 'contain' as the
+    default so the downstream renderer never has to choose one for either block type. The
+    schema carries geometry intent only; fit geometry and placement live downstream.
+    """
+
+    CONTAIN = "contain"
+    COVER = "cover"
+    FIT_HEIGHT = "fitHeight"
+    FIT_WIDTH = "fitWidth"
+
+
+@dataclass
+class FocalPoint(DataModelHelper):
+    """Focal point guiding 'cover' fit cropping for 'image' and 'mermaid' blocks (R18). No
+    default -- absence means the geometric center.
+
+    Normalized focal point within an 'image' or 'mermaid' block's intrinsic media, used to
+    bias 'cover' fit cropping toward a specific area (R18), e.g. a face off-center in a photo.
+    """
+
+    x: Optional[float] = None
+    """Horizontal focal point as a fraction of intrinsic width, 0 (left) to 1 (right). No
+    default -- absence means centered (0.5).
+    """
+    y: Optional[float] = None
+    """Vertical focal point as a fraction of intrinsic height, 0 (top) to 1 (bottom). No default
+    -- absence means centered (0.5).
+    """
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "FocalPoint":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        x = from_union([from_float, from_none], obj.get("x"))
+        y = from_union([from_float, from_none], obj.get("y"))
+        return FocalPoint(x, y)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.x is not None:
+            result["x"] = from_union([to_float, from_none], self.x)
+        if self.y is not None:
+            result["y"] = from_union([to_float, from_none], self.y)
+        return result
+
+
 @dataclass
 class TextRun(DataModelHelper):
     """A run of body text with uniform inline emphasis."""
@@ -1200,6 +1290,19 @@ class ContentBlock(DataModelHelper):
     """Optional change indicator for a 'metric' block, e.g. '+3.1pp QoQ'. Empty when the metric
     shows no comparison.
     """
+    fit: Optional[Fit] = None
+    """Media fit mode for 'image' and 'mermaid' blocks (R18): how intrinsic media dimensions map
+    into the layout region. 'contain' scales to fit entirely inside the region without
+    cropping or distortion; 'cover' scales to fully fill the region, cropping the overflow
+    (optionally guided by 'focalPoint'); 'fitWidth'/'fitHeight' scale to match one region
+    dimension exactly, allowing the other to overflow or underflow. Declares 'contain' as the
+    default so the downstream renderer never has to choose one for either block type. The
+    schema carries geometry intent only; fit geometry and placement live downstream.
+    """
+    focal_point: Optional[FocalPoint] = None
+    """Focal point guiding 'cover' fit cropping for 'image' and 'mermaid' blocks (R18). No
+    default -- absence means the geometric center.
+    """
     headers: Optional[List[str]] = None
     """Optional column headers for a 'table' block. Empty for a headerless table."""
 
@@ -1260,6 +1363,8 @@ class ContentBlock(DataModelHelper):
         )
         chart_kind = from_union([ChartKind, from_none], obj.get("chartKind"))
         delta = from_union([from_str, from_none], obj.get("delta"))
+        fit = from_union([Fit, from_none], obj.get("fit"))
+        focal_point = from_union([FocalPoint.from_dict, from_none], obj.get("focalPoint"))
         headers = from_union([lambda x: from_list(from_str, x), from_none], obj.get("headers"))
         items = from_union([lambda x: from_list(from_str, x), from_none], obj.get("items"))
         label = from_union([from_str, from_none], obj.get("label"))
@@ -1285,6 +1390,8 @@ class ContentBlock(DataModelHelper):
             categories,
             chart_kind,
             delta,
+            fit,
+            focal_point,
             headers,
             items,
             label,
@@ -1328,6 +1435,12 @@ class ContentBlock(DataModelHelper):
             )
         if self.delta is not None:
             result["delta"] = from_union([from_str, from_none], self.delta)
+        if self.fit is not None:
+            result["fit"] = from_union([lambda x: to_enum(Fit, x), from_none], self.fit)
+        if self.focal_point is not None:
+            result["focalPoint"] = from_union(
+                [lambda x: to_class(FocalPoint, x), from_none], self.focal_point
+            )
         if self.headers is not None:
             result["headers"] = from_union(
                 [lambda x: from_list(from_str, x), from_none], self.headers

@@ -223,6 +223,21 @@
           "default": "",
           "description": "Filesystem path to the image file for an 'image' block."
         },
+        "fit": {
+          "type": "string",
+          "enum": [
+            "contain",
+            "cover",
+            "fitWidth",
+            "fitHeight"
+          ],
+          "default": "contain",
+          "description": "Media fit mode for 'image' and 'mermaid' blocks (R18): how intrinsic media dimensions map into the layout region. 'contain' scales to fit entirely inside the region without cropping or distortion; 'cover' scales to fully fill the region, cropping the overflow (optionally guided by 'focalPoint'); 'fitWidth'/'fitHeight' scale to match one region dimension exactly, allowing the other to overflow or underflow. Declares 'contain' as the default so the downstream renderer never has to choose one for either block type. The schema carries geometry intent only; fit geometry and placement live downstream."
+        },
+        "focalPoint": {
+          "$ref": "#/definitions/focalPoint",
+          "description": "Focal point guiding 'cover' fit cropping for 'image' and 'mermaid' blocks (R18). No default -- absence means the geometric center."
+        },
         "style": {
           "type": "object",
           "title": "Style",
@@ -276,6 +291,24 @@
           "type": "boolean",
           "default": false,
           "description": "Whether the run renders italic."
+        }
+      }
+    },
+    "focalPoint": {
+      "type": "object",
+      "description": "Normalized focal point within an 'image' or 'mermaid' block's intrinsic media, used to bias 'cover' fit cropping toward a specific area (R18), e.g. a face off-center in a photo.",
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Horizontal focal point as a fraction of intrinsic width, 0 (left) to 1 (right). No default -- absence means centered (0.5)."
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Vertical focal point as a fraction of intrinsic height, 0 (top) to 1 (bottom). No default -- absence means centered (0.5)."
         }
       }
     },

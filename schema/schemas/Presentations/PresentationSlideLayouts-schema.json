@@ -287,6 +287,27 @@
         "deltaPermitted": {
           "type": "boolean",
           "description": "Metric style roles (R17): whether a metric region's delta field is permitted. No default -- absence means permitted."
+        },
+        "preferredAspectRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Media fit and aspect (R18): the region's preferred width/height ratio for media content, e.g. 1.778 for 16:9. Defined once here -- R20 (layout capacity) $refs this field rather than redeclaring it. No default -- absence means no aspect preference."
+        },
+        "minAspectRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Media fit and aspect (R18): lower bound of an acceptable width/height aspect-ratio range for media placed in this region, an alternative to a single 'preferredAspectRatio' when a range is acceptable. No default -- absence means no lower bound."
+        },
+        "maxAspectRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Media fit and aspect (R18): upper bound of an acceptable width/height aspect-ratio range for media placed in this region. No default -- absence means no upper bound."
+        },
+        "minFillRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Media fit and aspect (R18): minimum fraction of the region's area that placed media must fill before a downstream lint warns that a source cannot satisfy the region without an author decision. No default -- absence means no fill-ratio floor."
         }
       }
     },

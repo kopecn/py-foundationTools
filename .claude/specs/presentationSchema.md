@@ -3,8 +3,8 @@ spec: PresentationSchema
 scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
-last_updated: 2026-09-14
-semver: 0.8.0
+last_updated: 2026-09-15
+semver: 0.9.0
 author: Nicholas Bergantz
 ---
 
