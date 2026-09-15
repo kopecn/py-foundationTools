@@ -172,14 +172,16 @@ This repository SHALL NOT parse, lay out, generate an image from, or otherwise r
 
 ## FA-closure schema additions (proposed, pending gate)
 
-> R15–R21 are derived from the downstream 2026-09-14 presentation visual-quality audit
-> (`py-clerical-tools/.claude/fa_reports/`). They give the downstream renderer typed
-> fields to consume instead of embedding resolved values in content. All are additive
-> and optional (enum widenings are non-breaking per R7), so every existing deck still
-> validates and round-trips. They remain proposals until the FA-closure scope gate
-> accepts them, and adding any `default` here bumps semver per R12. This repository
-> still renders nothing — it owns only the schema, generated types, and stdlib
-> resolution of these fields.
+> R15–R22 are derived from the downstream 2026-09-14 presentation visual-quality audit
+> (`py-clerical-tools/.claude/fa_reports/`), which is investigation evidence, not
+> authorization. They were **accepted at the FA-closure scope gate (2026-09-14)**; the
+> top-level spec `status` stays `draft` because this domain's broader implementation
+> lifecycle is owned by this repo's own roadmap, not by that gate. They give the
+> downstream renderer typed fields to consume instead of embedding resolved values in
+> content. All are additive and optional (enum widenings are non-breaking per R7), so
+> every existing deck still validates and round-trips, and adding any `default` here
+> bumps semver per R12. This repository still renders nothing — it owns only the schema,
+> generated types, and stdlib resolution of these fields.
 
 ### R15 — Responsive fit budget (FA-01)
 
@@ -208,12 +210,13 @@ one headline size, without the renderer inventing a hierarchy.
 ### R18 — Media fit intent and region aspect (FA-03)
 
 `image` and `mermaid` blocks MAY declare a `fit` mode (`contain` | `cover` | `fitWidth`
-| `fitHeight`), with `contain` the schema-declared default for diagrams. `cover` MAY
-carry focal-point metadata. A visual region MAY declare a `preferredAspectRatio` (or an
-acceptable min/max aspect range) and a `minFillRatio`, so a downstream linter can warn
-when a source cannot satisfy the region without an author decision. The schema carries
-geometry and intent only; the fit math lives in the pure `fit_into_box` family here and
-placement lives downstream.
+| `fitHeight`), with `contain` the schema-declared default for both `image` and
+`mermaid` (so the downstream renderer never has to choose a default for either). `cover`
+MAY carry focal-point metadata. A visual region MAY declare a `preferredAspectRatio` (or
+an acceptable min/max aspect range) and a `minFillRatio`, so a downstream linter can warn
+when a source cannot satisfy the region without an author decision. `preferredAspectRatio`
+is a single field shared with R20 — defined once and `$ref`'d, never re-declared. The
+schema carries geometry and intent only; the geometry math and placement live downstream.
 
 ### R19 — Semantic diagram styles (FA-04)
 
@@ -229,12 +232,20 @@ downstream concern; this repository owns the typed shape and the reference enume
 ### R20 — Machine-readable layout capacity and semantic roles (FA-05)
 
 A layout region MAY declare verifiable capacity and intent so a schema-valid slide
-cannot silently contradict the layout's purpose: `allowedContentTypes`, occupancy
-(`required` | `recommended` | `optional`), `maxLines`, `maxCharacters`, `maxItems`,
-`maxCharactersPerItem`, `preferredAspectRatio` (shared with R18), and a semantic role
-(e.g. `presenterName`, `deckTitle`, `metricValue`, `evidence`). A layout MAY carry a
-purpose/tag set and a density class. Only constraints a consumer or downstream linter
-can verify belong here; qualitative guidance stays in human notes.
+cannot silently contradict the layout's purpose. Every field here has a named downstream
+consumer, per the rule that only verifiable constraints belong in the schema:
+
+- `allowedContentTypes`, occupancy (`required` | `recommended` | `optional`), `maxLines`,
+  `maxCharacters`, `maxItems`, `maxCharactersPerItem` — consumed by the downstream
+  design-lint tier (deckQuality.md Q4).
+- `preferredAspectRatio` — the single field shared with R18 (defined once, `$ref`'d);
+  consumed by media-fit lint.
+- a semantic `role` (e.g. `presenterName`, `deckTitle`, `metricValue`, `evidence`) —
+  consumed by the renderer for shape identity and reading order (deckBuilder.md R10).
+- a layout `purpose`/tag set and `density` class — consumed by the authoring skill for
+  layout selection (FA-05), not by the renderer.
+
+Qualitative guidance stays in human notes.
 
 ### R21 — Accessibility and portability fields (FA-07)
 
@@ -242,6 +253,17 @@ can verify belong here; qualitative guidance stays in human notes.
 an ordered font fallback stack and whether substitution is allowed. These carry no
 schema-level behavior beyond identity; they exist so a downstream renderer can set
 accessible descriptions and report font substitution instead of guessing.
+
+### R22 — Document core-property metadata (FA-07)
+
+`PresentationMetadata` MAY carry document core-property fields — `subject`/`description`,
+`author`, `keywords`, and `revision`/`version` — additive and optional, alongside the
+existing title text and the R13 theme/layout version stamps. (`title` reuses the deck's
+existing title; created/modified timestamps are a package concern set at write time
+downstream, not schema state.) These carry no schema-level behavior beyond identity; they
+exist so the downstream renderer maps deck metadata into the PPTX package core properties
+(deckBuilder.md R10) instead of leaving the base template's identity in place. This
+repository does not write a PPTX and resolves these only as ordinary metadata.
 
 ## Resolution Layer
 

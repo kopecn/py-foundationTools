@@ -435,10 +435,12 @@ class Align(Enum):
 
 class Overflow(Enum):
     """Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip'
-    truncates at the boundary.
+    truncates at the boundary; 'shrink' deterministically reduces font size within the bounds
+    declared by minFontSize/maxLines/scaleLadder.
     """
 
     CLIP = "clip"
+    SHRINK = "shrink"
     WRAP = "wrap"
 
 
@@ -487,13 +489,27 @@ class Region(DataModelHelper):
     height: Optional[float] = None
     """Region height in pixels."""
 
+    max_lines: Optional[int] = None
+    """Responsive fit budget (R15): the maximum number of lines the renderer may use when
+    shrinking under overflow 'shrink'. No default -- absence means no responsive budget.
+    """
+    min_font_size: Optional[float] = None
+    """Responsive fit budget (R15): the smallest font size in points the renderer may shrink to
+    under overflow 'shrink'. No default -- absence means no responsive budget.
+    """
     overflow: Optional[Overflow] = None
     """Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip'
-    truncates at the boundary.
+    truncates at the boundary; 'shrink' deterministically reduces font size within the bounds
+    declared by minFontSize/maxLines/scaleLadder.
     """
     padding: Optional[float] = None
     """Inner padding in pixels."""
 
+    scale_ladder: Optional[List[float]] = None
+    """Responsive fit budget (R15): an optional array of descending font sizes in points the
+    renderer steps through under overflow 'shrink', never going below minFontSize. No default
+    -- absence means no responsive budget.
+    """
     type: Optional[RegionType] = None
     """Region kind, informing default styling."""
 
@@ -519,8 +535,13 @@ class Region(DataModelHelper):
         font_family = from_union([from_str, from_none], obj.get("fontFamily"))
         font_size = from_union([from_float, from_none], obj.get("fontSize"))
         height = from_union([from_float, from_none], obj.get("height"))
+        max_lines = from_union([from_int, from_none], obj.get("maxLines"))
+        min_font_size = from_union([from_float, from_none], obj.get("minFontSize"))
         overflow = from_union([Overflow, from_none], obj.get("overflow"))
         padding = from_union([from_float, from_none], obj.get("padding"))
+        scale_ladder = from_union(
+            [lambda x: from_list(from_float, x), from_none], obj.get("scaleLadder")
+        )
         type = from_union([RegionType, from_none], obj.get("type"))
         vertical_align = from_union([VerticalAlign, from_none], obj.get("verticalAlign"))
         width = from_union([from_float, from_none], obj.get("width"))
@@ -533,8 +554,11 @@ class Region(DataModelHelper):
             font_family,
             font_size,
             height,
+            max_lines,
+            min_font_size,
             overflow,
             padding,
+            scale_ladder,
             type,
             vertical_align,
             width,
@@ -557,12 +581,20 @@ class Region(DataModelHelper):
             result["fontSize"] = from_union([to_float, from_none], self.font_size)
         if self.height is not None:
             result["height"] = from_union([to_float, from_none], self.height)
+        if self.max_lines is not None:
+            result["maxLines"] = from_union([from_int, from_none], self.max_lines)
+        if self.min_font_size is not None:
+            result["minFontSize"] = from_union([to_float, from_none], self.min_font_size)
         if self.overflow is not None:
             result["overflow"] = from_union(
                 [lambda x: to_enum(Overflow, x), from_none], self.overflow
             )
         if self.padding is not None:
             result["padding"] = from_union([to_float, from_none], self.padding)
+        if self.scale_ladder is not None:
+            result["scaleLadder"] = from_union(
+                [lambda x: from_list(to_float, x), from_none], self.scale_ladder
+            )
         if self.type is not None:
             result["type"] = from_union([lambda x: to_enum(RegionType, x), from_none], self.type)
         if self.vertical_align is not None:

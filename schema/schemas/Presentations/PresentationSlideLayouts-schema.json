@@ -226,10 +226,27 @@
           "type": "string",
           "enum": [
             "wrap",
-            "clip"
+            "clip",
+            "shrink"
           ],
           "default": "wrap",
-          "description": "Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip' truncates at the boundary."
+          "description": "Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip' truncates at the boundary; 'shrink' deterministically reduces font size within the bounds declared by minFontSize/maxLines/scaleLadder."
+        },
+        "minFontSize": {
+          "type": "number",
+          "description": "Responsive fit budget (R15): the smallest font size in points the renderer may shrink to under overflow 'shrink'. No default -- absence means no responsive budget."
+        },
+        "maxLines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Responsive fit budget (R15): the maximum number of lines the renderer may use when shrinking under overflow 'shrink'. No default -- absence means no responsive budget."
+        },
+        "scaleLadder": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "Responsive fit budget (R15): an optional array of descending font sizes in points the renderer steps through under overflow 'shrink', never going below minFontSize. No default -- absence means no responsive budget."
         }
       }
     },
