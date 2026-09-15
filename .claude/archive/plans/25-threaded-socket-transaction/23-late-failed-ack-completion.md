@@ -11,7 +11,7 @@ status: completed
 
 # 23 - Route failed ACK after ACK timeout
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](../../archive/plans/25-threaded-socket-transaction/00-original-ask.md) · Contract: [failed ACK](../25-threaded-socket-transaction.md#28-ack-routing), [independent waits](../25-threaded-socket-transaction.md#38-ack-waiting), and [protocol settlement](../../specs/threadedTransactionProtocol.md#routing)
+Scope: [summary goal](00-corrective-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [failed ACK](25-threaded-socket-transaction.md#28-ack-routing), [independent waits](25-threaded-socket-transaction.md#38-ack-waiting), and [protocol settlement](../../../specs/threadedTransactionProtocol.md#routing)
 
 ## Origin
 

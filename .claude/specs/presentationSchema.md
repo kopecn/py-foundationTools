@@ -3,8 +3,8 @@ spec: PresentationSchema
 scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
-last_updated: 2026-09-04
-semver: 0.7.0
+last_updated: 2026-09-14
+semver: 0.8.0
 author: Nicholas Bergantz
 ---
 
@@ -169,6 +169,79 @@ a newer corporate standard.
 `00-overview.md`'s tier-3 gate states "Mermaid has a bounded schema attachment point," and chunk 11 authorizes it as "the smallest typed attachment point for Mermaid source ... to reserve an agreed cross-repository shape for later growth," requiring only that "descriptions MUST clearly state whether rendering is available." This is a deliberate, narrow exception to R7's normal rule that an arm ships only once it has a renderer: `contentBlock.type` gains `"mermaid"` with a single sibling field, `mermaidSource` (string), carrying raw Mermaid diagram source text and nothing else.
 
 This repository SHALL NOT parse, lay out, generate an image from, or otherwise render Mermaid source; `mermaidSource`'s schema description SHALL state this plainly. Widening this arm (structured node/edge data, a `diagramKind` discriminator, rendering) is out of scope until real usage justifies it, per the roadmap's "smallest usable form" planning rule.
+
+## FA-closure schema additions (proposed, pending gate)
+
+> R15–R21 are derived from the downstream 2026-09-14 presentation visual-quality audit
+> (`py-clerical-tools/.claude/fa_reports/`). They give the downstream renderer typed
+> fields to consume instead of embedding resolved values in content. All are additive
+> and optional (enum widenings are non-breaking per R7), so every existing deck still
+> validates and round-trips. They remain proposals until the FA-closure scope gate
+> accepts them, and adding any `default` here bumps semver per R12. This repository
+> still renders nothing — it owns only the schema, generated types, and stdlib
+> resolution of these fields.
+
+### R15 — Responsive fit budget (FA-01)
+
+`region.overflow` SHALL gain the `shrink` value deferred in R8, now that a downstream
+renderer measures font metrics. A region MAY additionally declare `minFontSize`
+(number, pt), `maxLines` (integer), and an optional `scaleLadder` (array of descending
+pt sizes). These bound deterministic shrinking: the renderer prefers a ladder step and
+never goes below `minFontSize`. The schema declares no default sizes here; absence means
+"no responsive budget, use the fixed nominal size."
+
+### R16 — Bullet and paragraph typography (FA-02)
+
+The `bullets` arm MAY declare a bullet `style` (`disc` | `dash` | `none`) and bounded
+per-level indent/hanging-indent tokens, so a marker is an explicit choice, never
+inferred from text. Text-bearing regions MAY declare paragraph rhythm — `lineSpacing`,
+`spaceBefore`, `spaceAfter` — resolved through the same cascade as other style values.
+Keep defaults absent so output does not silently depend on a PowerPoint template.
+
+### R17 — Metric style roles (FA-02)
+
+A `metric` region MAY declare separate style roles for `value`, `label`, and `delta`
+(each an existing `style` shape), an inter-field gap, and whether `label`/`delta` are
+permitted. This lets the renderer give the three fields distinct typography instead of
+one headline size, without the renderer inventing a hierarchy.
+
+### R18 — Media fit intent and region aspect (FA-03)
+
+`image` and `mermaid` blocks MAY declare a `fit` mode (`contain` | `cover` | `fitWidth`
+| `fitHeight`), with `contain` the schema-declared default for diagrams. `cover` MAY
+carry focal-point metadata. A visual region MAY declare a `preferredAspectRatio` (or an
+acceptable min/max aspect range) and a `minFillRatio`, so a downstream linter can warn
+when a source cannot satisfy the region without an author decision. The schema carries
+geometry and intent only; the fit math lives in the pure `fit_into_box` family here and
+placement lives downstream.
+
+### R19 — Semantic diagram styles (FA-04)
+
+A typed diagram-style object SHALL express diagram colors as **semantic theme
+references**, not CSS strings — covering at least background, primary/secondary/tertiary
+fill, border, text, line, and error/success roles — plus a bounded map from a custom
+node-class name to those semantic roles. A `themeBinding` flag (`themed` default |
+`fixed`) SHALL make an intentional literal-color diagram an explicit, inspectable
+opt-out. Resolution of these references into a concrete diagram configuration is a
+downstream concern; this repository owns the typed shape and the reference enumeration
+(R4).
+
+### R20 — Machine-readable layout capacity and semantic roles (FA-05)
+
+A layout region MAY declare verifiable capacity and intent so a schema-valid slide
+cannot silently contradict the layout's purpose: `allowedContentTypes`, occupancy
+(`required` | `recommended` | `optional`), `maxLines`, `maxCharacters`, `maxItems`,
+`maxCharactersPerItem`, `preferredAspectRatio` (shared with R18), and a semantic role
+(e.g. `presenterName`, `deckTitle`, `metricValue`, `evidence`). A layout MAY carry a
+purpose/tag set and a density class. Only constraints a consumer or downstream linter
+can verify belong here; qualitative guidance stays in human notes.
+
+### R21 — Accessibility and portability fields (FA-07)
+
+`image` and `mermaid` blocks MAY declare `altText`. The typography contract MAY declare
+an ordered font fallback stack and whether substitution is allowed. These carry no
+schema-level behavior beyond identity; they exist so a downstream renderer can set
+accessible descriptions and report font substitution instead of guessing.
 
 ## Resolution Layer
 

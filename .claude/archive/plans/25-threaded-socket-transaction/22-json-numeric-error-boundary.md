@@ -11,7 +11,7 @@ status: completed
 
 # 22 - Normalize JSON numeric failures
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](../../archive/plans/25-threaded-socket-transaction/00-original-ask.md) · Contract: [codec failure boundary](../25-threaded-socket-transaction.md#4-transactioncodec) and [JSON codec](../../specs/threadedTransactionProtocol.md#json-codec)
+Scope: [summary goal](00-corrective-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [codec failure boundary](25-threaded-socket-transaction.md#4-transactioncodec) and [JSON codec](../../../specs/threadedTransactionProtocol.md#json-codec)
 
 ## Origin
 

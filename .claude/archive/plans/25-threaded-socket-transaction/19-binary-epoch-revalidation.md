@@ -11,7 +11,7 @@ status: completed
 
 # 19 - Suppress stale binary frames
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](../../archive/plans/25-threaded-socket-transaction/00-original-ask.md) · Contract: [stream epoch isolation](../../specs/threadedSocketTransaction.md#stream-and-protocol-invariants) and [binary client](../../specs/threadedSocketTransport.md#binary-framed-client)
+Scope: [summary goal](00-corrective-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [stream epoch isolation](../../../specs/threadedSocketTransaction.md#stream-and-protocol-invariants) and [binary client](../../../specs/threadedSocketTransport.md#binary-framed-client)
 
 ## Origin
 

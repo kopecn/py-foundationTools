@@ -11,7 +11,7 @@ status: completed
 
 # 17 - Serialize client connection lifecycle
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](../../archive/plans/25-threaded-socket-transaction/00-original-ask.md) · Contract: [socket concurrency](../../specs/threadedSocketTransaction.md#concurrency-model) and [client lifecycle](../../specs/threadedSocketTransport.md#client)
+Scope: [summary goal](00-corrective-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contract: [socket concurrency](../../../specs/threadedSocketTransaction.md#concurrency-model) and [client lifecycle](../../../specs/threadedSocketTransport.md#client)
 
 ## Origin
 

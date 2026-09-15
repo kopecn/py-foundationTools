@@ -11,7 +11,7 @@ status: completed
 
 # 25 - Repair documentation and archive navigation
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](../../archive/plans/25-threaded-socket-transaction/00-original-ask.md) · Origin contract: [rip-and-tear cleanup](../../archive/plans/25-threaded-socket-transaction/16-rip-and-tear-cleanup.md)
+Scope: [summary goal](00-corrective-overview.md#summary-goal) · [original ask](00-original-ask.md) · Origin contract: [rip-and-tear cleanup](16-rip-and-tear-cleanup.md)
 
 ## Origin
 

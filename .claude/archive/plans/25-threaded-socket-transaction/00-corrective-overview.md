@@ -3,10 +3,10 @@ human_ask: >
   I want you to take top level spec: /Users/nbergantz/**Workspaces**/pythonWorkspaces/py-foundationTools/.claude/plans/25-threaded-socket-transaction.md and reduce it to a plural set of bite sized tasks that will rip and tear /Users/nbergantz/**Workspaces**/pythonWorkspaces/py-foundationTools/src/foundation_tools/socket_transaction/...   I do not want to use asyncio for the socket handling and want it reduced to threading and sockets.
 goal: >
   Close the source-authorized gaps found after execution, then make Plan 25 ready for a clean re-audit and final archival.
-last_updated: 2026-09-13
-semver: 0.3.0
+last_updated: 2026-09-14
+semver: 0.3.1
 author: Nicholas Bergantz
-status: in_progress
+status: archived
 ---
 
 # Plan 25 corrective actions
@@ -17,7 +17,7 @@ Correct the confirmed lifecycle, framing, and protocol defects left after chunks
 
 ## Original ask
 
-The complete initiating request and planning clarifications remain preserved in the [archived original-ask record](../../archive/plans/25-threaded-socket-transaction/00-original-ask.md). The human explicitly designated the [top-level socket specification](../25-threaded-socket-transaction.md) as the source to decompose, so requirements stated there support corrective work. Requirements introduced only by later specs or plan prose remain open unless independently authorized.
+The complete initiating request and planning clarifications remain preserved in the [archived original-ask record](00-original-ask.md). The human explicitly designated the [top-level socket specification](25-threaded-socket-transaction.md) as the source to decompose, so requirements stated there support corrective work. Requirements introduced only by later specs or plan prose remain open unless independently authorized.
 
 ## Audit verdict
 

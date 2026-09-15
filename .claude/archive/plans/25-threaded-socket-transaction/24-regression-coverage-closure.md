@@ -11,7 +11,7 @@ status: completed
 
 # 24 - Close regression coverage gaps
 
-Scope: [summary goal](00-overview.md#summary-goal) · [original ask](../../archive/plans/25-threaded-socket-transaction/00-original-ask.md) · Contracts: [threaded architecture](../../specs/threadedSocketTransaction.md), [transport](../../specs/threadedSocketTransport.md), and [transaction facade](../../specs/transactingSocketHandlers.md)
+Scope: [summary goal](00-corrective-overview.md#summary-goal) · [original ask](00-original-ask.md) · Contracts: [threaded architecture](../../../specs/threadedSocketTransaction.md), [transport](../../../specs/threadedSocketTransport.md), and [transaction facade](../../../specs/transactingSocketHandlers.md)
 
 ## Origin
 

@@ -26,7 +26,7 @@ The complete initiating request and subsequent planning clarifications are prese
 - [Transaction protocol](../../../specs/threadedTransactionProtocol.md)
 - [Transacting handlers](../../../specs/transactingSocketHandlers.md)
 
-The source scaffold remains at [../../../plans/25-threaded-socket-transaction.md](../../../plans/25-threaded-socket-transaction.md). This executed chunk set implemented the accepted sibling specs, not the superseded asyncio behavior recorded historically in `.claude/specs/socketTransact.md`.
+The source scaffold remains at [25-threaded-socket-transaction.md](25-threaded-socket-transaction.md). This executed chunk set implemented the accepted sibling specs, not the superseded asyncio behavior recorded historically in `.claude/specs/socketTransact.md`.
 
 ## Usability north star
 
