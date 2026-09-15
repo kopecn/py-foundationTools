@@ -243,6 +243,10 @@
           "$ref": "#/definitions/focalPoint",
           "description": "Focal point guiding 'cover' fit cropping for 'image' and 'mermaid' blocks (R18). No default -- absence means the geometric center."
         },
+        "altText": {
+          "type": "string",
+          "description": "Accessible text description for 'image' and 'mermaid' blocks (R21), e.g. a photo's content or a diagram's summary. No default -- absence means the downstream renderer has no accessible description to set; this repository only stores the value."
+        },
         "style": {
           "type": "object",
           "title": "Style",

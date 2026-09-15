@@ -1034,12 +1034,23 @@ class Defaults(DataModelHelper):
     body_font_size: Optional[float] = None
     """Default body font size in points."""
 
+    font_fallback_stack: Optional[List[str]] = None
+    """Ordered font family fallback stack (R21): the preferred family (fontFamily) followed by
+    acceptable substitutes, most preferred first. No default -- absence means the downstream
+    renderer applies its own fallback and cannot report a substitution against an authored
+    intent.
+    """
     font_family: Optional[str] = None
     """Default font family."""
 
     small_font_size: Optional[float] = None
     """Default small/footer font size in points."""
 
+    substitution_allowed: Optional[bool] = None
+    """Whether the downstream renderer may substitute a font from 'fontFallbackStack' (or its
+    own default) when 'fontFamily' is unavailable at build time (R21). No default -- absence
+    means the renderer decides.
+    """
     title_font_size: Optional[float] = None
     """Default title font size in points."""
 
@@ -1048,19 +1059,38 @@ class Defaults(DataModelHelper):
         if not isinstance(obj, dict):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         body_font_size = from_union([from_float, from_none], obj.get("bodyFontSize"))
+        font_fallback_stack = from_union(
+            [lambda x: from_list(from_str, x), from_none], obj.get("fontFallbackStack")
+        )
         font_family = from_union([from_str, from_none], obj.get("fontFamily"))
         small_font_size = from_union([from_float, from_none], obj.get("smallFontSize"))
+        substitution_allowed = from_union([from_bool, from_none], obj.get("substitutionAllowed"))
         title_font_size = from_union([from_float, from_none], obj.get("titleFontSize"))
-        return Defaults(body_font_size, font_family, small_font_size, title_font_size)
+        return Defaults(
+            body_font_size,
+            font_fallback_stack,
+            font_family,
+            small_font_size,
+            substitution_allowed,
+            title_font_size,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         if self.body_font_size is not None:
             result["bodyFontSize"] = from_union([to_float, from_none], self.body_font_size)
+        if self.font_fallback_stack is not None:
+            result["fontFallbackStack"] = from_union(
+                [lambda x: from_list(from_str, x), from_none], self.font_fallback_stack
+            )
         if self.font_family is not None:
             result["fontFamily"] = from_union([from_str, from_none], self.font_family)
         if self.small_font_size is not None:
             result["smallFontSize"] = from_union([to_float, from_none], self.small_font_size)
+        if self.substitution_allowed is not None:
+            result["substitutionAllowed"] = from_union(
+                [from_bool, from_none], self.substitution_allowed
+            )
         if self.title_font_size is not None:
             result["titleFontSize"] = from_union([to_float, from_none], self.title_font_size)
         return result
@@ -1191,6 +1221,11 @@ class PresentationMetadata(DataModelHelper):
     description: Optional[str] = None
     """Short description of the presentation purpose."""
 
+    keywords: Optional[str] = None
+    """Document core-property keywords (R22), consumed downstream as the PPTX package's keywords
+    property. No default -- absence means the downstream renderer leaves the property unset
+    rather than inheriting the base template's value.
+    """
     layout_version: Optional[LayoutVersion] = None
     """Identity of the slide layout standard (PresentationSlideLayouts) this deck was authored
     against, recorded so a separate migration tool can later decide whether the deck needs
@@ -1223,6 +1258,7 @@ class PresentationMetadata(DataModelHelper):
         title = from_str(obj.get("title"))
         defaults = from_union([Defaults.from_dict, from_none], obj.get("defaults"))
         description = from_union([from_str, from_none], obj.get("description"))
+        keywords = from_union([from_str, from_none], obj.get("keywords"))
         layout_version = from_union([LayoutVersion.from_dict, from_none], obj.get("layoutVersion"))
         subtitle = from_union([from_str, from_none], obj.get("subtitle"))
         tags = from_union([lambda x: from_list(from_str, x), from_none], obj.get("tags"))
@@ -1236,6 +1272,7 @@ class PresentationMetadata(DataModelHelper):
             title,
             defaults,
             description,
+            keywords,
             layout_version,
             subtitle,
             tags,
@@ -1256,6 +1293,8 @@ class PresentationMetadata(DataModelHelper):
             )
         if self.description is not None:
             result["description"] = from_union([from_str, from_none], self.description)
+        if self.keywords is not None:
+            result["keywords"] = from_union([from_str, from_none], self.keywords)
         if self.layout_version is not None:
             result["layoutVersion"] = from_union(
                 [lambda x: to_class(LayoutVersion, x), from_none], self.layout_version
@@ -1605,6 +1644,11 @@ class ContentBlock(DataModelHelper):
     capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
     diagram source with no renderer yet (see 'mermaidSource').
     """
+    alt_text: Optional[str] = None
+    """Accessible text description for 'image' and 'mermaid' blocks (R21), e.g. a photo's
+    content or a diagram's summary. No default -- absence means the downstream renderer has
+    no accessible description to set; this repository only stores the value.
+    """
     bullet_hanging_indent: Optional[List[float]] = None
     """Hanging indent in pixels per bullet level, one entry per level 0-4 (R16): offsets wrapped
     lines relative to the marker so wrapped text aligns under the first character, not the
@@ -1696,6 +1740,7 @@ class ContentBlock(DataModelHelper):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         region = from_str(obj.get("region"))
         type = ContentType(obj.get("type"))
+        alt_text = from_union([from_str, from_none], obj.get("altText"))
         bullet_hanging_indent = from_union(
             [lambda x: from_list(from_float, x), from_none], obj.get("bulletHangingIndent")
         )
@@ -1732,6 +1777,7 @@ class ContentBlock(DataModelHelper):
         return ContentBlock(
             region,
             type,
+            alt_text,
             bullet_hanging_indent,
             bullet_indent,
             bullet_levels,
@@ -1759,6 +1805,8 @@ class ContentBlock(DataModelHelper):
         result: dict[str, Any] = {}
         result["region"] = from_str(self.region)
         result["type"] = to_enum(ContentType, self.type)
+        if self.alt_text is not None:
+            result["altText"] = from_union([from_str, from_none], self.alt_text)
         if self.bullet_hanging_indent is not None:
             result["bulletHangingIndent"] = from_union(
                 [lambda x: from_list(to_float, x), from_none], self.bullet_hanging_indent
