@@ -128,6 +128,33 @@
           "default": [],
           "description": "Optional indent level per entry in 'items', 0 (outermost) to 4. Shorter than 'items' leaves the remaining bullets at level 0."
         },
+        "bulletStyle": {
+          "type": "string",
+          "enum": [
+            "disc",
+            "dash",
+            "none"
+          ],
+          "description": "Bullet marker style for a 'bullets' block (R16). No default -- absence means the renderer chooses, rather than a marker being silently inferred from text."
+        },
+        "bulletIndent": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "maxItems": 5,
+          "description": "Paragraph indent in pixels per bullet level, one entry per level 0-4 (R16). No default -- absence means no explicit per-level indent."
+        },
+        "bulletHangingIndent": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "maxItems": 5,
+          "description": "Hanging indent in pixels per bullet level, one entry per level 0-4 (R16): offsets wrapped lines relative to the marker so wrapped text aligns under the first character, not the marker. No default -- absence means no explicit per-level hanging indent."
+        },
         "value": {
           "type": "string",
           "default": "",

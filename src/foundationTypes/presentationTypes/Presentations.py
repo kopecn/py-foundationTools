@@ -489,6 +489,10 @@ class Region(DataModelHelper):
     height: Optional[float] = None
     """Region height in pixels."""
 
+    line_spacing: Optional[float] = None
+    """Paragraph rhythm (R16): line spacing multiplier for text in this region, e.g. 1.15 for
+    115%. No default -- absence means the renderer chooses.
+    """
     max_lines: Optional[int] = None
     """Responsive fit budget (R15): the maximum number of lines the renderer may use when
     shrinking under overflow 'shrink'. No default -- absence means no responsive budget.
@@ -509,6 +513,14 @@ class Region(DataModelHelper):
     """Responsive fit budget (R15): an optional array of descending font sizes in points the
     renderer steps through under overflow 'shrink', never going below minFontSize. No default
     -- absence means no responsive budget.
+    """
+    space_after: Optional[float] = None
+    """Paragraph rhythm (R16): space in pixels added after each paragraph in this region. No
+    default -- absence means the renderer chooses.
+    """
+    space_before: Optional[float] = None
+    """Paragraph rhythm (R16): space in pixels added before each paragraph in this region. No
+    default -- absence means the renderer chooses.
     """
     type: Optional[RegionType] = None
     """Region kind, informing default styling."""
@@ -535,6 +547,7 @@ class Region(DataModelHelper):
         font_family = from_union([from_str, from_none], obj.get("fontFamily"))
         font_size = from_union([from_float, from_none], obj.get("fontSize"))
         height = from_union([from_float, from_none], obj.get("height"))
+        line_spacing = from_union([from_float, from_none], obj.get("lineSpacing"))
         max_lines = from_union([from_int, from_none], obj.get("maxLines"))
         min_font_size = from_union([from_float, from_none], obj.get("minFontSize"))
         overflow = from_union([Overflow, from_none], obj.get("overflow"))
@@ -542,6 +555,8 @@ class Region(DataModelHelper):
         scale_ladder = from_union(
             [lambda x: from_list(from_float, x), from_none], obj.get("scaleLadder")
         )
+        space_after = from_union([from_float, from_none], obj.get("spaceAfter"))
+        space_before = from_union([from_float, from_none], obj.get("spaceBefore"))
         type = from_union([RegionType, from_none], obj.get("type"))
         vertical_align = from_union([VerticalAlign, from_none], obj.get("verticalAlign"))
         width = from_union([from_float, from_none], obj.get("width"))
@@ -554,11 +569,14 @@ class Region(DataModelHelper):
             font_family,
             font_size,
             height,
+            line_spacing,
             max_lines,
             min_font_size,
             overflow,
             padding,
             scale_ladder,
+            space_after,
+            space_before,
             type,
             vertical_align,
             width,
@@ -581,6 +599,8 @@ class Region(DataModelHelper):
             result["fontSize"] = from_union([to_float, from_none], self.font_size)
         if self.height is not None:
             result["height"] = from_union([to_float, from_none], self.height)
+        if self.line_spacing is not None:
+            result["lineSpacing"] = from_union([to_float, from_none], self.line_spacing)
         if self.max_lines is not None:
             result["maxLines"] = from_union([from_int, from_none], self.max_lines)
         if self.min_font_size is not None:
@@ -595,6 +615,10 @@ class Region(DataModelHelper):
             result["scaleLadder"] = from_union(
                 [lambda x: from_list(to_float, x), from_none], self.scale_ladder
             )
+        if self.space_after is not None:
+            result["spaceAfter"] = from_union([to_float, from_none], self.space_after)
+        if self.space_before is not None:
+            result["spaceBefore"] = from_union([to_float, from_none], self.space_before)
         if self.type is not None:
             result["type"] = from_union([lambda x: to_enum(RegionType, x), from_none], self.type)
         if self.vertical_align is not None:
@@ -925,6 +949,16 @@ class PresentationMetadata(DataModelHelper):
         return result
 
 
+class BulletStyle(Enum):
+    """Bullet marker style for a 'bullets' block (R16). No default -- absence means the renderer
+    chooses, rather than a marker being silently inferred from text.
+    """
+
+    DASH = "dash"
+    DISC = "disc"
+    NONE = "none"
+
+
 class ChartKind(Enum):
     """Chart kind for a 'chart' block. Placeholder set; an arm is added only once it is
     renderable downstream.
@@ -1068,9 +1102,22 @@ class ContentBlock(DataModelHelper):
     capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
     diagram source with no renderer yet (see 'mermaidSource').
     """
+    bullet_hanging_indent: Optional[List[float]] = None
+    """Hanging indent in pixels per bullet level, one entry per level 0-4 (R16): offsets wrapped
+    lines relative to the marker so wrapped text aligns under the first character, not the
+    marker. No default -- absence means no explicit per-level hanging indent.
+    """
+    bullet_indent: Optional[List[float]] = None
+    """Paragraph indent in pixels per bullet level, one entry per level 0-4 (R16). No default --
+    absence means no explicit per-level indent.
+    """
     bullet_levels: Optional[List[int]] = None
     """Optional indent level per entry in 'items', 0 (outermost) to 4. Shorter than 'items'
     leaves the remaining bullets at level 0.
+    """
+    bullet_style: Optional[BulletStyle] = None
+    """Bullet marker style for a 'bullets' block (R16). No default -- absence means the renderer
+    chooses, rather than a marker being silently inferred from text.
     """
     categories: Optional[List[str]] = None
     """Shared x-axis category labels for a 'chart' block."""
@@ -1128,9 +1175,16 @@ class ContentBlock(DataModelHelper):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         region = from_str(obj.get("region"))
         type = ContentType(obj.get("type"))
+        bullet_hanging_indent = from_union(
+            [lambda x: from_list(from_float, x), from_none], obj.get("bulletHangingIndent")
+        )
+        bullet_indent = from_union(
+            [lambda x: from_list(from_float, x), from_none], obj.get("bulletIndent")
+        )
         bullet_levels = from_union(
             [lambda x: from_list(from_int, x), from_none], obj.get("bulletLevels")
         )
+        bullet_style = from_union([BulletStyle, from_none], obj.get("bulletStyle"))
         categories = from_union(
             [lambda x: from_list(from_str, x), from_none], obj.get("categories")
         )
@@ -1154,7 +1208,10 @@ class ContentBlock(DataModelHelper):
         return ContentBlock(
             region,
             type,
+            bullet_hanging_indent,
+            bullet_indent,
             bullet_levels,
+            bullet_style,
             categories,
             chart_kind,
             delta,
@@ -1175,9 +1232,21 @@ class ContentBlock(DataModelHelper):
         result: dict[str, Any] = {}
         result["region"] = from_str(self.region)
         result["type"] = to_enum(ContentType, self.type)
+        if self.bullet_hanging_indent is not None:
+            result["bulletHangingIndent"] = from_union(
+                [lambda x: from_list(to_float, x), from_none], self.bullet_hanging_indent
+            )
+        if self.bullet_indent is not None:
+            result["bulletIndent"] = from_union(
+                [lambda x: from_list(to_float, x), from_none], self.bullet_indent
+            )
         if self.bullet_levels is not None:
             result["bulletLevels"] = from_union(
                 [lambda x: from_list(from_int, x), from_none], self.bullet_levels
+            )
+        if self.bullet_style is not None:
+            result["bulletStyle"] = from_union(
+                [lambda x: to_enum(BulletStyle, x), from_none], self.bullet_style
             )
         if self.categories is not None:
             result["categories"] = from_union(

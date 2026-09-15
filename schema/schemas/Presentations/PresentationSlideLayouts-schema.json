@@ -247,6 +247,21 @@
             "type": "number"
           },
           "description": "Responsive fit budget (R15): an optional array of descending font sizes in points the renderer steps through under overflow 'shrink', never going below minFontSize. No default -- absence means no responsive budget."
+        },
+        "lineSpacing": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Paragraph rhythm (R16): line spacing multiplier for text in this region, e.g. 1.15 for 115%. No default -- absence means the renderer chooses."
+        },
+        "spaceBefore": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Paragraph rhythm (R16): space in pixels added before each paragraph in this region. No default -- absence means the renderer chooses."
+        },
+        "spaceAfter": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Paragraph rhythm (R16): space in pixels added after each paragraph in this region. No default -- absence means the renderer chooses."
         }
       }
     },
