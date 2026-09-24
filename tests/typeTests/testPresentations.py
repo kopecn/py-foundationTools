@@ -1,5 +1,7 @@
 import unittest
 
+from foundationTypes.presentationTypes.Presentations import ContentType, RegionType, Style
+
 
 class TestPresentationsImport(unittest.TestCase):
     """Import-time contract for the generated Presentations module (chunk 02)."""
@@ -26,6 +28,11 @@ class TestPresentationsImport(unittest.TestCase):
         ):
             self.assertTrue(hasattr(cls, "from_dict"))
             self.assertTrue(hasattr(cls, "to_dict"))
+
+    def test_import_externally_consumed_generated_names(self) -> None:
+        self.assertEqual(ContentType.__name__, "ContentType")
+        self.assertEqual(RegionType.__name__, "RegionType")
+        self.assertEqual(Style.__name__, "Style")
 
 
 if __name__ == "__main__":

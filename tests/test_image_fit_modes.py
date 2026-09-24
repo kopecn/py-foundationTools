@@ -61,7 +61,7 @@ def test_cover_geometry_deterministic() -> None:
     # and bounded to [0, 1).
     assert crop_t == 0
     assert crop_b == 0
-    assert crop_l == crop_r
+    assert crop_l == crop_r == 0.375
     assert 0 <= crop_l < 1
 
     # Deterministic: identical inputs produce identical outputs.
@@ -82,7 +82,7 @@ def test_cover_geometry_crops_vertically_for_tall_image() -> None:
     assert (x, y, width, height) == (10, 20, 1000, 1000)
     assert crop_l == 0
     assert crop_r == 0
-    assert crop_t == crop_b
+    assert crop_t == crop_b == 0.375
     assert 0 <= crop_t < 1
 
 

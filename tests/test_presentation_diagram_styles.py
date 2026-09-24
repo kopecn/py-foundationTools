@@ -149,6 +149,22 @@ def test_diagram_refs_use_color_enumeration() -> None:
     assert hex_color_pattern.search(json.dumps(diagram_class_role)) is None
 
 
+def test_r19_class_roles_and_theme_binding_schema_contract() -> None:
+    deck_schema = json.loads(
+        (SCHEMA_DIR / "PresentationDeck-schema.json").read_text(encoding="utf-8")
+    )
+    diagram_style = deck_schema["definitions"]["diagramStyle"]
+    properties = diagram_style["properties"]
+
+    assert properties["classRoles"]["additionalProperties"] == {
+        "$ref": "#/definitions/diagramClassRole"
+    }
+    assert properties["themeBinding"]["enum"] == ["themed", "fixed"]
+    assert "default" not in properties["themeBinding"]
+    assert "classRoles" not in diagram_style.get("required", [])
+    assert "themeBinding" not in diagram_style.get("required", [])
+
+
 def test_existing_mermaid_block_still_valid() -> None:
     block = ContentBlock(region="diagram", type=ContentType.MERMAID, mermaid_source="graph TD;")
 

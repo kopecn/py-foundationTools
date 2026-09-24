@@ -6,9 +6,9 @@ human_ask: >
   and create a series action plan on closing these gaps.
 goal: Add durable assertions for the implemented R15–R22 schema and geometry contracts.
 last_updated: 2026-09-23
-semver: 0.0.1
+semver: 0.0.2
 author: Nicholas Bergantz
-status: pending
+status: completed
 ---
 
 # 09 — Presentation regression coverage
@@ -51,16 +51,20 @@ Focused tests mechanically assert the implemented schema properties behind R15�
 
 ## Acceptance criteria
 
-- [ ] R15 assertions cover `shrink`, `maxLines.minimum == 1`, `scaleLadder.items.type == number`, optionality, and no new default.
-- [ ] R16 assertions cover the exact bullet-style enum, bullet indent bounds, paragraph-rhythm minima, optionality, and no defaults.
-- [ ] R17 assertions cover the three shared style `$ref` values, metric-gap minimum, permitted-flag types, optionality, and no defaults.
-- [ ] R18 assertions cover the exact fit enum and `contain` default, focal-point bounds, aspect/fill bounds, and optionality.
-- [ ] R19 assertions cover semantic color refs, the `classRoles` value `$ref`, the exact `themeBinding` enum, and absence of a `themeBinding` default without adding closure requirements.
-- [ ] R20 assertions cover the content-type `$ref`, occupancy enum, capacity minima, and optional/default-free shape without changing agent-derived role/purpose/density vocabularies.
-- [ ] R21–R22 assertions cover `altText`, font fallback/substitution fields, and `keywords` as optional/default-free additions.
-- [ ] Cover tests assert `0.375` crop fractions for both orientations.
-- [ ] `ContentType`, `RegionType`, and `Style` import successfully by name.
-- [ ] `make codegen-all` leaves the worktree unchanged; `make fullCheck` and `make uv-fullCheck` pass.
+- [x] R15 assertions cover `shrink`, `maxLines.minimum == 1`, `scaleLadder.items.type == number`, optionality, and no new default.
+- [x] R16 assertions cover the exact bullet-style enum, bullet indent bounds, paragraph-rhythm minima, optionality, and no defaults.
+- [x] R17 assertions cover the three shared style `$ref` values, metric-gap minimum, permitted-flag types, optionality, and no defaults.
+- [x] R18 assertions cover the exact fit enum and `contain` default, focal-point bounds, aspect/fill bounds, and optionality.
+- [x] R19 assertions cover semantic color refs, the `classRoles` value `$ref`, the exact `themeBinding` enum, and absence of a `themeBinding` default without adding closure requirements.
+- [x] R20 assertions cover the content-type `$ref`, occupancy enum, capacity minima, and optional/default-free shape without changing agent-derived role/purpose/density vocabularies.
+- [x] R21–R22 assertions cover `altText`, font fallback/substitution fields, and `keywords` as optional/default-free additions.
+- [x] Cover tests assert `0.375` crop fractions for both orientations.
+- [x] `ContentType`, `RegionType`, and `Style` import successfully by name.
+- [x] `make codegen-all` leaves the worktree unchanged; `make fullCheck` and `make uv-fullCheck` pass.
+
+## Ask ↔ result
+
+The recorded human ask requested an action plan to close presentation failure-analysis gaps, and this chunk's goal narrowed that objective to durable regression assertions for the implemented R15–R22 schema and geometry contracts. The live user command explicitly authorized executing chunk 09. The delivered tests now guard those raw schema properties, exact centered cover crop fractions, and the externally consumed generated names `ContentType`, `RegionType`, and `Style`; mutation checks demonstrated the new requirement groups fail when their inspected values change, focused tests and both full gates pass, and code generation leaves the worktree unchanged. No gap remains within this chunk's scope.
 
 ## Out of scope
 
