@@ -1,13 +1,17 @@
 ---
 plan: Fix18RemoteTransferValueObjects
 scope: project
-status: approved
-last_updated: 2026-09-05
-semver: 1.1.0
+status: parked
+last_updated: 2026-09-23
+semver: 1.2.0
 author: Nicholas Bergantz
 ---
 
 # Fix candidate 18 — valid SSH/rsync transfer configuration
+
+## Scope
+
+Parked blocked during the 2026-09-23 plan cleanup. Preserve the unresolved additive-versus-replacement and hostless-SSH decisions for future human review; this record is not part of the active execute-plan queue.
 
 Evidence: rsync construction accepts ten contextual parameters and repeats most of them
 across four transaction methods. Combinations such as `ssh_user` without a host are silently
@@ -29,7 +33,7 @@ changing code. Two issues need a human decision.
 
 **1. Spec contradiction on `ssh_user` without host.** fix-18's defect statement and
 required-work item 1 name *"`ssh_user` without a host"* as an invalid combination to
-reject at construction. [`rsyncTransact.md`](../specs/rsyncTransact.md) mandates the
+reject at construction. [`rsyncTransact.md`](../../../specs/rsyncTransact.md) mandates the
 opposite: *"`ssh_user` alone SHALL NOT trigger injection and SHALL NOT raise; it remains
 ignored in local mode (unchanged rule)"*, and Compliance Requirement 13 deliberately
 scopes the build-time `ValueError` to `ssh_port` / `ssh_identity_file` without host,
@@ -38,7 +42,7 @@ excluding `ssh_user`. Enforced by passing tests in `tests/test_builders.py`
 Same tension for `remote_side` silently ignored in local mode (spec `.md` silent, but
 builder docstring + golden sweep exercise the no-raise behavior).
 
-**2. Additive vs. replacement scope.** `fix-00-overview.md` frames fix-18 as *"replace
+**2. Additive vs. replacement scope.** `00-overview.md` frames fix-18 as *"replace
 SSH/rsync parameter combinations with valid endpoint/transfer values"*, but
 `rsyncTransact.md` describes the current ~10-loose-kwarg model across six normative
 sections. Need direction:
@@ -55,4 +59,4 @@ formatter consumed by both `ssh_builder` and `rsync_builder` (replacing the hand
 `_build_ssh_transport_argument`), with `shlex.quote` on identity paths in the `-e` string;
 collapse the four-method kwarg duplication in `RsyncTransact` behind one internal helper.
 
-Status stays `needs-approval` (blocked).
+At that session boundary the status remained `needs-approval` (blocked); the 2026-09-23 cleanup parked the unresolved record without deciding it.

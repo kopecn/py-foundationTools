@@ -9,6 +9,10 @@ author: Nicholas Bergantz
 
 # Fix candidate 12 — socket lifecycle and resource ownership
 
+## Scope
+
+Completed repository-hardening record preserved in the archive.
+
 Evidence: a completed router reader task remains non-`None`, so `start()` refuses to
 restart it; `_closed` is never reset; repeated transport `connect()` and server `start()`
 calls can overwrite live resources. Constructors also use truthiness for injected codec,
@@ -70,7 +74,7 @@ recorded requirements only. Delivered a re-usable `IDLE ⇄ ACTIVE` state model 
 - Numeric config validated at construction (`connect_timeout`/`read_size`/`poll_timeout` > 0,
   `unsolicited_maxsize` ≥ 1, `max_concurrent` None or ≥ 1).
 
-Lifecycle documented in [`socketTransact.md`](../specs/socketTransact.md) (§ Lifecycle & resource
+Lifecycle documented in [`socketTransact.md`](../../../specs/socketTransact.md) (§ Lifecycle & resource
 ownership). Gate `make fullCheck` green (637 tests). **Deferred, unchanged:** automatic reconnect
 and cross-dropout upper-layer continuity — the "real state machine handler" for a future scoping
 effort. fix-09 request-registration atomicity was left untouched and independently tested.

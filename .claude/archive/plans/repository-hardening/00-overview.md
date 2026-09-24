@@ -1,13 +1,17 @@
 ---
 plan: RepositoryHardeningOverview
 scope: project
-status: needs-approval
-last_updated: 2026-09-07
-semver: 1.1.0
+status: parked
+last_updated: 2026-09-23
+semver: 1.2.0
 author: Nicholas Bergantz
 ---
 
 # Repository review findings
+
+## Scope
+
+Preserve the repository-hardening findings and their human decisions as parked records. They are not part of the active execute-plan queue after the 2026-09-23 cleanup.
 
 Plans `fix-01`–`fix-04`, `fix-06`–`fix-08`, and `fix-10` are completed records.
 The obsolete `fix-05` record was removed after its path-root work was superseded

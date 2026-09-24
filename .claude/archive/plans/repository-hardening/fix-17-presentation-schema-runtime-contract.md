@@ -1,13 +1,17 @@
 ---
 plan: Fix17PresentationSchemaRuntimeContract
 scope: project
-status: approved
-last_updated: 2026-09-05
-semver: 1.1.0
+status: parked
+last_updated: 2026-09-23
+semver: 1.2.0
 author: Nicholas Bergantz
 ---
 
 # Fix candidate 17 — presentation schema/runtime contract
+
+## Scope
+
+Parked unexecuted during the 2026-09-23 plan cleanup. Its human-approved schema/model/application-boundary decision remains authoritative context for presentation work; it is not part of the active execute-plan queue.
 
 Evidence: presentation JSON Schemas declare defaults and constraints that generated Python
 constructors do not materialize or validate. `PresentationMetadata.file.path` defaults to

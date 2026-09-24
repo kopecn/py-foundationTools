@@ -1,15 +1,15 @@
 ---
 plan: PresentationsOverview
 scope: project
-status: active
-last_updated: 2026-08-28
-semver: 1.1.1
+status: completed
+last_updated: 2026-09-23
+semver: 1.2.0
 author: Nicholas Bergantz
 ---
 
 # Presentation infrastructure roadmap
 
-## Source request
+## Goal and source request
 
 Recovered from Claude session `d87190ca-1689-4218-a704-7d14d61de926` and reconfirmed
 2026-08-28.
@@ -40,6 +40,6 @@ work to that repository.
 - Do not restore files removed by `c78008a` merely because the old plan mentioned them.
 - Specs record agreed contracts; they do not override this source request.
 
-## Additional active plans
+## Archive note
 
-- [Plan 26 — Reliable Bidirectional Named-Pipe IPC](26-named-pipe-ipc.md)
+The presentation roadmap is complete and its execution records are preserved in this directory. The unrelated named-pipe proposal is parked separately under `archive/plans/26-named-pipe-ipc/`.

@@ -15,13 +15,17 @@ goal: >
   error handling, thread safety, and cleanup to ensure dependable communication between local
   and remote processes. The implementation will provide a well-defined interface that can be
   integrated into existing automation and messaging workflows.
-last_updated: 2026-09-12
-semver: 0.0.1
+last_updated: 2026-09-23
+semver: 0.1.0
 author: Nicholas Bergantz
-status: active
+status: parked
 ---
 
 # Plan 26 - Reliable Bidirectional Named-Pipe IPC
+
+## Archive status
+
+Parked unexecuted during the 2026-09-23 plan cleanup. Preserve this proposal as a future scoping input; it is not part of the active execute-plan queue.
 
 ## Goal
 

@@ -3,8 +3,8 @@ human_ask: >
   I want you to take top level spec: /Users/nbergantz/**Workspaces**/pythonWorkspaces/py-foundationTools/.claude/plans/25-threaded-socket-transaction.md and reduce it to a plural set of bite sized tasks that will rip and tear /Users/nbergantz/**Workspaces**/pythonWorkspaces/py-foundationTools/src/foundation_tools/socket_transaction/...   I do not want to use asyncio for the socket handling and want it reduced to threading and sockets.
 goal: >
   Close the source-authorized gaps found after execution, then make Plan 25 ready for a clean re-audit and final archival.
-last_updated: 2026-09-14
-semver: 0.3.1
+last_updated: 2026-09-23
+semver: 0.4.0
 author: Nicholas Bergantz
 status: archived
 ---
@@ -88,6 +88,6 @@ A synchronous caller can connect or listen, send concurrent transactions, replac
 9. Naming: new Python tests use snake_case files and `test*` names.
 10. Ownership: preserve unrelated dirty-worktree changes and do not commit unless asked.
 
-## Execution handoff
+## Archive status
 
-Run chunks 17-23 independently where convenient, then 24, then 25. Final archival remains blocked until these chunks execute and a fresh post-audit confirms closure.
+Chunks 17–25 are completed, their acceptance records are preserved in this directory, and the plan is archived. No Plan 25 work remains in the active execute-plan queue.

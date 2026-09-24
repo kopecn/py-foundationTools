@@ -1,13 +1,17 @@
 ---
 plan: Fix15TypedTransactionOutcomes
 scope: project
-status: approved
-last_updated: 2026-09-05
-semver: 1.1.0
+status: parked
+last_updated: 2026-09-23
+semver: 1.2.0
 author: Nicholas Bergantz
 ---
 
 # Fix candidate 15 — truthful typed transaction outcomes
+
+## Scope
+
+Parked unexecuted during the 2026-09-23 plan cleanup. Preserve the approved transaction-outcome direction for future dedicated scoping; it is not part of the active execute-plan queue.
 
 Evidence: CLI and socket typed transactions can return `success=True`, `model=None`, and
 a parsing error. RetryPolicy consequently treats an unusable typed response as terminal
