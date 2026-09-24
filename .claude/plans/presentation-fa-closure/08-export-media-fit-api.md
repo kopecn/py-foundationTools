@@ -6,9 +6,9 @@ human_ask: >
   and create a series action plan on closing these gaps.
 goal: Export every public media-fit helper from the presentation package root.
 last_updated: 2026-09-23
-semver: 0.0.1
+semver: 0.0.2
 author: Nicholas Bergantz
-status: pending
+status: completed
 ---
 
 # 08 — Export media-fit public API
@@ -46,10 +46,10 @@ Callers can import all four helpers from `foundation_tools.presentation`, and th
 
 ## Acceptance criteria
 
-- [ ] `from foundation_tools.presentation import cover_into_box, fit_height_into_box, fit_into_box, fit_width_into_box` succeeds in a fresh interpreter.
-- [ ] `foundation_tools.presentation.__all__` contains each helper exactly once.
-- [ ] `pytest tests/test_image_fit_modes.py` passes.
-- [ ] `make fullCheck` and `make uv-fullCheck` pass.
+- [x] `from foundation_tools.presentation import cover_into_box, fit_height_into_box, fit_into_box, fit_width_into_box` succeeds in a fresh interpreter.
+- [x] `foundation_tools.presentation.__all__` contains each helper exactly once.
+- [x] `pytest tests/test_image_fit_modes.py` passes.
+- [x] `make fullCheck` and `make uv-fullCheck` pass.
 
 ## Out of scope
 
@@ -60,3 +60,7 @@ Callers can import all four helpers from `foundation_tools.presentation`, and th
 
 - [Presentation Schema R18](../../specs/presentationSchema.md#r18--media-fit-intent-and-region-aspect-fa-03)
 - Package public-surface declaration: `src/foundation_tools/presentation/__init__.py` lines 8–10.
+
+## Ask ↔ result
+
+The recorded ask requested an action plan to close presentation failure-analysis gaps, and this chunk's goal narrowed one corrective action to exporting every public media-fit helper from the presentation package root. The live request to execute chunk 08 authorized implementing that planned correction. The package root now imports and exports all four existing helpers, and the focused test verifies package-root imports plus exactly one `__all__` entry per helper. The fresh-interpreter probe, focused test, code-generation gate, and both repository gates passed. No gap remains against this chunk's goal.

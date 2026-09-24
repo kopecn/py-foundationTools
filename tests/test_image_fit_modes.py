@@ -9,12 +9,23 @@ overflow or underflow on the other, centered about the box). No I/O, no
 distortion for contain (unchanged), deterministic crop for cover.
 """
 
-from foundation_tools.presentation.image_fit import (
+import foundation_tools.presentation
+from foundation_tools.presentation import (
     cover_into_box,
     fit_height_into_box,
     fit_into_box,
     fit_width_into_box,
 )
+
+
+def test_package_exports_all_media_fit_helpers_once() -> None:
+    for helper_name in (
+        "cover_into_box",
+        "fit_height_into_box",
+        "fit_into_box",
+        "fit_width_into_box",
+    ):
+        assert foundation_tools.presentation.__all__.count(helper_name) == 1
 
 
 def test_contain_unchanged() -> None:
