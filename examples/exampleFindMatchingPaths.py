@@ -42,9 +42,3 @@ if downloads_folder.exists() and downloads_folder.is_dir():
 
     for file in files:
         print(file)
-
-# # extensions=None matches any extension.
-# print(find_matching_paths(root, "config", extensions=None))
-
-# # A relative subdirectory in the pattern, resolved beneath root.
-# print(find_matching_paths(root, "invoices/*", extensions=["pdf"]))
