@@ -7,10 +7,10 @@ human_ask: >
 goal: >
   Add the typed Presentations schema fields (R15–R22) the downstream deck renderer needs
   to close the FA gaps, additively and codegen-clean.
-last_updated: 2026-09-23
+last_updated: 2026-09-28
 semver: 0.1.0
 author: Nicholas Bergantz
-status: in_progress
+status: completed
 ---
 
 # FA-closure — foundation (schema) series

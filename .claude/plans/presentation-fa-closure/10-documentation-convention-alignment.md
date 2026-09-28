@@ -8,7 +8,7 @@ goal: Align the presentation and codegen specs with verified repository behavior
 last_updated: 2026-09-28
 semver: 0.0.2
 author: Nicholas Bergantz
-status: active
+status: completed
 ---
 
 # 10 — Documentation and convention alignment
@@ -66,7 +66,7 @@ The presentation and codegen specifications accurately describe the implemented 
 - [x] R22 distinguishes reused metadata fields from the new optional/default-free `keywords` field.
 - [x] `schemaCodegen.md` contains no `run_ruff`, `ruff format`, `ruff check`, or ruff-autofix pipeline claim.
 - [x] `schemaCodegen.md` matches `schema/scripts/generateDiskUsage.sh`, `schema/scripts/reuse/codegen.sh`, and `make codegen-all` on `run_black`, normalization, and black formatting.
-- [ ] `make fullCheck` and `make uv-fullCheck` pass. — `make fullCheck` passes (flake8, mypy --strict on 69+52 files, 981 tests). `make uv-fullCheck` fails at `uv-lint` on a pre-existing, unrelated flake8-bugbear finding (`tests/test_transaction_codecs.py:69:13: B018`), confirmed present on this branch before this chunk's edits via `git stash` (this chunk touched only the two spec files). Left unchecked and reported, not fixed — `tests/` is explicitly Out of scope for this chunk.
+- [x] `make fullCheck` and `make uv-fullCheck` pass. — Both green: `make fullCheck` (flake8, mypy --strict on 69+52 files, 981 tests) and `make uv-fullCheck` (981 tests). The pre-existing `tests/test_transaction_codecs.py:69:13: B018` finding blocking `uv-fullCheck` was fixed by the human directly (outside this chunk's Out-of-scope fence on `tests/`), then re-verified here.
 
 ## Out of scope
 
@@ -85,7 +85,7 @@ The presentation and codegen specifications accurately describe the implemented 
   - PA-07 — reworded R18 to assign pure fit geometry (the placement-rectangle math) to this repository, confirmed by reading `src/foundation_tools/presentation/image_fit.py` (`fit_into_box`, `cover_into_box`, `fit_width_into_box`, `fit_height_into_box`) and the source-authorized image plan (`archive/plans/presentation-schema/12-presentation-image-block.md`: "Contain-fit geometry ... belongs here; reading image pixel dimensions needs a library and stays downstream" / "the actual `add_picture` render is the clerical-tools half"). Intrinsic-dimension reading and the actual rendered placement (e.g. `add_picture`) remain downstream.
   - PA-08 — reworded R22 to state `description`, `author`, and `version` predate this chunk with their existing required/default semantics, and `keywords` is the field R22 actually added — confirmed by reading `PresentationMetadata-schema.json` (`author` required, `description`/`version` each carry an existing default, `keywords` has neither) and `git log --follow -p`, which shows `author`/`description`/`version` added in commit `d1fd125` (2026-09-08) and only `keywords` (plus unrelated R21 fields) added in commit `ea3feb8` (2026-09-15, chunk 07).
   - No production code, schema, generated model, or test file was touched; no item from the overview's "Recorded, no action" table was resolved.
-- **Gap**: `make uv-fullCheck` does not pass, for a reason unrelated to and pre-dating this chunk's changes (see the unchecked acceptance box above). This is a pre-existing gate blocker recorded for human review, not resolved unilaterally, since fixing it would require editing `tests/`, which this chunk's Out-of-scope section forbids.
+- **Gap**: none remaining. `make uv-fullCheck` initially failed on a pre-existing, unrelated `B018` finding in `tests/test_transaction_codecs.py`, outside this chunk's Out-of-scope fence on `tests/`. The human fixed it directly; both gates are now verified green.
 
 ## Spec back-reference
 

@@ -66,7 +66,7 @@ class TestTransactionCodecProtocolShape:
     def test_is_not_runtime_checkable(self) -> None:
         # A structural, non-runtime-checkable Protocol raises on isinstance().
         with pytest.raises(TypeError):
-            isinstance(JsonTransactionCodec(), TransactionCodec)  # type: ignore[misc]
+            _ = isinstance(JsonTransactionCodec(), TransactionCodec)  # type: ignore[misc]
 
     def test_declares_delimiter_encode_decode(self) -> None:
         members = set(dir(TransactionCodec))
@@ -123,9 +123,7 @@ class TestJsonTransactionCodecEncode:
         assert "�" in obj["payload"]
 
     def test_encode_data_model_helper_payload_calls_to_dict(self) -> None:
-        encoded = JsonTransactionCodec().encode(
-            1, "req", 0, payload=_Greeting(text="hi", count=2)
-        )
+        encoded = JsonTransactionCodec().encode(1, "req", 0, payload=_Greeting(text="hi", count=2))
         obj = json.loads(encoded.decode("utf-8"))
         assert obj["payload"] == {"text": "hi", "count": 2}
 
