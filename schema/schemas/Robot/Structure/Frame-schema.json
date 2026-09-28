@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Structure/Frame-schema.json",
+  "title": "Frame",
+  "type": "object",
+  "description": "A first-class frame, explicitly attached to exactly one of a body, a joint, a component, or an interface.",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Stable identifier for this frame."
+    },
+    "body": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the body this frame is attached to."
+    },
+    "joint": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the joint this frame is attached to."
+    },
+    "component": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the component this frame is attached to."
+    },
+    "interface": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the interface this frame is attached to."
+    },
+    "transform": {
+      "$ref": "../Geometry/Transform-schema.json",
+      "description": "The relative pose of this frame with respect to its attachment point."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this frame."
+    }
+  },
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "required": ["body"]
+    },
+    {
+      "required": ["joint"]
+    },
+    {
+      "required": ["component"]
+    },
+    {
+      "required": ["interface"]
+    }
+  ]
+}

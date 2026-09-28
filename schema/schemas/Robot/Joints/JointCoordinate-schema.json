@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Joints/JointCoordinate-schema.json",
+  "title": "JointCoordinate",
+  "type": "object",
+  "description": "One generalized coordinate (degree of freedom variable) of a joint.",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Stable identifier for this coordinate, referenced elsewhere (e.g. by a DH parameter's `variable`)."
+    },
+    "unit": {
+      "$ref": "../Units/Unit-schema.json",
+      "description": "The unit this coordinate's value is expressed in."
+    }
+  },
+  "additionalProperties": false
+}

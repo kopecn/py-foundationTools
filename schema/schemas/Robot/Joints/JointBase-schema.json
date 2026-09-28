@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Joints/JointBase-schema.json",
+  "title": "JointBase",
+  "type": "object",
+  "description": "Fields common to every joint, regardless of type.",
+  "required": ["id", "type"],
+  "properties": {
+    "id": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Stable identifier for this joint."
+    },
+    "type": {
+      "type": "string",
+      "description": "Recommended values: revolute, prismatic, helical, spherical, universal, planar, fixed. Additional application-defined joint types are permitted; a joint of an unrecognized type is validated against this base shape only, with any type-specific data carried in `metadata`."
+    },
+    "parent": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the body on the parent side of this joint."
+    },
+    "child": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the body on the child side of this joint."
+    },
+    "coordinates": {
+      "type": "array",
+      "items": {
+        "$ref": "JointCoordinate-schema.json"
+      },
+      "description": "This joint's generalized coordinates (its degrees of freedom's variables)."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this joint."
+    }
+  }
+}

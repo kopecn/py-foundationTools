@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/robot-mechanism.schema.json",
+  "title": "MechanismDefinition",
+  "description": "Recursive, compositional, representation-independent schema for describing robots and robotic mechanisms: joints, bodies, frames, constraints, and recursive submechanism composition. Named architectures (serial/parallel/gimbal/SCARA/Stewart/etc.) are classifications, not structural schema branches. Split across multiple files by concept; this file is the entry point.",
+  "$ref": "Mechanism/MechanismDefinition-schema.json"
+}

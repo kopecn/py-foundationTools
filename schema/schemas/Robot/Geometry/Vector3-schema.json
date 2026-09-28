@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Geometry/Vector3-schema.json",
+  "title": "Vector3",
+  "type": "array",
+  "items": {
+    "type": "number"
+  },
+  "minItems": 3,
+  "maxItems": 3,
+  "description": "A 3-component vector [x, y, z], expressed in the local frame appropriate to its context."
+}

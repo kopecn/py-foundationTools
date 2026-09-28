@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Structure/Body-schema.json",
+  "title": "Body",
+  "type": "object",
+  "description": "A rigid body (link) in a mechanism.",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Stable identifier for this body."
+    },
+    "kind": {
+      "const": "body",
+      "description": "Self-describing discriminator; always \"body\" for a Body."
+    },
+    "name": {
+      "type": "string",
+      "description": "A human-readable name for this body."
+    },
+    "mass": {
+      "$ref": "../Units/Quantity-schema.json",
+      "description": "This body's mass. Optional; not required for a purely kinematic definition."
+    },
+    "inertia": {
+      "type": "object",
+      "description": "This body's rotational inertia tensor about its own frame. Optional; not required for a purely kinematic definition.",
+      "properties": {
+        "ixx": {
+          "$ref": "../Units/Quantity-schema.json",
+          "description": "The xx moment of inertia."
+        },
+        "iyy": {
+          "$ref": "../Units/Quantity-schema.json",
+          "description": "The yy moment of inertia."
+        },
+        "izz": {
+          "$ref": "../Units/Quantity-schema.json",
+          "description": "The zz moment of inertia."
+        },
+        "ixy": {
+          "$ref": "../Units/Quantity-schema.json",
+          "description": "The xy product of inertia."
+        },
+        "ixz": {
+          "$ref": "../Units/Quantity-schema.json",
+          "description": "The xz product of inertia."
+        },
+        "iyz": {
+          "$ref": "../Units/Quantity-schema.json",
+          "description": "The yz product of inertia."
+        }
+      },
+      "additionalProperties": false
+    },
+    "visual": {
+      "type": "object",
+      "description": "Application-defined visual representation data for this body (e.g. a mesh reference)."
+    },
+    "collision": {
+      "type": "object",
+      "description": "Application-defined collision-geometry data for this body."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this body."
+    }
+  },
+  "additionalProperties": false
+}

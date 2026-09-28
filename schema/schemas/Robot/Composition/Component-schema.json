@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Composition/Component-schema.json",
+  "title": "Component",
+  "type": "object",
+  "description": "An instantiation of a mechanism definition within a parent mechanism. `definition` is either a stable id referencing a reusable mechanism defined elsewhere (permitting the same definition to be instantiated multiple times without duplication), or a mechanism definition nested inline.",
+  "required": ["id", "definition"],
+  "properties": {
+    "id": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Stable identifier for this component instance within its parent mechanism."
+    },
+    "kind": {
+      "const": "submechanism",
+      "description": "Self-describing discriminator; always \"submechanism\" for a Component."
+    },
+    "definition": {
+      "description": "The mechanism this component instantiates: either a stable id referencing a mechanism defined elsewhere, or a MechanismDefinition nested inline.",
+      "oneOf": [
+        {
+          "$ref": "../Common/Id-schema.json"
+        },
+        {
+          "$ref": "../Mechanism/MechanismDefinition-schema.json"
+        }
+      ]
+    },
+    "mount": {
+      "type": "object",
+      "description": "Where this component attaches within its parent, by frame and/or named interface.",
+      "properties": {
+        "frame": {
+          "$ref": "../Common/Id-schema.json",
+          "description": "The parent-side frame this component is mounted at."
+        },
+        "interface": {
+          "$ref": "../Common/Id-schema.json",
+          "description": "The parent-side named interface this component is mounted at."
+        }
+      },
+      "additionalProperties": false
+    },
+    "transform": {
+      "$ref": "../Geometry/Transform-schema.json",
+      "description": "The relative pose of this component with respect to its mount point."
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Free-form parameter overrides applied to the referenced mechanism definition for this instance."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this component."
+    }
+  },
+  "additionalProperties": false
+}

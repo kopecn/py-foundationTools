@@ -135,6 +135,7 @@ All under `foundationTypes/`, all subclassing `DataModelHelper`:
 | `cvTypes/` | `ChArUcoConfig` (computer-vision calibration board config) |
 | `standardizedLoggerConfig/` | `StandardizedLoggerConfig`, consumed by the logger in [foundation_tools](foundation_tools.md#standardizedlogger) |
 | `presentationTypes/` | the Presentations schema: `PresentationColorTheme`, `SlideLayout`, `Region`, `PresentationSlideLayouts`, and more — resolved by the `foundation_tools/presentation/` helpers |
+| `automationTypes/` | `RobotConfig` (`MechanismDefinition` and friends) — a recursive, compositional robot/mechanism schema; see [`.claude/specs/robotMechanismSchema.md`](../.claude/specs/robotMechanismSchema.md) |
 
 ### The `wire_config.py` sibling pattern
 

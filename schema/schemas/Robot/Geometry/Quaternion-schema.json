@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Geometry/Quaternion-schema.json",
+  "title": "Quaternion",
+  "type": "object",
+  "description": "A unit quaternion rotation, in x/y/z/w (vector, scalar) order.",
+  "required": ["x", "y", "z", "w"],
+  "properties": {
+    "x": {
+      "type": "number",
+      "description": "The x (vector) component."
+    },
+    "y": {
+      "type": "number",
+      "description": "The y (vector) component."
+    },
+    "z": {
+      "type": "number",
+      "description": "The z (vector) component."
+    },
+    "w": {
+      "type": "number",
+      "description": "The scalar (real) component."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Composition/Interface-schema.json",
+  "title": "Interface",
+  "type": "object",
+  "description": "A named, explicit mounting/reference point on a mechanism, exposed by frame so other mechanisms can connect to it without relying on naming conventions.",
+  "required": ["frame"],
+  "properties": {
+    "frame": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the frame this interface exposes."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this interface."
+    }
+  },
+  "additionalProperties": false
+}

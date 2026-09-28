@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Units/Unit-schema.json",
+  "title": "Unit",
+  "type": "string",
+  "enum": [
+    "m",
+    "mm",
+    "rad",
+    "deg",
+    "N",
+    "Nm",
+    "kg",
+    "s"
+  ],
+  "description": "Supported physical units. A mechanism's top-level `units` establishes the default unit system; individual quantities may override it."
+}

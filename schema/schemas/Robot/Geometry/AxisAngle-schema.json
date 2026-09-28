@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Geometry/AxisAngle-schema.json",
+  "title": "AxisAngle",
+  "type": "object",
+  "description": "A rotation expressed as a unit axis and an angle of rotation about it.",
+  "required": ["axis", "angle"],
+  "properties": {
+    "axis": {
+      "$ref": "Vector3-schema.json",
+      "description": "The rotation axis, expressed in the local frame appropriate to its context."
+    },
+    "angle": {
+      "$ref": "../Units/Quantity-schema.json",
+      "description": "The angle of rotation about the axis."
+    }
+  },
+  "additionalProperties": false
+}

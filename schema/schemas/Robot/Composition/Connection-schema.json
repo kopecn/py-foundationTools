@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Composition/Connection-schema.json",
+  "title": "Connection",
+  "type": "object",
+  "description": "An explicit connection between two components, by named interface, so a child mechanism need not know in advance what it will be mounted on.",
+  "required": ["id", "parent", "child"],
+  "properties": {
+    "id": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Stable identifier for this connection."
+    },
+    "parent": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the parent-side component being connected."
+    },
+    "child": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the child-side component being connected."
+    },
+    "parent_interface": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Name of the interface on the parent component this connection attaches to."
+    },
+    "child_interface": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Name of the interface on the child component this connection attaches to."
+    },
+    "transform": {
+      "$ref": "../Geometry/Transform-schema.json",
+      "description": "The relative pose between the parent and child interfaces at this connection."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this connection."
+    }
+  },
+  "additionalProperties": false
+}

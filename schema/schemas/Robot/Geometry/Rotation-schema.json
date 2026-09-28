@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Geometry/Rotation-schema.json",
+  "title": "Rotation",
+  "description": "Exactly one unambiguous rotation representation.",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "quaternion"
+      ],
+      "properties": {
+        "quaternion": {
+          "$ref": "Quaternion-schema.json"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "rotation_matrix"
+      ],
+      "properties": {
+        "rotation_matrix": {
+          "$ref": "RotationMatrix-schema.json"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "axis_angle"
+      ],
+      "properties": {
+        "axis_angle": {
+          "$ref": "AxisAngle-schema.json"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "rpy"
+      ],
+      "properties": {
+        "rpy": {
+          "$ref": "RPY-schema.json"
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

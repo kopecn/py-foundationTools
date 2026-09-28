@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Kinematics/KinematicRepresentation-schema.json",
+  "title": "KinematicRepresentation",
+  "description": "One kinematic representation of the enclosing mechanism. A mechanism may carry more than one representation simultaneously.",
+  "allOf": [
+    {
+      "$ref": "KinematicRepresentationBase-schema.json"
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": ["dh", "modified_dh"]
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "convention": {
+            "type": "string",
+            "enum": ["standard", "modified"],
+            "description": "The DH convention this parameter set follows."
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "DHParameter-schema.json"
+            },
+            "description": "The ordered DH parameter rows, one per joint in the chain."
+          }
+        },
+        "required": ["parameters"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "poe"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "space_frame": {
+            "$ref": "../Common/Id-schema.json",
+            "description": "Id of the fixed space frame the screw axes are expressed in, if using a space-frame formulation."
+          },
+          "body_frame": {
+            "$ref": "../Common/Id-schema.json",
+            "description": "Id of the moving body frame the screw axes are expressed in, if using a body-frame formulation."
+          },
+          "home_transform": {
+            "$ref": "../Geometry/Transform-schema.json",
+            "description": "The end-effector transform at the mechanism's zero (home) configuration."
+          },
+          "joints": {
+            "type": "array",
+            "description": "The ordered screw axes, one per joint in the chain.",
+            "items": {
+              "type": "object",
+              "required": ["joint", "screw_axis"],
+              "properties": {
+                "joint": {
+                  "$ref": "../Common/Id-schema.json",
+                  "description": "Id of the joint this screw axis describes."
+                },
+                "screw_axis": {
+                  "allOf": [
+                    {
+                      "$ref": "../Geometry/Vector6-schema.json"
+                    }
+                  ],
+                  "description": "[wx, wy, wz, vx, vy, vz] screw axis, expressed in the representation's space_frame (or body_frame, if that is used instead)."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["joints"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "constraint_based"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "coordinates": {
+            "type": "array",
+            "items": {
+              "$ref": "../Joints/JointCoordinate-schema.json"
+            },
+            "description": "The independent generalized coordinates describing this mechanism's configuration."
+          },
+          "constraints": {
+            "type": "array",
+            "items": {
+              "$ref": "../Constraints/Constraint-schema.json"
+            },
+            "description": "The constraints relating those coordinates, for a parallel or closed-chain mechanism with no single kinematic chain."
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

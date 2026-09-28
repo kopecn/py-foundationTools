@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Geometry/Transform-schema.json",
+  "title": "Transform",
+  "type": "object",
+  "description": "The single canonical transform model, reused everywhere a relative pose is needed.",
+  "properties": {
+    "translation": {
+      "$ref": "Vector3-schema.json",
+      "description": "The translation component of this transform."
+    },
+    "rotation": {
+      "$ref": "Rotation-schema.json",
+      "description": "The rotation component of this transform."
+    }
+  },
+  "additionalProperties": false
+}

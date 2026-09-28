@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Kinematics/Kinematics-schema.json",
+  "title": "Kinematics",
+  "type": "object",
+  "description": "The kinematic description(s) of a mechanism.",
+  "properties": {
+    "representations": {
+      "type": "array",
+      "items": {
+        "$ref": "KinematicRepresentation-schema.json"
+      },
+      "description": "The kinematic representations carried by this mechanism; a mechanism may carry more than one simultaneously (e.g. both a DH chain and a PoE description)."
+    }
+  },
+  "additionalProperties": false
+}

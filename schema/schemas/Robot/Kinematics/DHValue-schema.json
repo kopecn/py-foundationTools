@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Kinematics/DHValue-schema.json",
+  "title": "DHValue",
+  "description": "A single DH parameter value: either a constant quantity or a reference to the joint coordinate that drives it.",
+  "oneOf": [
+    {
+      "$ref": "../Units/Quantity-schema.json"
+    },
+    {
+      "$ref": "VariableReference-schema.json"
+    }
+  ]
+}
