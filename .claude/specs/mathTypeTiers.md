@@ -2,9 +2,9 @@
 spec: MathTypeTiers
 scope: project
 status: implemented
-applies_to: schema/schemas/Math/, schema/scripts/generateMathTypes.sh, schema/scripts/reuse/postprocess_mathtypes.py, src/foundationTypes/mathTypes/, src/foundation_abc/math/, tests/typeTests/test_math_tier_contract.py
-last_updated: 2026-09-07
-semver: 1.0.0
+applies_to: schema/schemas/Math/, schema/schemas/Robot/, schema/scripts/generateMathTypes.sh, schema/scripts/generateRobotConfig.sh, schema/scripts/reuse/postprocess_mathtypes.py, schema/scripts/reuse/postprocess_robotconfig.py, src/foundationTypes/mathTypes/, src/foundationTypes/automationTypes/, src/foundation_abc/math/, tests/typeTests/test_math_tier_contract.py, tests/typeTests/testRobotConfigGeometry.py
+last_updated: 2026-09-28
+semver: 1.2.0
 author: Nicholas Bergantz
 ---
 
@@ -62,6 +62,42 @@ protocol. Concrete IO behavior is opt-in: implementations that need
 Enums (`NumericSign`, `Timescale`, and `ReferenceFrame`) remain concrete shared
 values in `foundation_abc/math/mathEnums.py`. Generated carriers import them so the
 schema and protocol layers use the same enum identities.
+
+## Cross-domain reuse (dependency inversion)
+
+Other domains reuse the Math geometry contracts by **typing their fields to the
+protocols**, not to the concrete carriers. The `automationTypes` (Robot) domain is
+the reference case:
+
+- A Robot schema that needs a position or pose `$ref`s the canonical Math schema
+  (`Math/Position-schema.json`, `Math/Quaternion-schema.json`,
+  `Math/SpatialTransform-schema.json`) rather than defining a parallel primitive.
+- quicktype inlines the concrete Math carriers into `RobotConfig.py`. The
+  Robot post-processor (`schema/scripts/reuse/postprocess_robotconfig.py`) then
+  strips those inlined copies, imports the canonical carriers from
+  `foundationTypes.mathTypes.MathTypes`, and **retypes the fields to the protocols**
+  (`position: PositionType` → `position: PositionABC`, etc.).
+- The field type is therefore the interface — it accepts any conforming
+  implementation. A protocol cannot be instantiated, so deserialization resolves a
+  concrete implementation through a single **user-overridable `ClassVar` knob** on
+  the domain's root class (`RobotConfig.SPATIAL_TRANSFORM_IMPL`), defaulting to the
+  Math carrier (which already conforms). A downstream caller injects their own type
+  with `RobotConfig.SPATIAL_TRANSFORM_IMPL = MyTransform`; every geometry `from_dict`
+  reads the current knob. Serialization goes through `to_class_abc` (in
+  `data_model_helper.py`), which accepts any value satisfying the protocol.
+- The protocols are made `@runtime_checkable` so `to_class_abc`'s isinstance guard
+  works. That decorator adds no wire mapping, IO, or math — invariant 3 holds.
+
+**Canonical rotation.** Orientation is a unit quaternion. Alternate rotation
+representations (rotation matrix, axis-angle, roll/pitch/yaw) are **not** modeled as
+separate protocols or carriers; they are derivatives of the quaternion and convert
+to it, because a single canonical representation is more numerically robust.
+
+**Isolated cases.** Concepts that are neither a position nor a pose are not forced
+onto these protocols: a unit **direction** axis (a joint's rotation/translation/screw
+axis) and an se(3) **twist** (`[wx,wy,wz,vx,vy,vz]` screw axis) stay as plain array
+primitives. `spatialABCs.py` explicitly scopes se(3) twists out. A `DirectionABC`/
+twist protocol is a possible future addition, addressed individually if needed.
 
 ## Invariants
 

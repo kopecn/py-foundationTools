@@ -41,7 +41,7 @@
       "additionalProperties": false
     },
     "transform": {
-      "$ref": "../Geometry/Transform-schema.json",
+      "$ref": "../../Math/SpatialTransform-schema.json",
       "description": "The relative pose of this component with respect to its mount point."
     },
     "parameters": {

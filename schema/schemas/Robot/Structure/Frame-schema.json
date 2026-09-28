@@ -27,7 +27,7 @@
       "description": "Id of the interface this frame is attached to."
     },
     "transform": {
-      "$ref": "../Geometry/Transform-schema.json",
+      "$ref": "../../Math/SpatialTransform-schema.json",
       "description": "The relative pose of this frame with respect to its attachment point."
     },
     "metadata": {

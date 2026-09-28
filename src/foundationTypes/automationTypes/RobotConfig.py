@@ -19,7 +19,11 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
-from typing import Optional, Any, Union, List, Dict, TypeVar, Type, Callable, cast
+from typing import Optional, Any, Union, Dict, List, TypeVar, Type, cast, Callable
+from typing import ClassVar
+from foundationTypes.data_model_helper import to_class_abc
+from foundationTypes.mathTypes.MathTypes import SpatialTransformType
+from foundation_abc.math.spatialABCs import SpatialTransformABC
 
 T = TypeVar("T")
 EnumT = TypeVar("EnumT", bound=Enum)
@@ -61,14 +65,6 @@ class Unit(Enum):
     system; individual quantities may override it.
 
     The unit this coordinate's value is expressed in.
-
-    The default unit for angle quantities.
-
-    The default unit for length quantities.
-
-    The default unit for mass quantities.
-
-    The default unit for time quantities.
     """
 
     DEG = "deg"
@@ -82,17 +78,17 @@ class Unit(Enum):
 
 
 @dataclass
-class Quantity(DataModelHelper):
+class QuantityClass(DataModelHelper):
     value: float
     unit: Optional[Unit] = None
 
     @classmethod
-    def from_dict(cls, obj: Any) -> "Quantity":
+    def from_dict(cls, obj: Any) -> "QuantityClass":
         if not isinstance(obj, dict):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         value = from_float(obj.get("value"))
         unit = from_union([Unit, from_none], obj.get("unit"))
-        return Quantity(value, unit)
+        return QuantityClass(value, unit)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -103,276 +99,66 @@ class Quantity(DataModelHelper):
 
 
 @dataclass
-class AxisAngle(DataModelHelper):
-    """A rotation expressed as a unit axis and an angle of rotation about it."""
-
-    angle: Union[float, Quantity]
-    """The angle of rotation about the axis."""
-
-    axis: List[float]
-    """The rotation axis, expressed in the local frame appropriate to its context."""
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "AxisAngle":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        angle = from_union([from_float, Quantity.from_dict], obj.get("angle"))
-        axis = from_list(from_float, obj.get("axis"))
-        return AxisAngle(angle, axis)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        result["angle"] = from_union([to_float, lambda x: to_class(Quantity, x)], self.angle)
-        result["axis"] = from_list(to_float, self.axis)
-        return result
-
-
-@dataclass
-class Quaternion(DataModelHelper):
-    """A unit quaternion rotation, in x/y/z/w (vector, scalar) order."""
-
-    w: float
-    """The scalar (real) component."""
-
-    x: float
-    """The x (vector) component."""
-
-    y: float
-    """The y (vector) component."""
-
-    z: float
-    """The z (vector) component."""
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "Quaternion":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        w = from_float(obj.get("w"))
-        x = from_float(obj.get("x"))
-        y = from_float(obj.get("y"))
-        z = from_float(obj.get("z"))
-        return Quaternion(w, x, y, z)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        result["w"] = to_float(self.w)
-        result["x"] = to_float(self.x)
-        result["y"] = to_float(self.y)
-        result["z"] = to_float(self.z)
-        return result
-
-
-@dataclass
-class RotationMatrix(DataModelHelper):
-    values: List[float]
-    """Row-major 3x3 rotation matrix: [r00, r01, r02, r10, r11, r12, r20, r21, r22]."""
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "RotationMatrix":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        values = from_list(from_float, obj.get("values"))
-        return RotationMatrix(values)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        result["values"] = from_list(to_float, self.values)
-        return result
-
-
-class Convention(Enum):
-    """The explicit rotation-order convention roll/pitch/yaw are composed under. Required to
-    disambiguate RPY, which has no universal convention.
-    """
-
-    EXTRINSIC_XYZ = "extrinsic_xyz"
-    INTRINSIC_ZYX = "intrinsic_zyx"
-
-
-@dataclass
-class Rpy(DataModelHelper):
-    """A roll/pitch/yaw rotation, with an explicit composition convention."""
-
-    pitch: Union[float, Quantity]
-    """Rotation about the pitch axis."""
-
-    roll: Union[float, Quantity]
-    """Rotation about the roll axis."""
-
-    yaw: Union[float, Quantity]
-    """Rotation about the yaw axis."""
-
-    convention: Optional[Convention] = None
-    """The explicit rotation-order convention roll/pitch/yaw are composed under. Required to
-    disambiguate RPY, which has no universal convention.
-    """
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "Rpy":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        pitch = from_union([from_float, Quantity.from_dict], obj.get("pitch"))
-        roll = from_union([from_float, Quantity.from_dict], obj.get("roll"))
-        yaw = from_union([from_float, Quantity.from_dict], obj.get("yaw"))
-        convention = from_union([Convention, from_none], obj.get("convention"))
-        return Rpy(pitch, roll, yaw, convention)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        result["pitch"] = from_union([to_float, lambda x: to_class(Quantity, x)], self.pitch)
-        result["roll"] = from_union([to_float, lambda x: to_class(Quantity, x)], self.roll)
-        result["yaw"] = from_union([to_float, lambda x: to_class(Quantity, x)], self.yaw)
-        if self.convention is not None:
-            result["convention"] = from_union(
-                [lambda x: to_enum(Convention, x), from_none], self.convention
-            )
-        return result
-
-
-@dataclass
-class Rotation(DataModelHelper):
-    """The rotation component of this transform.
-
-    Exactly one unambiguous rotation representation.
-    """
-
-    quaternion: Optional[Quaternion] = None
-    rotation_matrix: Optional[RotationMatrix] = None
-    axis_angle: Optional[AxisAngle] = None
-    rpy: Optional[Rpy] = None
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "Rotation":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        quaternion = from_union([Quaternion.from_dict, from_none], obj.get("quaternion"))
-        rotation_matrix = from_union(
-            [RotationMatrix.from_dict, from_none], obj.get("rotation_matrix")
-        )
-        axis_angle = from_union([AxisAngle.from_dict, from_none], obj.get("axis_angle"))
-        rpy = from_union([Rpy.from_dict, from_none], obj.get("rpy"))
-        return Rotation(quaternion, rotation_matrix, axis_angle, rpy)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        if self.quaternion is not None:
-            result["quaternion"] = from_union(
-                [lambda x: to_class(Quaternion, x), from_none], self.quaternion
-            )
-        if self.rotation_matrix is not None:
-            result["rotation_matrix"] = from_union(
-                [lambda x: to_class(RotationMatrix, x), from_none], self.rotation_matrix
-            )
-        if self.axis_angle is not None:
-            result["axis_angle"] = from_union(
-                [lambda x: to_class(AxisAngle, x), from_none], self.axis_angle
-            )
-        if self.rpy is not None:
-            result["rpy"] = from_union([lambda x: to_class(Rpy, x), from_none], self.rpy)
-        return result
-
-
-@dataclass
-class Transform(DataModelHelper):
-    """The relative pose of this component with respect to its mount point.
-
-    The single canonical transform model, reused everywhere a relative pose is needed.
-
-    The relative pose between the parent and child interfaces at this connection.
-
-    The relative pose of this frame with respect to its attachment point.
-    """
-
-    rotation: Optional[Rotation] = None
-    """The rotation component of this transform."""
-
-    translation: Optional[List[float]] = None
-    """The translation component of this transform."""
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "Transform":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        rotation = from_union([Rotation.from_dict, from_none], obj.get("rotation"))
-        translation = from_union(
-            [lambda x: from_list(from_float, x), from_none], obj.get("translation")
-        )
-        return Transform(rotation, translation)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        if self.rotation is not None:
-            result["rotation"] = from_union(
-                [lambda x: to_class(Rotation, x), from_none], self.rotation
-            )
-        if self.translation is not None:
-            result["translation"] = from_union(
-                [lambda x: from_list(to_float, x), from_none], self.translation
-            )
-        return result
-
-
-@dataclass
 class Inertia(DataModelHelper):
     """This body's rotational inertia tensor about its own frame. Optional; not required for a
     purely kinematic definition.
     """
 
-    ixx: Optional[Union[float, Quantity]] = None
+    ixx: Optional[Union[float, QuantityClass]] = None
     """The xx moment of inertia."""
 
-    ixy: Optional[Union[float, Quantity]] = None
+    ixy: Optional[Union[float, QuantityClass]] = None
     """The xy product of inertia."""
 
-    ixz: Optional[Union[float, Quantity]] = None
+    ixz: Optional[Union[float, QuantityClass]] = None
     """The xz product of inertia."""
 
-    iyy: Optional[Union[float, Quantity]] = None
+    iyy: Optional[Union[float, QuantityClass]] = None
     """The yy moment of inertia."""
 
-    iyz: Optional[Union[float, Quantity]] = None
+    iyz: Optional[Union[float, QuantityClass]] = None
     """The yz product of inertia."""
 
-    izz: Optional[Union[float, Quantity]] = None
+    izz: Optional[Union[float, QuantityClass]] = None
     """The zz moment of inertia."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "Inertia":
         if not isinstance(obj, dict):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        ixx = from_union([from_float, Quantity.from_dict, from_none], obj.get("ixx"))
-        ixy = from_union([from_float, Quantity.from_dict, from_none], obj.get("ixy"))
-        ixz = from_union([from_float, Quantity.from_dict, from_none], obj.get("ixz"))
-        iyy = from_union([from_float, Quantity.from_dict, from_none], obj.get("iyy"))
-        iyz = from_union([from_float, Quantity.from_dict, from_none], obj.get("iyz"))
-        izz = from_union([from_float, Quantity.from_dict, from_none], obj.get("izz"))
+        ixx = from_union([from_float, QuantityClass.from_dict, from_none], obj.get("ixx"))
+        ixy = from_union([from_float, QuantityClass.from_dict, from_none], obj.get("ixy"))
+        ixz = from_union([from_float, QuantityClass.from_dict, from_none], obj.get("ixz"))
+        iyy = from_union([from_float, QuantityClass.from_dict, from_none], obj.get("iyy"))
+        iyz = from_union([from_float, QuantityClass.from_dict, from_none], obj.get("iyz"))
+        izz = from_union([from_float, QuantityClass.from_dict, from_none], obj.get("izz"))
         return Inertia(ixx, ixy, ixz, iyy, iyz, izz)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         if self.ixx is not None:
             result["ixx"] = from_union(
-                [to_float, lambda x: to_class(Quantity, x), from_none], self.ixx
+                [to_float, lambda x: to_class(QuantityClass, x), from_none], self.ixx
             )
         if self.ixy is not None:
             result["ixy"] = from_union(
-                [to_float, lambda x: to_class(Quantity, x), from_none], self.ixy
+                [to_float, lambda x: to_class(QuantityClass, x), from_none], self.ixy
             )
         if self.ixz is not None:
             result["ixz"] = from_union(
-                [to_float, lambda x: to_class(Quantity, x), from_none], self.ixz
+                [to_float, lambda x: to_class(QuantityClass, x), from_none], self.ixz
             )
         if self.iyy is not None:
             result["iyy"] = from_union(
-                [to_float, lambda x: to_class(Quantity, x), from_none], self.iyy
+                [to_float, lambda x: to_class(QuantityClass, x), from_none], self.iyy
             )
         if self.iyz is not None:
             result["iyz"] = from_union(
-                [to_float, lambda x: to_class(Quantity, x), from_none], self.iyz
+                [to_float, lambda x: to_class(QuantityClass, x), from_none], self.iyz
             )
         if self.izz is not None:
             result["izz"] = from_union(
-                [to_float, lambda x: to_class(Quantity, x), from_none], self.izz
+                [to_float, lambda x: to_class(QuantityClass, x), from_none], self.izz
             )
         return result
 
@@ -398,7 +184,7 @@ class Body(DataModelHelper):
     kind: Optional[BodyKind] = None
     """Self-describing discriminator; always "body" for a Body."""
 
-    mass: Optional[Union[float, Quantity]] = None
+    mass: Optional[Union[float, QuantityClass]] = None
     """This body's mass. Optional; not required for a purely kinematic definition."""
 
     metadata: Optional[Dict[str, Any]] = None
@@ -420,7 +206,7 @@ class Body(DataModelHelper):
         )
         inertia = from_union([Inertia.from_dict, from_none], obj.get("inertia"))
         kind = from_union([BodyKind, from_none], obj.get("kind"))
-        mass = from_union([from_float, Quantity.from_dict, from_none], obj.get("mass"))
+        mass = from_union([from_float, QuantityClass.from_dict, from_none], obj.get("mass"))
         metadata = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("metadata"))
         name = from_union([from_str, from_none], obj.get("name"))
         visual = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("visual"))
@@ -441,7 +227,7 @@ class Body(DataModelHelper):
             result["kind"] = from_union([lambda x: to_enum(BodyKind, x), from_none], self.kind)
         if self.mass is not None:
             result["mass"] = from_union(
-                [to_float, lambda x: to_class(Quantity, x), from_none], self.mass
+                [to_float, lambda x: to_class(QuantityClass, x), from_none], self.mass
             )
         if self.metadata is not None:
             result["metadata"] = from_union(
@@ -468,7 +254,10 @@ class Topology(Enum):
 
 @dataclass
 class Classification(DataModelHelper):
-    """Descriptive, non-structural classification of this mechanism.
+    """Descriptive topology/architecture/function tags for this mechanism (see
+    `Classification`). Purely for humans, search, and filtering: it is non-structural,
+    meaning it never gates which of `bodies`/`joints`/`constraints`/`components` are valid —
+    a Stewart platform and a serial arm differ in those fields, not here.
 
     Descriptive, non-exclusive classification. Multiple architectures/functions/tags may
     apply simultaneously; none of these values gate which structural fields
@@ -549,7 +338,7 @@ class Connection(DataModelHelper):
     parent_interface: Optional[str] = None
     """Name of the interface on the parent component this connection attaches to."""
 
-    transform: Optional[Transform] = None
+    transform: Optional[SpatialTransformABC] = None
     """The relative pose between the parent and child interfaces at this connection."""
 
     @classmethod
@@ -562,7 +351,9 @@ class Connection(DataModelHelper):
         child_interface = from_union([from_str, from_none], obj.get("child_interface"))
         metadata = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("metadata"))
         parent_interface = from_union([from_str, from_none], obj.get("parent_interface"))
-        transform = from_union([Transform.from_dict, from_none], obj.get("transform"))
+        transform = from_union(
+            [RobotConfig.SPATIAL_TRANSFORM_IMPL.from_dict, from_none], obj.get("transform")
+        )
         return Connection(child, id, parent, child_interface, metadata, parent_interface, transform)
 
     def to_dict(self) -> dict[str, Any]:
@@ -580,7 +371,7 @@ class Connection(DataModelHelper):
             result["parent_interface"] = from_union([from_str, from_none], self.parent_interface)
         if self.transform is not None:
             result["transform"] = from_union(
-                [lambda x: to_class(Transform, x), from_none], self.transform
+                [lambda x: to_class_abc(SpatialTransformABC, x), from_none], self.transform
             )
         return result
 
@@ -665,7 +456,7 @@ class Frame(DataModelHelper):
     metadata: Optional[Dict[str, Any]] = None
     """Opaque, application-defined data carried alongside this frame."""
 
-    transform: Optional[Transform] = None
+    transform: Optional[SpatialTransformABC] = None
     """The relative pose of this frame with respect to its attachment point."""
 
     @classmethod
@@ -678,7 +469,9 @@ class Frame(DataModelHelper):
         interface = from_union([from_str, from_none], obj.get("interface"))
         joint = from_union([from_str, from_none], obj.get("joint"))
         metadata = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("metadata"))
-        transform = from_union([Transform.from_dict, from_none], obj.get("transform"))
+        transform = from_union(
+            [RobotConfig.SPATIAL_TRANSFORM_IMPL.from_dict, from_none], obj.get("transform")
+        )
         return Frame(id, body, component, interface, joint, metadata, transform)
 
     def to_dict(self) -> dict[str, Any]:
@@ -698,7 +491,7 @@ class Frame(DataModelHelper):
             )
         if self.transform is not None:
             result["transform"] = from_union(
-                [lambda x: to_class(Transform, x), from_none], self.transform
+                [lambda x: to_class_abc(SpatialTransformABC, x), from_none], self.transform
             )
         return result
 
@@ -858,8 +651,10 @@ class KinematicRepresentation(DataModelHelper):
 
 @dataclass
 class Kinematics(DataModelHelper):
-    """The kinematic representation(s) (DH, PoE, constraint-based, ...) describing this
-    mechanism.
+    """The kinematic representation(s) of this mechanism (see `Kinematics`). A mechanism may
+    carry more than one at once — e.g. a Denavit-Hartenberg (DH) chain and a
+    product-of-exponentials (PoE) description — that describe the same structure differently
+    for different consumers.
 
     The kinematic description(s) of a mechanism.
     """
@@ -890,54 +685,15 @@ class Kinematics(DataModelHelper):
 
 
 class RobotType(Enum):
-    """The type/supplier/grouping this mechanism describes, when applicable."""
+    """Required supplier/product-family this definition belongs to, one of the recognized values
+    `ur` (Universal Robots), `obsbot`, or `brooksPrecisionFlex`. It groups definitions by
+    origin for selection and tooling; it is descriptive and does not change the kinematic
+    structure.
+    """
 
     BROOKS_PRECISION_FLEX = "brooksPrecisionFlex"
     OBSBOT = "obsbot"
     UR = "ur"
-
-
-@dataclass
-class Units(DataModelHelper):
-    """The default unit system for this mechanism's quantities.
-
-    Default unit system for this mechanism. Individual quantities may override these via an
-    explicit value/unit pair.
-    """
-
-    angle: Optional[Unit] = None
-    """The default unit for angle quantities."""
-
-    length: Optional[Unit] = None
-    """The default unit for length quantities."""
-
-    mass: Optional[Unit] = None
-    """The default unit for mass quantities."""
-
-    time: Optional[Unit] = None
-    """The default unit for time quantities."""
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "Units":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        angle = from_union([Unit, from_none], obj.get("angle"))
-        length = from_union([Unit, from_none], obj.get("length"))
-        mass = from_union([Unit, from_none], obj.get("mass"))
-        time = from_union([Unit, from_none], obj.get("time"))
-        return Units(angle, length, mass, time)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        if self.angle is not None:
-            result["angle"] = from_union([lambda x: to_enum(Unit, x), from_none], self.angle)
-        if self.length is not None:
-            result["length"] = from_union([lambda x: to_enum(Unit, x), from_none], self.length)
-        if self.mass is not None:
-            result["mass"] = from_union([lambda x: to_enum(Unit, x), from_none], self.mass)
-        if self.time is not None:
-            result["time"] = from_union([lambda x: to_enum(Unit, x), from_none], self.time)
-        return result
 
 
 @dataclass
@@ -968,7 +724,7 @@ class Component(DataModelHelper):
     """Free-form parameter overrides applied to the referenced mechanism definition for this
     instance.
     """
-    transform: Optional[Transform] = None
+    transform: Optional[SpatialTransformABC] = None
     """The relative pose of this component with respect to its mount point."""
 
     @classmethod
@@ -983,7 +739,9 @@ class Component(DataModelHelper):
         parameters = from_union(
             [lambda x: from_dict(lambda x: x, x), from_none], obj.get("parameters")
         )
-        transform = from_union([Transform.from_dict, from_none], obj.get("transform"))
+        transform = from_union(
+            [RobotConfig.SPATIAL_TRANSFORM_IMPL.from_dict, from_none], obj.get("transform")
+        )
         return Component(definition, id, kind, metadata, mount, parameters, transform)
 
     def to_dict(self) -> dict[str, Any]:
@@ -1006,7 +764,7 @@ class Component(DataModelHelper):
             )
         if self.transform is not None:
             result["transform"] = from_union(
-                [lambda x: to_class(Transform, x), from_none], self.transform
+                [lambda x: to_class_abc(SpatialTransformABC, x), from_none], self.transform
             )
         return result
 
@@ -1023,53 +781,82 @@ class RobotConfig(DataModelHelper):
     reusable submechanism referenced by other mechanisms' components.
     """
 
+    SPATIAL_TRANSFORM_IMPL: ClassVar[type[SpatialTransformABC]] = SpatialTransformType
     id: str
-    """Stable identifier for this mechanism definition, referenced by other mechanisms'
-    components.
+    """Stable string handle for this mechanism definition (format defined by the shared Id type;
+    not a UUID). It is the anchor of the document's reference graph: a `Component` elsewhere
+    names this `id` to instantiate the definition without copying it, so it must be unique
+    across the set of definitions that reference each other. Uniqueness is the author's
+    responsibility; the schema does not enforce it globally.
     """
     robot_type: RobotType
-    """The type/supplier/grouping this mechanism describes, when applicable."""
-
+    """Required supplier/product-family this definition belongs to, one of the recognized values
+    `ur` (Universal Robots), `obsbot`, or `brooksPrecisionFlex`. It groups definitions by
+    origin for selection and tooling; it is descriptive and does not change the kinematic
+    structure.
+    """
     bodies: Optional[List[Body]] = None
-    """The rigid bodies (links) that make up this mechanism."""
-
+    """The rigid bodies (links) that make up this mechanism, each carrying its own inertia and
+    frames. Joints, frames, and constraints refer to these bodies by their `id`.
+    """
     classification: Optional[Classification] = None
-    """Descriptive, non-structural classification of this mechanism."""
-
+    """Descriptive topology/architecture/function tags for this mechanism (see
+    `Classification`). Purely for humans, search, and filtering: it is non-structural,
+    meaning it never gates which of `bodies`/`joints`/`constraints`/`components` are valid —
+    a Stewart platform and a serial arm differ in those fields, not here.
+    """
     components: Optional[List[Component]] = None
-    """Submechanisms instantiated within this mechanism, enabling recursive composition."""
-
+    """Submechanisms instantiated within this mechanism. Each `Component` references another
+    definition by `id` (or nests one inline) and can be placed relative to a mount, giving
+    the schema unbounded recursive composition — a mechanism built from mechanisms.
+    """
     connections: Optional[List[Connection]] = None
-    """Explicit connections mounting this mechanism's components to one another."""
-
+    """Explicit connections that mount this mechanism's `components` to one another by named
+    interface, so a child mechanism need not know in advance what it will attach to. Each
+    connection links one component's interface to another's.
+    """
     constraints: Optional[List[Constraint]] = None
-    """Explicit constraints (e.g. loop closures) for parallel or closed-chain mechanisms."""
-
+    """Explicit constraints (e.g. loop closures, coincidence) relating bodies or frames by `id`,
+    describing the parallel or closed-chain couplings that ordinary joint topology cannot
+    express. Descriptive only — the schema records constraints but does not evaluate them.
+    """
     frames: Optional[List[Frame]] = None
-    """The frames defined by this mechanism."""
-
+    """The named coordinate frames this mechanism defines, each explicitly attached to one of
+    its bodies, joints, components, or interfaces and located by a relative transform. They
+    provide reference points for mounting, measurement, and tool/sensor placement beyond the
+    bodies' own frames.
+    """
     interfaces: Optional[Dict[str, Interface]] = None
-    """This mechanism's named, explicit mounting/reference points, keyed by interface name (e.g.
-    "base", "tool").
+    """This mechanism's named, externally-visible mounting/reference points, keyed by interface
+    name (e.g. "base", "tool"). A parent mechanism's `connections` attach to these names, so
+    they form this mechanism's public contract for being mounted — a child exposes interfaces
+    without knowing its eventual parent.
     """
     joints: Optional[List[Joint]] = None
-    """The kinematic joints connecting this mechanism's bodies."""
-
+    """The kinematic joints coupling this mechanism's bodies. Each joint names a `parent` and a
+    `child` body by `id` and contributes the mechanism's degrees of freedom; a joint whose
+    `type` is not one of the recognized kinds is carried with its base fields only.
+    """
     kinematics: Optional[Kinematics] = None
-    """The kinematic representation(s) (DH, PoE, constraint-based, ...) describing this
-    mechanism.
+    """The kinematic representation(s) of this mechanism (see `Kinematics`). A mechanism may
+    carry more than one at once — e.g. a Denavit-Hartenberg (DH) chain and a
+    product-of-exponentials (PoE) description — that describe the same structure differently
+    for different consumers.
     """
     metadata: Optional[Dict[str, Any]] = None
-    """Opaque, application-defined data carried alongside this mechanism."""
-
+    """Opaque, application-defined data carried alongside this mechanism. The schema neither
+    constrains nor interprets its contents — a place for consumer-specific annotations that
+    survive round-tripping.
+    """
     name: Optional[str] = None
-    """A human-readable name for this mechanism."""
-
-    units: Optional[Units] = None
-    """The default unit system for this mechanism's quantities."""
-
+    """Human-readable display name for this mechanism, for UIs, logs, and diagrams. Not an
+    identifier — references use `id`, and names need not be unique.
+    """
     version: Optional[str] = None
-    """An optional version string for this mechanism definition."""
+    """Optional free-form version string (e.g. a semantic version or build tag) distinguishing
+    revisions of the same `id`. The schema does not parse or order it; consumers decide what
+    it means.
+    """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "RobotConfig":
@@ -1098,7 +885,6 @@ class RobotConfig(DataModelHelper):
         kinematics = from_union([Kinematics.from_dict, from_none], obj.get("kinematics"))
         metadata = from_union([lambda x: from_dict(lambda x: x, x), from_none], obj.get("metadata"))
         name = from_union([from_str, from_none], obj.get("name"))
-        units = from_union([Units.from_dict, from_none], obj.get("units"))
         version = from_union([from_str, from_none], obj.get("version"))
         return RobotConfig(
             id,
@@ -1114,7 +900,6 @@ class RobotConfig(DataModelHelper):
             kinematics,
             metadata,
             name,
-            units,
             version,
         )
 
@@ -1168,8 +953,6 @@ class RobotConfig(DataModelHelper):
             )
         if self.name is not None:
             result["name"] = from_union([from_str, from_none], self.name)
-        if self.units is not None:
-            result["units"] = from_union([lambda x: to_class(Units, x), from_none], self.units)
         if self.version is not None:
             result["version"] = from_union([from_str, from_none], self.version)
         return result

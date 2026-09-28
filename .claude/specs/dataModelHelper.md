@@ -3,8 +3,8 @@ spec: DataModelHelper
 scope: project
 status: implemented
 applies_to: src/foundationTypes/data_model_helper.py
-last_updated: 2026-08-23
-semver: 0.2.0
+last_updated: 2026-09-28
+semver: 0.3.0
 author: Nicholas Bergantz
 ---
 
@@ -306,7 +306,8 @@ The module provides helper functions for generated serializers:
 | `from_dict(f, x)` | Applies converter `f` to every value. |
 | `from_union([a, b], value)` | Attempts converters in order until one succeeds. Catches only `(TypeError, ValueError, KeyError)` — deliberately narrow, and unchanged by fix-08. Widening it to also catch `AssertionError` would have papered over generated `from_dict`'s guard raising the wrong exception type instead of fixing the guard, and would blind union dispatch to a genuine `AssertionError` raised by a real programming defect inside a nested `from_dict`. Every generated dict-type guard now raises `TypeError` (see `from_dict()` above), so the narrow tuple already covers the legitimate case — an absent `Optional[Model]` field falling through to `from_none`. |
 | `to_enum(MyEnum, value)` | Converts an enum instance to its wire value. |
-| `to_class(MyModel, value)` | Converts a model instance using `to_dict()`. |
+| `to_class(MyModel, value)` | Converts a model instance using `to_dict()`. `MyModel` is a `DataModelHelper` subclass. |
+| `to_class_abc(MyProtocol, value)` | Like `to_class`, but `MyProtocol` is a `@runtime_checkable` structural protocol (e.g. `foundation_abc.math`'s `SpatialTransformABC`), not a `DataModelHelper` subclass. Accepts any value satisfying the protocol — a generated carrier or a caller's own implementation — and returns its `to_dict()`. Used by cross-domain codegen that types fields to protocols (see [`schemaCodegen.md`](schemaCodegen.md) Robot family). |
 | `from_none(x)` | Validates a null value. |
 
 ## Error Handling

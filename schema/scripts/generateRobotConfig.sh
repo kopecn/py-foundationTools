@@ -18,16 +18,16 @@ INPUT_SCHEMA_FILES=(
 # (every non-enum dataclass quicktype emits from the Robot/ schema family;
 # the root class is named after OUTPUT_PYTHON_REL's stem, not the schema's
 # own "MechanismDefinition" title -- see generation notes.)
+#
+# The geometry carriers (Position/Quaternion/SpatialTransform) are NOT listed:
+# Robot geometry $refs the canonical Math schemas, so quicktype inlines those
+# carriers and postprocess_robotconfig.py strips them, importing the already-
+# parented Math carriers from foundationTypes.mathTypes.MathTypes and retyping
+# Robot fields to the foundation_abc.math protocols. See mathTypeTiers.md.
 CLASSES_FOR_BASE_PARENT=(
     "RobotConfig"
     "Mount"
-    "Quantity"
-    "AxisAngle"
-    "Quaternion"
-    "RotationMatrix"
-    "Rpy"
-    "Rotation"
-    "Transform"
+    "QuantityClass"
     "Inertia"
     "Body"
     "Classification"
@@ -60,6 +60,10 @@ echo "    from schemas: ${INPUT_SCHEMA_FILES[*]}"
 
 setup_quicktype
 run_quicktype
+# Robot-specific rewrite: strip the inlined Math geometry carriers, retype Robot
+# fields to the foundation_abc.math protocols, and import the concrete carriers
+# (for construction) from mathTypes. Runs before base-class/helper injection.
+python3 "$SCRIPT_DIR/reuse/postprocess_robotconfig.py" "$OUTPUT_PYTHON_FILE"
 add_base_class "$OUTPUT_PYTHON_FILE" "${CLASSES_FOR_BASE_PARENT[@]}"
 add_helper_imports "$OUTPUT_PYTHON_FILE"
 add_autogen_header "$OUTPUT_PYTHON_FILE"

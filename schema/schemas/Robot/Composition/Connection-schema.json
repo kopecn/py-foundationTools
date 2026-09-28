@@ -27,7 +27,7 @@
       "description": "Name of the interface on the child component this connection attaches to."
     },
     "transform": {
-      "$ref": "../Geometry/Transform-schema.json",
+      "$ref": "../../Math/SpatialTransform-schema.json",
       "description": "The relative pose between the parent and child interfaces at this connection."
     },
     "metadata": {

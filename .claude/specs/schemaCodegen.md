@@ -2,9 +2,9 @@
 spec: SchemaCodegen
 scope: project
 status: implemented
-applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/cvTypes/, src/foundationTypes/standardizedLoggerConfig/
-last_updated: 2026-09-07
-semver: 0.3.0
+applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/cvTypes/, src/foundationTypes/standardizedLoggerConfig/, src/foundationTypes/automationTypes/
+last_updated: 2026-09-28
+semver: 0.5.0
 author: Nicholas Bergantz
 ---
 
@@ -37,11 +37,23 @@ logic inline.
 
 **Conformance rule (Increase Quality Through Conformance / Chamber Match):** per-model
 scripts SHALL be structurally identical apart from their model-specific variables — a
-diff of any two conforming scripts with model names filtered out SHALL be empty. The
-**only** sanctioned deviation from the stock pipeline is a family that shares
-schema enums with an independent protocol package, per the Math pattern
-(`generateMathTypes.sh` + `reuse/postprocess_mathtypes.py`, governed by
-[`mathTypeTiers.md`](mathTypeTiers.md)).
+diff of any two conforming scripts with model names filtered out SHALL be empty. Two
+sanctioned deviations from the stock pipeline exist, both a family adding one narrow
+post-processor to the stock pipeline and both governed by
+[`mathTypeTiers.md`](mathTypeTiers.md):
+
+1. **Math family** — shares schema enums with an independent protocol package
+   (`generateMathTypes.sh` + `reuse/postprocess_mathtypes.py`).
+2. **Robot family** — reuses the canonical Math geometry schemas across domains and
+   inverts the dependency onto the `foundation_abc.math` protocols
+   (`generateRobotConfig.sh` + `reuse/postprocess_robotconfig.py`): after quicktype
+   inlines the Math carriers, the post-processor strips them, imports the canonical
+   carriers from `foundationTypes.mathTypes.MathTypes`, and retypes the geometry
+   fields to the protocols. Construction routes through a user-overridable `ClassVar`
+   knob on `RobotConfig` (e.g. `SPATIAL_TRANSFORM_IMPL`, defaulting to the Math
+   carrier) so a caller can inject their own conforming type; serialization routes
+   through `to_class_abc`. See [`mathTypeTiers.md`](mathTypeTiers.md).
+
 Any other need for per-model behavior goes into the shared libraries (behind an opt-in
 function) or into a `wire_config.py` sibling (below) — never into a bespoke script.
 
@@ -161,8 +173,13 @@ wire behavior stay flat (a single generated `.py`, no subfolder).
   `MCP/`, `ComputerVisions/`), targeting the matching package under
   `src/foundationTypes/` (`mathTypes/`, `commonTypes/`, `cvTypes/`,
   `standardizedLoggerConfig/`). The schema filename and `title`/class name drive the generated class name.
-- Keep schemas **self-contained** — avoid cross-domain `$ref`; duplicate shared fields
-  rather than coupling domains.
+- Keep schemas **self-contained by default** — avoid cross-domain `$ref` for ordinary
+  fields; duplicate shared fields rather than coupling domains. The sanctioned
+  exception is reusing a **canonical Math geometry type** (`Position`, `Quaternion`,
+  `SpatialTransform`) from another domain, where the reuse is inverted onto the
+  `foundation_abc.math` protocols by that domain's post-processor (the Robot family
+  above; see [`mathTypeTiers.md`](mathTypeTiers.md)). Do not cross-`$ref` domains
+  outside that pattern.
 - **Skip discriminated unions** — quicktype cannot represent them in its dataclass
   codegen.
 

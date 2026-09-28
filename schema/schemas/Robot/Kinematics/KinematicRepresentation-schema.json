@@ -54,7 +54,7 @@
             "description": "Id of the moving body frame the screw axes are expressed in, if using a body-frame formulation."
           },
           "home_transform": {
-            "$ref": "../Geometry/Transform-schema.json",
+            "$ref": "../../Math/SpatialTransform-schema.json",
             "description": "The end-effector transform at the mechanism's zero (home) configuration."
           },
           "joints": {

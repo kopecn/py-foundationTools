@@ -18,7 +18,8 @@ Each file is one reusable concept, referenced by relative `$ref` from wherever i
 |---|---|---|
 | `Common/` | `Id` | The stable string identifier used everywhere (bodies, joints, mechanisms, ...). Not a UUID — see below. |
 | `Units/` | `Unit`, `Quantity`, `Units` | The unit system. `Quantity` is a bare number or `{value, unit}`. |
-| `Geometry/` | `Vector3`, `Vector6`, `Quaternion`, `RotationMatrix`, `AxisAngle`, `RPY`, `Rotation`, `Transform` | Reusable pose primitives. |
+| `Geometry/` | `Vector3`, `Vector6` | Local array primitives for the cases that are **not** positions or poses: a joint's `axis`/`axes` (a unit direction) and a PoE `screw_axis` (a `[wx,wy,wz,vx,vy,vz]` twist). Positions, orientations, and poses reuse the Math domain — see below. |
+| Math reuse | `Position`, `Quaternion`, `SpatialTransform` | Positions and poses `$ref` the canonical [`schema/schemas/Math/`](../schema/schemas/Math/) types instead of Robot-local ones. In the generated Python these fields are typed to the `foundation_abc.math` protocols (`PositionABC`, `QuaternionABC`, `SpatialTransformABC`) and constructed as the concrete Math carriers. |
 | `Mechanism/` | `Classification`, `MechanismDefinition` | The recursive root object and its descriptive (non-structural) classification. |
 | `Structure/` | `Body`, `Frame` | Rigid bodies and the frames attached to them. |
 | `Joints/` | `JointCoordinate`, `JointLimits`, `JointBase`, `Joint` | Kinematic joints, revolute through fixed. |
@@ -75,9 +76,9 @@ A `Component` instantiates another mechanism inside this one. `definition` is ei
 
 DH is never required and never implies "this is a serial manipulator" — it's just one way to describe a chain that happens to have one.
 
-### Rotation is always unambiguous
+### Poses reuse the Math `SpatialTransform`; rotation is a single quaternion
 
-`Transform.rotation` accepts exactly one of `quaternion`, `rotation_matrix` (row-major), `axis_angle`, or `rpy` (with an explicit `convention`) — never more than one at a time, and never a bare set of numbers with an implied convention.
+A relative pose (`Component.transform`, `Connection.transform`, `Frame.transform`, a `fixed` joint's `transform`, a PoE `home_transform`) is a Math [`SpatialTransform`](../schema/schemas/Math/SpatialTransform-schema.json): a `position` (`{x,y,z}`) composed with a quaternion `orientation` (`{w,x,y,z}`). Orientation is **always** a unit quaternion — the earlier multi-representation `Rotation` union (`rotation_matrix` / `axis_angle` / `rpy`) was collapsed to the quaternion because a single canonical representation is more numerically robust. Alternate rotation forms, if ever needed, are converted to a quaternion before authoring rather than carried in the schema.
 
 ## Worked example
 
@@ -153,3 +154,14 @@ This schema uses Draft 2020-12 features throughout — recursive `$ref`, `oneOf`
 ## The generated Python types
 
 `schema/scripts/generateRobotConfig.sh` runs this schema through quicktype to produce `src/foundationTypes/automationTypes/RobotConfig.py`. This is a known, deliberate exception to the strict-typing/fidelity guarantees in [`.claude/specs/schemaCodegen.md`](../.claude/specs/schemaCodegen.md): **quicktype cannot represent the `if`/`then` type-specific fields**, so the generated `Joint` class only has the base fields (`id`, `type`, `parent`, `child`, `coordinates`, `metadata` — no `axis`, `limits`, `pitch`, `dof`, `axes`, or `transform`), and the generated `KinematicRepresentation` class only has `type` and `metadata` (no `parameters`, `convention`, `space_frame`, `joints`, `coordinates`, or `constraints`). Recursion itself (`Component.definition`) generates correctly. If you need the full joint/kinematics shape in Python, validate against the JSON Schema directly (see above) rather than relying on the generated dataclasses for those two types.
+
+**Geometry reuse.** Because positions and poses `$ref` the Math schemas, quicktype inlines the Math carriers into `RobotConfig.py`; a Robot-specific post-processor (`schema/scripts/reuse/postprocess_robotconfig.py`) then strips those inlined copies, imports the canonical carriers from `foundationTypes.mathTypes.MathTypes`, and retypes the fields to the `foundation_abc.math` protocols. So a generated `transform` field is `Optional[SpatialTransformABC]` — the interface, accepting any conforming implementation.
+
+**Injecting your own type.** Deserialization builds a concrete type chosen through a class-level knob on `RobotConfig`, defaulting to the conforming Math carrier:
+
+```python
+RobotConfig.SPATIAL_TRANSFORM_IMPL          # -> SpatialTransformType (default)
+RobotConfig.SPATIAL_TRANSFORM_IMPL = MyPose  # your SpatialTransformABC implementation
+```
+
+After that assignment every geometry `from_dict` (`Connection`, `Frame`, `Component`, ...) constructs `MyPose`; serialization stays representation-independent via `to_class_abc`. This is the dependency-inversion tier described in [`.claude/specs/mathTypeTiers.md`](../.claude/specs/mathTypeTiers.md).

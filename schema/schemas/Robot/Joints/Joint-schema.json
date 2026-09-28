@@ -123,7 +123,7 @@
       "then": {
         "properties": {
           "transform": {
-            "$ref": "../Geometry/Transform-schema.json",
+            "$ref": "../../Math/SpatialTransform-schema.json",
             "description": "The fixed relative transform from the parent to the child body."
           }
         }
