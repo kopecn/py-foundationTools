@@ -1,16 +1,24 @@
 ---
 spec: PresentationSchema
+version: 1.0
+type: specification
+name: presentationSchema
+purpose: Defines the schema, codegen, and stdlib resolution contract for the Presentations domain.
 scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
-last_updated: 2026-09-15
-semver: 0.9.0
+last_updated: 2026-09-28
+semver: 0.10.0
 author: Nicholas Bergantz
 ---
 
 # Presentation Schema Specification
 
-> **Status — draft.** Nothing in this spec is implemented yet. The four schemas in `schema/schemas/Presentations/` exist but are unlinked and have no codegen script or generated package. This spec is the contract the tier-1 chunks build to. Keep it in sync with `schema/schemas/Presentations/` and `src/foundation_tools/presentation/` as they change.
+> **Status — draft.** The four schemas in `schema/schemas/Presentations/` are linked, generated via `schema/scripts/generatePresentations.sh` into `src/foundationTypes/presentationTypes/Presentations.py`, and resolved by the stdlib layer in `src/foundation_tools/presentation/`. `status` stays `draft` because this domain's broader implementation lifecycle (additional block types, tiers) remains open, not because the implementation described here is absent. Keep this spec in sync with `schema/schemas/Presentations/` and `src/foundation_tools/presentation/` as they change.
+
+## Goal
+
+Specify the Presentations domain's schema shape, codegen pipeline, and stdlib resolution contract so a downstream renderer can construct a deck from typed, validated data instead of a template.
 
 ## Overview
 
@@ -170,7 +178,7 @@ a newer corporate standard.
 
 This repository SHALL NOT parse, lay out, generate an image from, or otherwise render Mermaid source; `mermaidSource`'s schema description SHALL state this plainly. Widening this arm (structured node/edge data, a `diagramKind` discriminator, rendering) is out of scope until real usage justifies it, per the roadmap's "smallest usable form" planning rule.
 
-## FA-closure schema additions (proposed, pending gate)
+## FA-closure schema additions
 
 > R15–R22 are derived from the downstream 2026-09-14 presentation visual-quality audit
 > (`py-clerical-tools/.claude/fa_reports/`), which is investigation evidence, not
@@ -215,8 +223,13 @@ one headline size, without the renderer inventing a hierarchy.
 MAY carry focal-point metadata. A visual region MAY declare a `preferredAspectRatio` (or
 an acceptable min/max aspect range) and a `minFillRatio`, so a downstream linter can warn
 when a source cannot satisfy the region without an author decision. `preferredAspectRatio`
-is a single field shared with R20 — defined once and `$ref`'d, never re-declared. The
-schema carries geometry and intent only; the geometry math and placement live downstream.
+is one property on `region`, shared by R18 and R20; it SHALL remain a single declaration,
+never a redundant re-declaration or `$ref`. This repository owns the pure fit-geometry
+math for each `fit` mode (`src/foundation_tools/presentation/image_fit.py`: `fit_into_box`,
+`cover_into_box`, `fit_width_into_box`, `fit_height_into_box` — each a total function that
+turns intrinsic media dimensions and a region's bounding box into a placement rectangle).
+Reading a source's intrinsic pixel dimensions and rendering the placed result (e.g. calling
+`add_picture`) require a library this repository does not depend on and remain downstream.
 
 ### R19 — Semantic diagram styles (FA-04)
 
@@ -238,8 +251,8 @@ consumer, per the rule that only verifiable constraints belong in the schema:
 - `allowedContentTypes`, occupancy (`required` | `recommended` | `optional`), `maxLines`,
   `maxCharacters`, `maxItems`, `maxCharactersPerItem` — consumed by the downstream
   design-lint tier (deckQuality.md Q4).
-- `preferredAspectRatio` — the single field shared with R18 (defined once, `$ref`'d);
-  consumed by media-fit lint.
+- `preferredAspectRatio` — the single `region` property shared with R18 (one
+  declaration, never redeclared); consumed by media-fit lint.
 - a semantic `role` (e.g. `presenterName`, `deckTitle`, `metricValue`, `evidence`) —
   consumed by the renderer for shape identity and reading order (deckBuilder.md R10).
 - a layout `purpose`/tag set and `density` class — consumed by the authoring skill for
@@ -256,14 +269,18 @@ accessible descriptions and report font substitution instead of guessing.
 
 ### R22 — Document core-property metadata (FA-07)
 
-`PresentationMetadata` MAY carry document core-property fields — `subject`/`description`,
-`author`, `keywords`, and `revision`/`version` — additive and optional, alongside the
-existing title text and the R13 theme/layout version stamps. (`title` reuses the deck's
-existing title; created/modified timestamps are a package concern set at write time
-downstream, not schema state.) These carry no schema-level behavior beyond identity; they
-exist so the downstream renderer maps deck metadata into the PPTX package core properties
-(deckBuilder.md R10) instead of leaving the base template's identity in place. This
-repository does not write a PPTX and resolves these only as ordinary metadata.
+`PresentationMetadata` maps onto PPTX document core properties: `description`
+(subject/description), `author`, and `version` (revision) predate this chunk with their
+existing required/default semantics (`author` is required; `description` and `version`
+each declare an existing default) and are unchanged here. `keywords` is the field R22
+actually adds — additive, optional, and declares no default, so its absence means the
+downstream renderer leaves the PPTX keywords property unset rather than inheriting the
+base template's value. (`title` reuses the deck's existing title; created/modified
+timestamps are a package concern set at write time downstream, not schema state.) None of
+these fields carry schema-level behavior beyond identity; they exist so the downstream
+renderer maps deck metadata into the PPTX package core properties (deckBuilder.md R10)
+instead of leaving the base template's identity in place. This repository does not write a
+PPTX and resolves these only as ordinary metadata.
 
 ## Resolution Layer
 

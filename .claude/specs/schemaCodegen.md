@@ -1,10 +1,14 @@
 ---
 spec: SchemaCodegen
+version: 1.0
+type: specification
+name: schemaCodegen
+purpose: Defines the schema-first codegen pipeline that generates DataModelHelper models from JSON Schema.
 scope: project
 status: implemented
 applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/cvTypes/, src/foundationTypes/standardizedLoggerConfig/, src/foundationTypes/automationTypes/
 last_updated: 2026-09-28
-semver: 0.5.0
+semver: 0.6.0
 author: Nicholas Bergantz
 ---
 
@@ -14,6 +18,12 @@ author: Nicholas Bergantz
 > by `schema/scripts/reuse/codegen.sh` + `schema/scripts/reuse/add_datamodelhelper.sh`
 > and the per-model scripts in `schema/scripts/`. The workflow is structured to scale
 > to additional output languages later; today it emits **Python only**.
+
+## Goal
+
+Specify the schema-first codegen pipeline — one script per model, the shared pipeline
+functions each script calls, and the fleet-wide normalization sweep — so every generated
+model is produced by one process instead of per-script variants.
 
 ## Overview
 
@@ -65,13 +75,13 @@ A conforming script:
    `SCRIPT_DIR`.
 3. Calls the pipeline **in this order**:
    `setup_quicktype` → `run_quicktype` → `add_base_class` → `add_helper_imports`
-   → `add_autogen_header` → `run_ruff` → `ensure_py_typed`.
+   → `add_autogen_header` → `run_black` → `ensure_py_typed`.
 
 ## Shared Libraries (source of truth for behavior)
 
 - `schema/scripts/reuse/codegen.sh` — quicktype invocation and post-processing:
   `setup_quicktype`, `run_quicktype`, `add_autogen_header`, `strip_schema_suffix`
-  (opt-in), `fix_to_dict_return_type`, `run_ruff`, `ensure_py_typed`. Resolves the
+  (opt-in), `fix_to_dict_return_type`, `run_black`, `ensure_py_typed`. Resolves the
   output path under `src/foundationTypes/` from `OUTPUT_PYTHON_REL`.
 - `schema/scripts/reuse/add_datamodelhelper.sh` — `add_base_class` (inject
   `DataModelHelper` parent + import) and `add_helper_imports` (strip quicktype's inline
@@ -96,7 +106,7 @@ A conforming script:
   3. Rewrites quicktype's bare `assert isinstance(obj, dict)` dict-type guard to an
      explicit `TypeError` check (below).
 
-  Idempotent and safe on hand-written files. Both `codegen.sh`'s `run_ruff` (per file)
+  Idempotent and safe on hand-written files. Both `codegen.sh`'s `run_black` (per file)
   and the `make codegen-all` final sweep (whole tree) call it — neither owns the
   rewrite logic.
 
@@ -110,17 +120,17 @@ quicktype targets Python 3.7 and emits loose types (bare `dict`, `Type[T]`). Gen
 output SHALL nonetheless satisfy the project's strict gate (`make uv-typecheck`, mypy
 `strict = true`). The pipeline restores modern strict typing **after** quicktype:
 
-- `fix_to_dict_return_type` (called inside `run_ruff`) rewrites `-> dict` /
+- `fix_to_dict_return_type` (called inside `run_black`) rewrites `-> dict` /
   `result: dict = {}` to `dict[str, Any]`.
-- `fix_from_dict_classmethod` (called inside `run_ruff`, delegating to
+- `fix_from_dict_classmethod` (called inside `run_black`, delegating to
   `normalize_generated.sh`) converts the `from_dict` `@staticmethod` to the
   `@classmethod` contract.
-- `run_ruff` applies ruff `format` + `check --fix --unsafe-fixes`, whose `UP` rules
-  modernize annotations (e.g. `Type[T]` → `type[T]`, `Optional[X]` → `X | None`).
-  `--unsafe-fixes` holds the generated tree to the same autofix level as hand-written
-  source (mirrors the `uv-format` target). `make codegen-all` additionally runs
-  `ruff format` + `ruff check --fix --unsafe-fixes` over the whole `_PYTHON_TYPES_BASE`
-  tree after generation, so files from non-conforming scripts are fixed too.
+- `run_black` applies the two sed-based fixes above, then black's format-only pass
+  (first-class formatter, per this repository's toolchain). Black formats only — there
+  is no lint-autofix pass; quicktype's loose typing (e.g. `Type[T]`, `Optional[X]`)
+  is left as emitted and caught by `make lint` (flake8) rather than autofixed here.
+  `make codegen-all` additionally runs black over the whole `_PYTHON_TYPES_BASE` tree
+  after generation, so files from non-conforming scripts are formatted too.
 - `ensure_py_typed` touches the package `py.typed` marker so the strict types are
   exported.
 
@@ -194,7 +204,7 @@ is an array, and a script SHALL list every schema its module needs
 supported shape — the module is the unit a script owns. After all scripts run, it applies a
 **fleet-wide normalization sweep** (`normalize_generated.sh` over `_PYTHON_TYPES_BASE`)
 so contract rewrites reach every generated model — including output from
-non-conforming or future scripts that bypass the shared `run_ruff` pipeline. This is a
+non-conforming or future scripts that bypass the shared `run_black` pipeline. This is a
 poka-yoke: a sloppy script cannot ship a model that violates the normalized contract.
 
 ## Generated `from_dict` Dict-Type Guard
