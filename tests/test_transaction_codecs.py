@@ -12,7 +12,7 @@ import ast
 import inspect
 import json
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Any
 
 import pytest
 
@@ -192,33 +192,33 @@ class TestJsonTransactionCodecMalformed:
 
     @pytest.mark.parametrize("missing", ["tx_id", "msg_type", "code"])
     def test_decode_rejects_missing_required_field(self, missing: str) -> None:
-        obj = {"tx_id": 1, "msg_type": "req", "code": 0}
+        obj: dict[str, Any] = {"tx_id": 1, "msg_type": "req", "code": 0}
         del obj[missing]
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_boolean_tx_id(self) -> None:
-        obj = {"tx_id": True, "msg_type": "req", "code": 0}
+        obj: dict[str, Any] = {"tx_id": True, "msg_type": "req", "code": 0}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_boolean_code(self) -> None:
-        obj = {"tx_id": 1, "msg_type": "req", "code": False}
+        obj: dict[str, Any] = {"tx_id": 1, "msg_type": "req", "code": False}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_nonnumeric_tx_id(self) -> None:
-        obj = {"tx_id": "abc", "msg_type": "req", "code": 0}
+        obj: dict[str, Any] = {"tx_id": "abc", "msg_type": "req", "code": 0}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_nonnumeric_code(self) -> None:
-        obj = {"tx_id": 1, "msg_type": "req", "code": "abc"}
+        obj: dict[str, Any] = {"tx_id": 1, "msg_type": "req", "code": "abc"}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_empty_msg_type(self) -> None:
-        obj = {"tx_id": 1, "msg_type": "", "code": 0}
+        obj: dict[str, Any] = {"tx_id": 1, "msg_type": "", "code": 0}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
@@ -229,27 +229,27 @@ class TestJsonTransactionCodecMalformed:
 
     @pytest.mark.parametrize("bad_payload", [1, 1.5, True, ["x"]])
     def test_decode_rejects_invalid_payload_shape(self, bad_payload: object) -> None:
-        obj = {"tx_id": 1, "msg_type": "req", "code": 0, "payload": bad_payload}
+        obj: dict[str, Any] = {"tx_id": 1, "msg_type": "req", "code": 0, "payload": bad_payload}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_positive_infinity_tx_id(self) -> None:
-        obj = {"tx_id": float("inf"), "msg_type": "req", "code": 0}
+        obj: dict[str, Any] = {"tx_id": float("inf"), "msg_type": "req", "code": 0}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_negative_infinity_tx_id(self) -> None:
-        obj = {"tx_id": float("-inf"), "msg_type": "req", "code": 0}
+        obj: dict[str, Any] = {"tx_id": float("-inf"), "msg_type": "req", "code": 0}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_positive_infinity_code(self) -> None:
-        obj = {"tx_id": 1, "msg_type": "req", "code": float("inf")}
+        obj: dict[str, Any] = {"tx_id": 1, "msg_type": "req", "code": float("inf")}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
     def test_decode_rejects_negative_infinity_code(self) -> None:
-        obj = {"tx_id": 1, "msg_type": "req", "code": float("-inf")}
+        obj: dict[str, Any] = {"tx_id": 1, "msg_type": "req", "code": float("-inf")}
         with pytest.raises(ValueError):
             JsonTransactionCodec().decode(json.dumps(obj))
 
