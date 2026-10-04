@@ -37,9 +37,14 @@ def _decode(cls: type[PingV6Report], wire_str: str) -> PingV6Report:
     return cls.from_dict(out)
 
 
+def _wire_encode(self: PingV6Report, **kwargs: object) -> str:
+    return self.raw
+
+
 if platform.system() == "Darwin":
     PingV6Report.wire_invoke = ["ping6", "-c", "2", "2606:4700:4700::1111"]
     PingV6Report.wire_decode = _decode
 else:
     PingV6Report.wire_invoke = ["ping", "-6", "-c", "2", "-W", "2", "2606:4700:4700::1111"]
     PingV6Report.wire_decode = _decode
+PingV6Report.wire_encode = _wire_encode

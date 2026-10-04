@@ -14,5 +14,10 @@ def _decode(cls: type[JournalNmReport], wire_str: str) -> JournalNmReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: JournalNmReport, **kwargs: object) -> str:
+    return self.raw
+
+
 JournalNmReport.wire_invoke = ["journalctl", "-u", "NetworkManager", "-n", "200", "--no-pager"]
 JournalNmReport.wire_decode = _decode
+JournalNmReport.wire_encode = _wire_encode

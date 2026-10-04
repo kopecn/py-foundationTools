@@ -14,5 +14,10 @@ def _decode(cls: type[RfkillReport], wire_str: str) -> RfkillReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: RfkillReport, **kwargs: object) -> str:
+    return self.raw
+
+
 RfkillReport.wire_invoke = ["rfkill", "list"]
 RfkillReport.wire_decode = _decode
+RfkillReport.wire_encode = _wire_encode

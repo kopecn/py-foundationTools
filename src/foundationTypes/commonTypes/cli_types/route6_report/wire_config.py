@@ -35,8 +35,25 @@ def _decode(cls: type[Route6Report], wire_str: str) -> Route6Report:
     return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: Route6Report, **kwargs: object) -> str:
+    return self.raw
+
+
 def _decode_macos(cls: type[Route6Report], wire_str: str) -> Route6Report:
-    return cls.from_dict({"rows": [], "raw": wire_str.strip()})
+    rows: list[dict[str, object]] = []
+    started = False
+    for line in wire_str.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Destination"):
+            started = True
+            continue
+        if not started or not stripped:
+            continue
+        tokens = stripped.split()
+        if len(tokens) < 4:
+            continue
+        rows.append({"destination": tokens[0], "via": tokens[1], "dev": tokens[3], "raw": stripped})
+    return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
 if platform.system() == "Darwin":
@@ -45,3 +62,4 @@ if platform.system() == "Darwin":
 else:
     Route6Report.wire_invoke = ["ip", "-6", "route", "show"]
     Route6Report.wire_decode = _decode
+Route6Report.wire_encode = _wire_encode

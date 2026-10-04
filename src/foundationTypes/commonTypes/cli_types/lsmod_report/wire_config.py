@@ -28,5 +28,10 @@ def _decode(cls: type[LsmodReport], wire_str: str) -> LsmodReport:
     return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: LsmodReport, **kwargs: object) -> str:
+    return self.raw
+
+
 LsmodReport.wire_invoke = ["lsmod"]
 LsmodReport.wire_decode = _decode
+LsmodReport.wire_encode = _wire_encode

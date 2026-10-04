@@ -14,5 +14,10 @@ def _decode(cls: type[NftablesReport], wire_str: str) -> NftablesReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: NftablesReport, **kwargs: object) -> str:
+    return self.raw
+
+
 NftablesReport.wire_invoke = ["nft", "list", "ruleset"]
 NftablesReport.wire_decode = _decode
+NftablesReport.wire_encode = _wire_encode

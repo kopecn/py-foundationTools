@@ -14,5 +14,10 @@ def _decode(cls: type[IptablesReport], wire_str: str) -> IptablesReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: IptablesReport, **kwargs: object) -> str:
+    return self.raw
+
+
 IptablesReport.wire_invoke = ["iptables", "-S"]
 IptablesReport.wire_decode = _decode
+IptablesReport.wire_encode = _wire_encode

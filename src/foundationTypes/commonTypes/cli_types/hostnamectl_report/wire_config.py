@@ -20,5 +20,10 @@ def _decode(cls: type[HostnamectlReport], wire_str: str) -> HostnamectlReport:
     return cls.from_dict({"entries": entries, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: HostnamectlReport, **kwargs: object) -> str:
+    return self.raw
+
+
 HostnamectlReport.wire_invoke = ["hostnamectl", "status"]
 HostnamectlReport.wire_decode = _decode
+HostnamectlReport.wire_encode = _wire_encode

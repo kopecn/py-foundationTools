@@ -14,5 +14,10 @@ def _decode(cls: type[IwDevReport], wire_str: str) -> IwDevReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: IwDevReport, **kwargs: object) -> str:
+    return self.raw
+
+
 IwDevReport.wire_invoke = ["iw", "dev"]
 IwDevReport.wire_decode = _decode
+IwDevReport.wire_encode = _wire_encode

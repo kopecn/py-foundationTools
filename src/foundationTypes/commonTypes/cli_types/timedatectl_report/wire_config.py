@@ -20,5 +20,10 @@ def _decode(cls: type[TimedatectlReport], wire_str: str) -> TimedatectlReport:
     return cls.from_dict({"entries": entries, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: TimedatectlReport, **kwargs: object) -> str:
+    return self.raw
+
+
 TimedatectlReport.wire_invoke = ["timedatectl", "status"]
 TimedatectlReport.wire_decode = _decode
+TimedatectlReport.wire_encode = _wire_encode

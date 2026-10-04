@@ -7,8 +7,6 @@ onto the generated model, so it runs via ``CLITransact``/``SSHTransact``
 
 from __future__ import annotations
 
-import platform
-
 from .SocketSummaryReport import SocketSummaryReport
 
 
@@ -16,9 +14,10 @@ def _decode(cls: type[SocketSummaryReport], wire_str: str) -> SocketSummaryRepor
     return cls.from_dict({"raw": wire_str.strip()})
 
 
-if platform.system() == "Darwin":
-    SocketSummaryReport.wire_invoke = ["netstat", "-an"]
-    SocketSummaryReport.wire_decode = _decode
-else:
-    SocketSummaryReport.wire_invoke = ["ss", "-s"]
-    SocketSummaryReport.wire_decode = _decode
+def _wire_encode(self: SocketSummaryReport, **kwargs: object) -> str:
+    return self.raw
+
+
+SocketSummaryReport.wire_invoke = ["ss", "-s"]
+SocketSummaryReport.wire_decode = _decode
+SocketSummaryReport.wire_encode = _wire_encode

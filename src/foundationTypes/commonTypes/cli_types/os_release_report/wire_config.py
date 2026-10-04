@@ -22,6 +22,10 @@ def _decode(cls: type[OSReleaseReport], wire_str: str) -> OSReleaseReport:
     return cls.from_dict({"entries": entries, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: OSReleaseReport, **kwargs: object) -> str:
+    return self.raw
+
+
 def _decode_macos(cls: type[OSReleaseReport], wire_str: str) -> OSReleaseReport:
     entries: list[dict[str, str]] = []
     for line in wire_str.strip().splitlines():
@@ -38,3 +42,4 @@ if platform.system() == "Darwin":
 else:
     OSReleaseReport.wire_invoke = ["cat", "/etc/os-release"]
     OSReleaseReport.wire_decode = _decode
+OSReleaseReport.wire_encode = _wire_encode

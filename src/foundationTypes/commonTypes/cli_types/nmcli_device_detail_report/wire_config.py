@@ -14,5 +14,10 @@ def _decode(cls: type[NmcliDeviceDetailReport], wire_str: str) -> NmcliDeviceDet
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: NmcliDeviceDetailReport, **kwargs: object) -> str:
+    return self.raw
+
+
 NmcliDeviceDetailReport.wire_invoke = ["nmcli", "-f", "all", "device", "show"]
 NmcliDeviceDetailReport.wire_decode = _decode
+NmcliDeviceDetailReport.wire_encode = _wire_encode

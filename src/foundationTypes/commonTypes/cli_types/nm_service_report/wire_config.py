@@ -14,5 +14,10 @@ def _decode(cls: type[NmServiceReport], wire_str: str) -> NmServiceReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: NmServiceReport, **kwargs: object) -> str:
+    return self.raw
+
+
 NmServiceReport.wire_invoke = ["systemctl", "status", "NetworkManager", "--no-pager"]
 NmServiceReport.wire_decode = _decode
+NmServiceReport.wire_encode = _wire_encode

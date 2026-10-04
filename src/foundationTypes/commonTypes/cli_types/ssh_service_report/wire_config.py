@@ -14,5 +14,10 @@ def _decode(cls: type[SSHServiceReport], wire_str: str) -> SSHServiceReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: SSHServiceReport, **kwargs: object) -> str:
+    return self.raw
+
+
 SSHServiceReport.wire_invoke = ["systemctl", "status", "ssh", "--no-pager"]
 SSHServiceReport.wire_decode = _decode
+SSHServiceReport.wire_encode = _wire_encode

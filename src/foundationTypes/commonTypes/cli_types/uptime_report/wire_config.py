@@ -14,5 +14,10 @@ def _decode(cls: type[UptimeReport], wire_str: str) -> UptimeReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: UptimeReport, **kwargs: object) -> str:
+    return self.raw
+
+
 UptimeReport.wire_invoke = ["uptime"]
 UptimeReport.wire_decode = _decode
+UptimeReport.wire_encode = _wire_encode

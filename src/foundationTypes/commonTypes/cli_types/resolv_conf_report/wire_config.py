@@ -14,5 +14,10 @@ def _decode(cls: type[ResolvConfReport], wire_str: str) -> ResolvConfReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: ResolvConfReport, **kwargs: object) -> str:
+    return self.raw
+
+
 ResolvConfReport.wire_invoke = ["cat", "/etc/resolv.conf"]
 ResolvConfReport.wire_decode = _decode
+ResolvConfReport.wire_encode = _wire_encode

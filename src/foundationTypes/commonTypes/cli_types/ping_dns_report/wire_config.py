@@ -7,6 +7,7 @@ onto the generated model, so it runs via ``CLITransact``/``SSHTransact``
 
 from __future__ import annotations
 
+import platform
 import re
 
 from .PingDNSReport import PingDNSReport
@@ -36,5 +37,14 @@ def _decode(cls: type[PingDNSReport], wire_str: str) -> PingDNSReport:
     return cls.from_dict(out)
 
 
-PingDNSReport.wire_invoke = ["ping", "-c", "2", "-W", "2", "one.one.one.one"]
-PingDNSReport.wire_decode = _decode
+def _wire_encode(self: PingDNSReport, **kwargs: object) -> str:
+    return self.raw
+
+
+if platform.system() == "Darwin":
+    PingDNSReport.wire_invoke = ["ping", "-c", "2", "-t", "5", "one.one.one.one"]
+    PingDNSReport.wire_decode = _decode
+else:
+    PingDNSReport.wire_invoke = ["ping", "-c", "2", "-W", "2", "one.one.one.one"]
+    PingDNSReport.wire_decode = _decode
+PingDNSReport.wire_encode = _wire_encode

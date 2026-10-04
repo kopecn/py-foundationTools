@@ -14,5 +14,10 @@ def _decode(cls: type[RoutingRulesReport], wire_str: str) -> RoutingRulesReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: RoutingRulesReport, **kwargs: object) -> str:
+    return self.raw
+
+
 RoutingRulesReport.wire_invoke = ["ip", "rule", "show"]
 RoutingRulesReport.wire_decode = _decode
+RoutingRulesReport.wire_encode = _wire_encode

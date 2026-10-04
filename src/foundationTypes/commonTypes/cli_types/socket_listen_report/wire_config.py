@@ -30,5 +30,10 @@ def _decode(cls: type[SocketListenReport], wire_str: str) -> SocketListenReport:
     return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: SocketListenReport, **kwargs: object) -> str:
+    return self.raw
+
+
 SocketListenReport.wire_invoke = ["ss", "-tulpnH"]
 SocketListenReport.wire_decode = _decode
+SocketListenReport.wire_encode = _wire_encode

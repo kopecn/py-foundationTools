@@ -1,18 +1,26 @@
-"""Wire config for TailscaleStatusReport (`tailscale status`).
+"""Wire config for TailscaleStatusReport (`tailscale status --json`).
 
-Binds the read-only argv (``wire_invoke``) and the stdout parser (``wire_decode``)
-onto the generated model, so it runs via ``CLITransact``/``SSHTransact``
-``run_async_with_model``. Self-contained by design.
+tailscale emits JSON directly, so the model exposes a single free-form ``response``
+object and ``from_wire`` feeds the parsed dict straight in (DataModelHelper supports
+a free-form object field) rather than re-parsing a human table. The JSON is identical
+on macOS and Linux, so no OS branch is needed.
 """
 
 from __future__ import annotations
+
+import json
 
 from .TailscaleStatusReport import TailscaleStatusReport
 
 
 def _decode(cls: type[TailscaleStatusReport], wire_str: str) -> TailscaleStatusReport:
-    return cls.from_dict({"raw": wire_str.strip()})
+    return cls.from_dict({"response": json.loads(wire_str)})
 
 
-TailscaleStatusReport.wire_invoke = ["tailscale", "status"]
+def _wire_encode(self: TailscaleStatusReport, **kwargs: object) -> str:
+    return json.dumps(self.response)
+
+
+TailscaleStatusReport.wire_invoke = ["tailscale", "status", "--json"]
 TailscaleStatusReport.wire_decode = _decode
+TailscaleStatusReport.wire_encode = _wire_encode

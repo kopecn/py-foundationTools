@@ -38,8 +38,32 @@ def _decode(cls: type[LinkBriefReport], wire_str: str) -> LinkBriefReport:
     return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: LinkBriefReport, **kwargs: object) -> str:
+    return self.raw
+
+
 def _decode_macos(cls: type[LinkBriefReport], wire_str: str) -> LinkBriefReport:
-    return cls.from_dict({"rows": [], "raw": wire_str.strip()})
+    rows: list[dict[str, object]] = []
+    current: dict[str, object] | None = None
+    for line in wire_str.splitlines():
+        if line and not line[0].isspace():
+            name = line.split(":", 1)[0]
+            flags: list[str] = []
+            if "<" in line and ">" in line:
+                flags = [f for f in line[line.index("<") + 1 : line.index(">")].split(",") if f]
+            current = {
+                "ifname": name,
+                "operstate": "UP" if "UP" in flags else "DOWN",
+                "flags": flags,
+            }
+            rows.append(current)
+        elif current is not None:
+            stripped = line.strip()
+            if stripped.startswith("ether "):
+                current["mac"] = stripped.split()[1]
+            elif stripped.startswith("status:"):
+                current["operstate"] = stripped.split(":", 1)[1].strip()
+    return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
 if platform.system() == "Darwin":
@@ -48,3 +72,4 @@ if platform.system() == "Darwin":
 else:
     LinkBriefReport.wire_invoke = ["ip", "-brief", "link", "show"]
     LinkBriefReport.wire_decode = _decode
+LinkBriefReport.wire_encode = _wire_encode

@@ -41,8 +41,30 @@ def _decode(cls: type[NeighborReport], wire_str: str) -> NeighborReport:
     return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: NeighborReport, **kwargs: object) -> str:
+    return self.raw
+
+
 def _decode_macos(cls: type[NeighborReport], wire_str: str) -> NeighborReport:
-    return cls.from_dict({"rows": [], "raw": wire_str.strip()})
+    rows: list[dict[str, object]] = []
+    for line in wire_str.strip().splitlines():
+        if "(" not in line or ")" not in line:
+            continue
+        address = line[line.index("(") + 1 : line.index(")")]
+        tokens = line.split()
+        lladdr = _after(tokens, "at")
+        dev = _after(tokens, "on")
+        row: dict[str, object] = {
+            "address": address,
+            "state": "incomplete" if lladdr == "(incomplete)" else "reachable",
+            "raw": line.strip(),
+        }
+        if dev is not None:
+            row["dev"] = dev
+        if lladdr is not None and lladdr != "(incomplete)":
+            row["lladdr"] = lladdr
+        rows.append(row)
+    return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
 if platform.system() == "Darwin":
@@ -51,3 +73,4 @@ if platform.system() == "Darwin":
 else:
     NeighborReport.wire_invoke = ["ip", "neigh", "show"]
     NeighborReport.wire_decode = _decode
+NeighborReport.wire_encode = _wire_encode

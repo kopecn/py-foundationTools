@@ -22,8 +22,28 @@ def _decode(cls: type[AddressBriefReport], wire_str: str) -> AddressBriefReport:
     return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
+def _wire_encode(self: AddressBriefReport, **kwargs: object) -> str:
+    return self.raw
+
+
 def _decode_macos(cls: type[AddressBriefReport], wire_str: str) -> AddressBriefReport:
-    return cls.from_dict({"rows": [], "raw": wire_str.strip()})
+    rows: list[dict[str, object]] = []
+    current: dict[str, object] | None = None
+    for line in wire_str.splitlines():
+        if line and not line[0].isspace():
+            name = line.split(":", 1)[0]
+            operstate = "UP" if "UP" in line.split("<", 1)[-1] else "DOWN"
+            current = {"ifname": name, "operstate": operstate, "addresses": []}
+            rows.append(current)
+        elif current is not None:
+            stripped = line.strip()
+            if stripped.startswith(("inet ", "inet6 ")):
+                addresses = current["addresses"]
+                assert isinstance(addresses, list)
+                addresses.append(stripped.split()[1])
+            elif stripped.startswith("status:"):
+                current["operstate"] = stripped.split(":", 1)[1].strip()
+    return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
 if platform.system() == "Darwin":
@@ -32,3 +52,4 @@ if platform.system() == "Darwin":
 else:
     AddressBriefReport.wire_invoke = ["ip", "-brief", "address", "show"]
     AddressBriefReport.wire_decode = _decode
+AddressBriefReport.wire_encode = _wire_encode

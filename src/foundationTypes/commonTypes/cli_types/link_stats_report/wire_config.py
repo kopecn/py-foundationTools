@@ -16,9 +16,14 @@ def _decode(cls: type[LinkStatsReport], wire_str: str) -> LinkStatsReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: LinkStatsReport, **kwargs: object) -> str:
+    return self.raw
+
+
 if platform.system() == "Darwin":
     LinkStatsReport.wire_invoke = ["netstat", "-i", "-b"]
     LinkStatsReport.wire_decode = _decode
 else:
     LinkStatsReport.wire_invoke = ["ip", "-statistics", "link", "show"]
     LinkStatsReport.wire_decode = _decode
+LinkStatsReport.wire_encode = _wire_encode

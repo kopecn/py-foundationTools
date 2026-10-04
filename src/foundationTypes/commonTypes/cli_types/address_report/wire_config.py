@@ -16,9 +16,14 @@ def _decode(cls: type[AddressReport], wire_str: str) -> AddressReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
+def _wire_encode(self: AddressReport, **kwargs: object) -> str:
+    return self.raw
+
+
 if platform.system() == "Darwin":
     AddressReport.wire_invoke = ["ifconfig", "-a"]
     AddressReport.wire_decode = _decode
 else:
     AddressReport.wire_invoke = ["ip", "-details", "address", "show"]
     AddressReport.wire_decode = _decode
+AddressReport.wire_encode = _wire_encode
