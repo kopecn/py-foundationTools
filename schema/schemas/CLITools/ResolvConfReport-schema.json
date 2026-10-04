@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "ResolvConfReport",
+  "description": "Static resolver configuration (`/etc/resolv.conf`), verbatim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "raw"
+  ],
+  "properties": {
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout captured from the command."
+    }
+  }
+}

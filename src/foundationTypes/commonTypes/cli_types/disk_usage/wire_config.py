@@ -8,7 +8,7 @@ output_parser argument.
 
 from __future__ import annotations
 
-from foundationTypes.commonTypes.disk_usage.DiskUsage import DiskUsage
+from foundationTypes.commonTypes.cli_types.disk_usage.DiskUsage import DiskUsage
 
 _HEADER = "Filesystem      Size  Used Avail Use% Mounted on"
 

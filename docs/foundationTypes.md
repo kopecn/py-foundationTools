@@ -139,10 +139,10 @@ All under `foundationTypes/`, all subclassing `DataModelHelper`:
 
 ### The `wire_config.py` sibling pattern
 
-A model that needs hand-written wire behavior lives in **its own subfolder** next to a `wire_config.py`, rather than editing the generated `.py`. The folder's `__init__.py` imports `wire_config` for its side effect, so the wiring activates on any import. `commonTypes/disk_usage/` is the canonical shape:
+A model that needs hand-written wire behavior lives in **its own subfolder** next to a `wire_config.py`, rather than editing the generated `.py`. The folder's `__init__.py` imports `wire_config` for its side effect, so the wiring activates on any import. `commonTypes/cli_types/disk_usage/` is the canonical shape:
 
 ```
-commonTypes/disk_usage/
+commonTypes/cli_types/disk_usage/
 ├── __init__.py        # imports wire_config for its side effect
 ├── DiskUsage.py       # GENERATED — do not hand-edit
 └── wire_config.py     # hand-written: assigns wire_encode / wire_decode / wire_invoke

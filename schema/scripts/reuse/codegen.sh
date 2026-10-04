@@ -49,8 +49,17 @@ setup_quicktype() {
         echo "ERROR: quicktype not found on PATH (npm i -g quicktype)" >&2
         return 1
     }
+    # Walk up from the caller's dir to the repo root (the dir holding
+    # pyproject.toml), so a generate script works at any depth under schema/scripts/
+    # -- e.g. schema/scripts/ or schema/scripts/CLITools/ -- not only one fixed level.
     cd "$SCRIPT_DIR" || return 1
-    cd ../.. || return 1          # schema/scripts -> repo root
+    while [ ! -f pyproject.toml ] && [ "$PWD" != "/" ]; do
+        cd .. || return 1
+    done
+    [ -f pyproject.toml ] || {
+        echo "ERROR: could not locate repo root (pyproject.toml) from $SCRIPT_DIR" >&2
+        return 1
+    }
     echo "DataModel generation running from: $(pwd)"
     quicktype -v
 }
@@ -123,7 +132,7 @@ run_black() {
 
 ensure_py_typed() {
     # Always the package root, regardless of how deeply OUTPUT_PYTHON_REL nests
-    # (e.g. "commonTypes/disk_usage/DiskUsage.py" is still under
+    # (e.g. "commonTypes/cli_types/disk_usage/DiskUsage.py" is still under
     # foundationTypes) -- a dirname/dirname walk from ref_file assumes exactly
     # one level of nesting and breaks on a second.
     touch "${_PYTHON_TYPES_BASE}/py.typed"

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "TailscaleStatusReport",
+  "description": "Tailscale backend/peer state (`tailscale status`), verbatim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "raw"
+  ],
+  "properties": {
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout captured from the command."
+    }
+  }
+}

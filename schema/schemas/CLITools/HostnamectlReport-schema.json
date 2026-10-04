@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "HostnamectlReport",
+  "description": "hostnamectl status as `key: value` fields (systemd host identity).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entries",
+    "raw"
+  ],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/HostnamectlReportEntry"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside fields."
+    }
+  },
+  "definitions": {
+    "HostnamectlReportEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

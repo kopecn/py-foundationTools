@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "IwDevReport",
+  "description": "Wireless interfaces and link (`iw dev`), verbatim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "raw"
+  ],
+  "properties": {
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout captured from the command."
+    }
+  }
+}

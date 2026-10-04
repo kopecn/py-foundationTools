@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "AddressBriefReport",
+  "description": "One row per link from `ip -brief address show`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rows",
+    "raw"
+  ],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AddressBriefReportRow"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside rows."
+    }
+  },
+  "definitions": {
+    "AddressBriefReportRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ifname",
+        "operstate",
+        "addresses"
+      ],
+      "properties": {
+        "ifname": {
+          "type": "string"
+        },
+        "operstate": {
+          "type": "string"
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

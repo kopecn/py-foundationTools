@@ -266,9 +266,9 @@ specific request, e.g. a CLI-sourced model:
 DiskUsage.wire_invoke = ["df", "-h"]
 ```
 
-`src/foundationTypes/commonTypes/disk_usage/wire_config.py` is the repo's first
+`src/foundationTypes/commonTypes/cli_types/disk_usage/wire_config.py` is the repo's first
 real `wire_config.py`: `DiskUsage.py` is generated (from
-`schema/schemas/DiskUsage-schema.json` via `schema/scripts/generateDiskUsage.sh`,
+`schema/schemas/CLITools/DiskUsage-schema.json` via `schema/scripts/generateDiskUsage.sh`,
 following the same generic pipeline as `generateGeoCoordinate.sh` — no
 model-specific codegen step) and carries only `from_dict`/`to_dict`; `wire_config.py`
 is the hand-written sibling that assigns `wire_encode`, `wire_decode` (the `df -h`

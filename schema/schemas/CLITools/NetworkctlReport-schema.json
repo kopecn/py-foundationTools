@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "NetworkctlReport",
+  "description": "systemd-networkd state (`networkctl status --no-pager`), verbatim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "raw"
+  ],
+  "properties": {
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout captured from the command."
+    }
+  }
+}

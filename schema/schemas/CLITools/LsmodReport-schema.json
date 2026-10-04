@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "LsmodReport",
+  "description": "Loaded kernel modules from `lsmod` (header dropped).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rows",
+    "raw"
+  ],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LsmodReportRow"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside rows."
+    }
+  },
+  "definitions": {
+    "LsmodReportRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module",
+        "size",
+        "used_by_count",
+        "used_by"
+      ],
+      "properties": {
+        "module": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string"
+        },
+        "used_by_count": {
+          "type": "string"
+        },
+        "used_by": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

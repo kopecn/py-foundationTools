@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "NmServiceReport",
+  "description": "NetworkManager unit status (`systemctl status NetworkManager`), verbatim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "raw"
+  ],
+  "properties": {
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout captured from the command."
+    }
+  }
+}

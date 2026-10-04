@@ -494,8 +494,8 @@ list: ## List pip packages in available environments
 # Base directory for generated Python types. Keep this aligned with codegen.sh.
 _PYTHON_TYPES_BASE := src/foundationTypes
 
-codegen-all: check-uv  ## Run all schema codegen scripts in schema/scripts/
-	@for script in schema/scripts/*.sh; do \
+codegen-all: check-uv  ## Run all schema codegen scripts in schema/scripts/ (recursive; reuse/ excluded)
+	@for script in $$(find schema/scripts -name '*.sh' -not -path '*/reuse/*' | sort); do \
 		echo "Generating: $$script"; \
 		bash "$$script"; \
 	done

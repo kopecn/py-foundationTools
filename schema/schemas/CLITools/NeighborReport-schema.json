@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "NeighborReport",
+  "description": "ARP/NDP neighbor entries from `ip neigh show`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rows",
+    "raw"
+  ],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/NeighborReportRow"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside rows."
+    }
+  },
+  "definitions": {
+    "NeighborReportRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "address",
+        "state",
+        "raw"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "dev": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lladdr": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

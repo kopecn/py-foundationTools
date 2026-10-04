@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "PingDnsReport",
+  "description": "DNS-resolved ping summary (`ping -c N <name>`).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "raw"
+  ],
+  "properties": {
+    "host": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transmitted": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "received": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "packet_loss": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rtt_min_ms": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rtt_avg_ms": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rtt_max_ms": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "raw": {
+      "type": "string"
+    }
+  }
+}

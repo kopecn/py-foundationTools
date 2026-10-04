@@ -5,7 +5,7 @@ import asyncio
 from pathlib import Path
 
 from foundation_tools.cli_transaction.cliTransact import CLITransact
-from foundationTypes.commonTypes.disk_usage.DiskUsage import DiskUsage
+from foundationTypes.commonTypes.cli_types.disk_usage.DiskUsage import DiskUsage
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 
 print("---- GeoCoordinate save / load round trip ----")

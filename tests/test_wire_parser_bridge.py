@@ -20,7 +20,7 @@ from typing import Any, ClassVar
 import pytest
 
 from foundation_tools.cli_transaction.cliTransact import CLITransact
-from foundationTypes.commonTypes.disk_usage.DiskUsage import DiskUsage
+from foundationTypes.commonTypes.cli_types.disk_usage.DiskUsage import DiskUsage
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 from foundationTypes.data_model_helper import DataModelHelper
 

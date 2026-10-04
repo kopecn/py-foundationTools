@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "OsReleaseReport",
+  "description": "Parsed /etc/os-release KEY=VALUE pairs (distribution identity).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entries",
+    "raw"
+  ],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/OsReleaseReportEntry"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside fields."
+    }
+  },
+  "definitions": {
+    "OsReleaseReportEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

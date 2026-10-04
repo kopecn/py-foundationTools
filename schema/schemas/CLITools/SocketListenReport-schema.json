@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "SocketListenReport",
+  "description": "Listening sockets from `ss -tulpnH` (header suppressed).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rows",
+    "raw"
+  ],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SocketListenReportRow"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside rows."
+    }
+  },
+  "definitions": {
+    "SocketListenReportRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "netid",
+        "state",
+        "recv_q",
+        "send_q",
+        "local_address",
+        "peer_address"
+      ],
+      "properties": {
+        "netid": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "recv_q": {
+          "type": "string"
+        },
+        "send_q": {
+          "type": "string"
+        },
+        "local_address": {
+          "type": "string"
+        },
+        "peer_address": {
+          "type": "string"
+        },
+        "process": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

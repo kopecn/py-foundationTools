@@ -57,7 +57,7 @@ async def main():
 # Parse command output into structured data — DiskUsage declares its own
 # wire_invoke (["df", "-h"]), so the model class alone runs the command and
 # parses it via DiskUsage.from_wire
-from foundationTypes.commonTypes.disk_usage.DiskUsage import DiskUsage
+from foundationTypes.commonTypes.cli_types.disk_usage.DiskUsage import DiskUsage
 result = CLITransact.run_sync_with_model(DiskUsage)
 if result.success and result.model:
     for entry in result.model.entries:
