@@ -36,6 +36,13 @@ license = {text = "MIT"}
 dependencies = [
 ]
 
+# Console scripts. network-diag is a read-only, collect-only Linux network
+# diagnostics tool built on the stdlib + the host's own system tools, so it runs
+# on a network-broken host with nothing to install. See
+# .claude/specs/networkDiag.md.
+[project.scripts]
+network-diag = "foundation_tools.network_diag.cli:main"
+
 # First-class quality tooling: flake8 (lint) + black (format) + mypy (typecheck).
 # ruff and ty are kept installed but SECOND-CLASS — available, not wired into the gate.
 [project.optional-dependencies]

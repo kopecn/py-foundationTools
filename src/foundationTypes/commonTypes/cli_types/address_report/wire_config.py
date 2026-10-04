@@ -7,6 +7,8 @@ onto the generated model, so it runs via ``CLITransact``/``SSHTransact``
 
 from __future__ import annotations
 
+import platform
+
 from .AddressReport import AddressReport
 
 
@@ -14,5 +16,9 @@ def _decode(cls: type[AddressReport], wire_str: str) -> AddressReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
-AddressReport.wire_invoke = ["ip", "-details", "address", "show"]
-AddressReport.wire_decode = _decode
+if platform.system() == "Darwin":
+    AddressReport.wire_invoke = ["ifconfig", "-a"]
+    AddressReport.wire_decode = _decode
+else:
+    AddressReport.wire_invoke = ["ip", "-details", "address", "show"]
+    AddressReport.wire_decode = _decode

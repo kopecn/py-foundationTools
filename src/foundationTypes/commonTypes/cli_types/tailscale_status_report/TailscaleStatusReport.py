@@ -8,31 +8,33 @@
 from dataclasses import dataclass
 from foundationTypes.data_model_helper import (
     DataModelHelper,
-    from_str,
+    from_dict,
     to_class,
 )
-from typing import Any, TypeVar, Type, cast
+from typing import Dict, Any, TypeVar, Callable, Type, cast
 
 T = TypeVar("T")
 
 
 @dataclass
 class TailscaleStatusReport(DataModelHelper):
-    """Tailscale backend/peer state (`tailscale status`), verbatim."""
+    """Tailscale backend/peer state (tailscale status --json), fed through as a structured
+    object.
+    """
 
-    raw: str
-    """Verbatim stdout captured from the command."""
+    response: Dict[str, Any]
+    """The tool's JSON output, parsed and fed through unchanged."""
 
     @classmethod
     def from_dict(cls, obj: Any) -> "TailscaleStatusReport":
         if not isinstance(obj, dict):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        raw = from_str(obj.get("raw"))
-        return TailscaleStatusReport(raw)
+        response = from_dict(lambda x: x, obj.get("response"))
+        return TailscaleStatusReport(response)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
-        result["raw"] = from_str(self.raw)
+        result["response"] = from_dict(lambda x: x, self.response)
         return result
 
 

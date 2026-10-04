@@ -7,6 +7,8 @@ onto the generated model, so it runs via ``CLITransact``/``SSHTransact``
 
 from __future__ import annotations
 
+import platform
+
 from .LinkStatsReport import LinkStatsReport
 
 
@@ -14,5 +16,9 @@ def _decode(cls: type[LinkStatsReport], wire_str: str) -> LinkStatsReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
-LinkStatsReport.wire_invoke = ["ip", "-statistics", "link", "show"]
-LinkStatsReport.wire_decode = _decode
+if platform.system() == "Darwin":
+    LinkStatsReport.wire_invoke = ["netstat", "-i", "-b"]
+    LinkStatsReport.wire_decode = _decode
+else:
+    LinkStatsReport.wire_invoke = ["ip", "-statistics", "link", "show"]
+    LinkStatsReport.wire_decode = _decode

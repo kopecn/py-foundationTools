@@ -7,6 +7,8 @@ onto the generated model, so it runs via ``CLITransact``/``SSHTransact``
 
 from __future__ import annotations
 
+import platform
+
 from .ResolvectlReport import ResolvectlReport
 
 
@@ -14,5 +16,9 @@ def _decode(cls: type[ResolvectlReport], wire_str: str) -> ResolvectlReport:
     return cls.from_dict({"raw": wire_str.strip()})
 
 
-ResolvectlReport.wire_invoke = ["resolvectl", "status"]
-ResolvectlReport.wire_decode = _decode
+if platform.system() == "Darwin":
+    ResolvectlReport.wire_invoke = ["scutil", "--dns"]
+    ResolvectlReport.wire_decode = _decode
+else:
+    ResolvectlReport.wire_invoke = ["resolvectl", "status"]
+    ResolvectlReport.wire_decode = _decode

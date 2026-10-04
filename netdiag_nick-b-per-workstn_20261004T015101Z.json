@@ -1,0 +1,804 @@
+{
+  "schema": "network-diag/2",
+  "hostname": "nick-b-per-workstn",
+  "generated_at": "2026-10-04T01:51:01Z",
+  "tool_version": "0.0.5",
+  "results": [
+    {
+      "probe": {
+        "name": "uname",
+        "category": "identity",
+        "description": "Kernel, arch, and hostname",
+        "model": "UnameReport",
+        "argv": [
+          "uname",
+          "-a"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "ok",
+      "return_code": 0,
+      "model": {
+        "raw": "Darwin nick-b-per-workstn 24.6.0 Darwin Kernel Version 24.6.0: Sun Aug 23 20:37:03 PDT 2026; root:xnu-11417.140.69.712.69~1/RELEASE_ARM64_T6000 arm64"
+      },
+      "stdout": "Darwin nick-b-per-workstn 24.6.0 Darwin Kernel Version 24.6.0: Sun Aug 23 20:37:03 PDT 2026; root:xnu-11417.140.69.712.69~1/RELEASE_ARM64_T6000 arm64",
+      "stderr": null,
+      "duration_s": 0.028
+    },
+    {
+      "probe": {
+        "name": "uptime",
+        "category": "identity",
+        "description": "Load and time since boot",
+        "model": "UptimeReport",
+        "argv": [
+          "uptime"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "ok",
+      "return_code": 0,
+      "model": {
+        "raw": "18:50  up  8:41, 1 user, load averages: 1.71 2.27 2.35"
+      },
+      "stdout": "18:50  up  8:41, 1 user, load averages: 1.71 2.27 2.35",
+      "stderr": null,
+      "duration_s": 0.025
+    },
+    {
+      "probe": {
+        "name": "os-release",
+        "category": "identity",
+        "description": "Distribution and version",
+        "model": "OSReleaseReport",
+        "argv": [
+          "cat",
+          "/etc/os-release"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "error",
+      "return_code": 1,
+      "model": null,
+      "stdout": null,
+      "stderr": "cat: /etc/os-release: No such file or directory",
+      "duration_s": 0.023
+    },
+    {
+      "probe": {
+        "name": "hostnamectl",
+        "category": "identity",
+        "description": "systemd host identity",
+        "model": "HostnamectlReport",
+        "argv": [
+          "hostnamectl",
+          "status"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "hostnamectl: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "timedatectl",
+        "category": "identity",
+        "description": "Clock and time sync state",
+        "model": "TimedatectlReport",
+        "argv": [
+          "timedatectl",
+          "status"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "timedatectl: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "addr",
+        "category": "interfaces",
+        "description": "Addresses on every link",
+        "model": "AddressReport",
+        "argv": [
+          "ip",
+          "-details",
+          "address",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ip: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "addr-brief",
+        "category": "interfaces",
+        "description": "One-line address summary",
+        "model": "AddressBriefReport",
+        "argv": [
+          "ip",
+          "-brief",
+          "address",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ip: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "link-brief",
+        "category": "interfaces",
+        "description": "One-line link/oper state",
+        "model": "LinkBriefReport",
+        "argv": [
+          "ip",
+          "-brief",
+          "link",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ip: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "link-stats",
+        "category": "interfaces",
+        "description": "Per-link error/drop counters",
+        "model": "LinkStatsReport",
+        "argv": [
+          "ip",
+          "-statistics",
+          "link",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ip: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "route4",
+        "category": "routing",
+        "description": "IPv4 routing table (default gateway)",
+        "model": "Route4Report",
+        "argv": [
+          "ip",
+          "route",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ip: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "route6",
+        "category": "routing",
+        "description": "IPv6 routing table",
+        "model": "Route6Report",
+        "argv": [
+          "ip",
+          "-6",
+          "route",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ip: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "rules",
+        "category": "routing",
+        "description": "Policy routing rules",
+        "model": "RoutingRulesReport",
+        "argv": [
+          "ip",
+          "rule",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ip: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "neigh",
+        "category": "neighbors",
+        "description": "ARP/NDP neighbor table",
+        "model": "NeighborReport",
+        "argv": [
+          "ip",
+          "neigh",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ip: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "resolvectl",
+        "category": "dns",
+        "description": "systemd-resolved resolver state",
+        "model": "ResolvectlReport",
+        "argv": [
+          "resolvectl",
+          "status"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "resolvectl: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "resolv-conf",
+        "category": "dns",
+        "description": "Static resolver configuration",
+        "model": "ResolvConfReport",
+        "argv": [
+          "cat",
+          "/etc/resolv.conf"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "ok",
+      "return_code": 0,
+      "model": {
+        "raw": "#\n# macOS Notice\n#\n# This file is not consulted for DNS hostname resolution, address\n# resolution, or the DNS query routing mechanism used by most\n# processes on this system.\n#\n# To view the DNS configuration used by this system, use:\n#   scutil --dns\n#\n# SEE ALSO\n#   dns-sd(1), scutil(8)\n#\n# This file is automatically generated.\n#\nsearch tail313959.ts.net sailinternet.net\nnameserver 100.100.100.100\nnameserver fd7a:115c:a1e0::53"
+      },
+      "stdout": "#\n# macOS Notice\n#\n# This file is not consulted for DNS hostname resolution, address\n# resolution, or the DNS query routing mechanism used by most\n# processes on this system.\n#\n# To view the DNS configuration used by this system, use:\n#   scutil --dns\n#\n# SEE ALSO\n#   dns-sd(1), scutil(8)\n#\n# This file is automatically generated.\n#\nsearch tail313959.ts.net sailinternet.net\nnameserver 100.100.100.100\nnameserver fd7a:115c:a1e0::53",
+      "stderr": null,
+      "duration_s": 0.019
+    },
+    {
+      "probe": {
+        "name": "nmcli-general",
+        "category": "networkmanager",
+        "description": "NetworkManager overall state",
+        "model": "NmcliGeneralReport",
+        "argv": [
+          "nmcli",
+          "general",
+          "status"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "nmcli: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "nmcli-device",
+        "category": "networkmanager",
+        "description": "Per-device managed state",
+        "model": "NmcliDeviceReport",
+        "argv": [
+          "nmcli",
+          "device",
+          "status"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "nmcli: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "nmcli-device-detail",
+        "category": "networkmanager",
+        "description": "Full per-device detail (DHCP, powersave)",
+        "model": "NmcliDeviceDetailReport",
+        "argv": [
+          "nmcli",
+          "-f",
+          "all",
+          "device",
+          "show"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "nmcli: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "nmcli-active",
+        "category": "networkmanager",
+        "description": "Active connections and detail",
+        "model": "NmcliActiveReport",
+        "argv": [
+          "nmcli",
+          "-f",
+          "all",
+          "connection",
+          "show",
+          "--active"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "nmcli: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "networkctl",
+        "category": "networkmanager",
+        "description": "systemd-networkd state (if used)",
+        "model": "NetworkctlReport",
+        "argv": [
+          "networkctl",
+          "status",
+          "--no-pager"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "networkctl: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "iw-dev",
+        "category": "wifi",
+        "description": "Wireless interfaces and link",
+        "model": "IwDevReport",
+        "argv": [
+          "iw",
+          "dev"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "iw: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "iwconfig",
+        "category": "wifi",
+        "description": "Legacy wireless state",
+        "model": "IwconfigReport",
+        "argv": [
+          "iwconfig"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "iwconfig: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "rfkill",
+        "category": "wifi",
+        "description": "Radio soft/hard block state",
+        "model": "RfkillReport",
+        "argv": [
+          "rfkill",
+          "list"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "rfkill: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "ss-listen",
+        "category": "sockets",
+        "description": "Listening TCP/UDP sockets (is sshd up?)",
+        "model": "SocketListenReport",
+        "argv": [
+          "ss",
+          "-tulpnH"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ss: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "ss-summary",
+        "category": "sockets",
+        "description": "Socket state summary",
+        "model": "SocketSummaryReport",
+        "argv": [
+          "ss",
+          "-s"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "ss: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "nft",
+        "category": "firewall",
+        "description": "nftables ruleset (root)",
+        "model": "NftablesReport",
+        "argv": [
+          "nft",
+          "list",
+          "ruleset"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "nft: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "iptables",
+        "category": "firewall",
+        "description": "iptables rules (root)",
+        "model": "IptablesReport",
+        "argv": [
+          "iptables",
+          "-S"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "iptables: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "dmesg",
+        "category": "kernel",
+        "description": "Kernel warnings/errors with timestamps (root)",
+        "model": "DmesgReport",
+        "argv": [
+          "dmesg",
+          "--level=err,warn",
+          "--ctime"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "error",
+      "return_code": 1,
+      "model": null,
+      "stdout": null,
+      "stderr": "usage: sudo dmesg",
+      "duration_s": 0.016
+    },
+    {
+      "probe": {
+        "name": "journal-kernel",
+        "category": "kernel",
+        "description": "Recent kernel ring buffer",
+        "model": "JournalKernelReport",
+        "argv": [
+          "journalctl",
+          "-k",
+          "-n",
+          "300",
+          "--no-pager"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "journalctl: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "lsmod",
+        "category": "kernel",
+        "description": "Loaded kernel modules (wifi driver)",
+        "model": "LsmodReport",
+        "argv": [
+          "lsmod"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "lsmod: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "nm-service",
+        "category": "services",
+        "description": "NetworkManager unit status",
+        "model": "NmServiceReport",
+        "argv": [
+          "systemctl",
+          "status",
+          "NetworkManager",
+          "--no-pager"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "systemctl: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "ssh-service",
+        "category": "services",
+        "description": "SSH daemon unit status",
+        "model": "SSHServiceReport",
+        "argv": [
+          "systemctl",
+          "status",
+          "ssh",
+          "--no-pager"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "systemctl: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "journal-nm",
+        "category": "services",
+        "description": "Recent NetworkManager journal",
+        "model": "JournalNmReport",
+        "argv": [
+          "journalctl",
+          "-u",
+          "NetworkManager",
+          "-n",
+          "200",
+          "--no-pager"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "skipped",
+      "return_code": null,
+      "model": null,
+      "stdout": null,
+      "stderr": "journalctl: not found on PATH",
+      "duration_s": 0.0
+    },
+    {
+      "probe": {
+        "name": "tailscale-status",
+        "category": "overlay",
+        "description": "Tailscale backend/peer state",
+        "model": "TailscaleStatusReport",
+        "argv": [
+          "tailscale",
+          "status"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "ok",
+      "return_code": 0,
+      "model": {
+        "raw": "100.66.65.8    nick-b-per-workstn  kopecn@  macOS  -                           \n100.66.48.113  amelie-computer     kopecn@  linux  offline, last seen 22h ago  \n100.67.92.63   homemacmini         kopecn@  macOS  -                           \n100.83.25.22   nicksiphone         kopecn@  iOS    -                           \n100.91.118.3   robonb              kopecn@  linux  offline, last seen 6h ago"
+      },
+      "stdout": "100.66.65.8    nick-b-per-workstn  kopecn@  macOS  -                           \n100.66.48.113  amelie-computer     kopecn@  linux  offline, last seen 22h ago  \n100.67.92.63   homemacmini         kopecn@  macOS  -                           \n100.83.25.22   nicksiphone         kopecn@  iOS    -                           \n100.91.118.3   robonb              kopecn@  linux  offline, last seen 6h ago",
+      "stderr": null,
+      "duration_s": 0.038
+    },
+    {
+      "probe": {
+        "name": "tailscale-netcheck",
+        "category": "overlay",
+        "description": "Tailscale path/DERP reachability",
+        "model": "TailscaleNetcheckReport",
+        "argv": [
+          "tailscale",
+          "netcheck"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "ok",
+      "return_code": 0,
+      "model": {
+        "raw": "Report:\n\t* Time: 2026-10-03 18:50:59.789325-07:00\n\t* UDP: true\n\t* IPv4: yes, 147.160.62.210:59170\n\t* IPv6: no, but OS has support\n\t* MappingVariesByDestIP: false\n\t* PortMapping: UPnP\n\t* Nearest DERP: San Francisco\n\t* DERP latency:\n\t\t- sfo: 21ms    (San Francisco)\n\t\t- lax: 32.4ms  (Los Angeles)\n\t\t- sea: 42ms    (Seattle)\n\t\t- den: 49.4ms  (Denver)\n\t\t- ord: 65.3ms  (Chicago)\n\t\t- dfw: 69.3ms  (Dallas)\n\t\t- tor: 75.8ms  (Toronto)\n\t\t- hnl: 79.5ms  (Honolulu)\n\t\t- iad: 79.7ms  (Ashburn)\n\t\t- nyc: 82ms    (New York City)\n\t\t- mia: 84.5ms  (Miami)\n\t\t- tok: 125.9ms (Tokyo)\n\t\t- lhr: 140.8ms (London)\n\t\t- par: 154.5ms (Paris)\n\t\t- ams: 159.5ms (Amsterdam)\n\t\t- fra: 164ms   (Frankfurt)\n\t\t- waw: 164.5ms (Warsaw)\n\t\t- syd: 166.1ms (Sydney)\n\t\t- nue: 168.2ms (Nuremberg)\n\t\t- mad: 169.4ms (Madrid)\n\t\t- hkg: 178.7ms (Hong Kong)\n\t\t- sao: 198.7ms (S\u00e3o Paulo)\n\t\t- sin: 206.2ms (Singapore)\n\t\t- hel: 242.6ms (Helsinki)\n\t\t- blr:         (Bengaluru)\n\t\t- jnb:         (Johannesburg)\n\t\t- dbi:         (Dubai)\n\t\t- nai:         (Nairobi)"
+      },
+      "stdout": "Report:\n\t* Time: 2026-10-03 18:50:59.789325-07:00\n\t* UDP: true\n\t* IPv4: yes, 147.160.62.210:59170\n\t* IPv6: no, but OS has support\n\t* MappingVariesByDestIP: false\n\t* PortMapping: UPnP\n\t* Nearest DERP: San Francisco\n\t* DERP latency:\n\t\t- sfo: 21ms    (San Francisco)\n\t\t- lax: 32.4ms  (Los Angeles)\n\t\t- sea: 42ms    (Seattle)\n\t\t- den: 49.4ms  (Denver)\n\t\t- ord: 65.3ms  (Chicago)\n\t\t- dfw: 69.3ms  (Dallas)\n\t\t- tor: 75.8ms  (Toronto)\n\t\t- hnl: 79.5ms  (Honolulu)\n\t\t- iad: 79.7ms  (Ashburn)\n\t\t- nyc: 82ms    (New York City)\n\t\t- mia: 84.5ms  (Miami)\n\t\t- tok: 125.9ms (Tokyo)\n\t\t- lhr: 140.8ms (London)\n\t\t- par: 154.5ms (Paris)\n\t\t- ams: 159.5ms (Amsterdam)\n\t\t- fra: 164ms   (Frankfurt)\n\t\t- waw: 164.5ms (Warsaw)\n\t\t- syd: 166.1ms (Sydney)\n\t\t- nue: 168.2ms (Nuremberg)\n\t\t- mad: 169.4ms (Madrid)\n\t\t- hkg: 178.7ms (Hong Kong)\n\t\t- sao: 198.7ms (S\u00e3o Paulo)\n\t\t- sin: 206.2ms (Singapore)\n\t\t- hel: 242.6ms (Helsinki)\n\t\t- blr:         (Bengaluru)\n\t\t- jnb:         (Johannesburg)\n\t\t- dbi:         (Dubai)\n\t\t- nai:         (Nairobi)",
+      "stderr": "2026/10/03 18:50:59 portmap: monitor: gateway and self IP changed: gw=192.168.1.1 self=192.168.1.42\n2026/10/03 18:50:59 portmap: UPnP discovery response from non-UPnP port 60710\n2026/10/03 18:50:59 portmap: [v1] UPnP reply {Location:http://192.168.1.1:49152/IGDdevicedesc.xml Server:Linux/3.14.77, UPnP/1.0, Portable SDK for UPnP devices/1.6.19 USN:uuid:ebf5a0a0-1dd1-11b2-a90f-c4411eea6bd5::urn:schemas-upnp-org:device:InternetGatewayDevice:2}, \"HTTP/1.1 200 OK\\r\\nCACHE-CONTROL: max-age=1800\\r\\nDATE: Sun, 04 Oct 2026 01:50:59 GMT\\r\\nEXT:\\r\\nLOCATION: http://192.168.1.1:49152/IGDdevicedesc.xml\\r\\nOPT: \\\"http://schemas.upnp.org/upnp/1/0/\\\"; ns=01\\r\\n01-NLS: ac1d440a-1dd1-11b2-9826-daa4e7969d69\\r\\nSERVER: Linux/3.14.77, UPnP/1.0, Portable SDK for UPnP devices/1.6.19\\r\\nX-User-Agent: redsonic\\r\\nST: urn:schemas-upnp-org:device:InternetGatewayDevice:2\\r\\nUSN: uuid:ebf5a0a0-1dd1-11b2-a90f-c4411eea6bd5::urn:schemas-upnp-org:device:InternetGatewayDevice:2\\r\\n\\r\\n\"\n2026/10/03 18:50:59 portmap: UPnP discovery response from non-UPnP port 56469\n2026/10/03 18:50:59 portmap: [v1] UPnP reply {Location:http://192.168.1.1:49152/IGDdevicedesc1.xml Server:Linux/3.14.77, UPnP/1.0, Portable SDK for UPnP devices/1.6.19 USN:uuid:ebf5a0a0-1dd1-11b2-a90f-c4411eea6bd5::urn:schemas-upnp-org:device:InternetGatewayDevice:1}, \"HTTP/1.1 200 OK\\r\\nCACHE-CONTROL: max-age=1800\\r\\nDATE: Sun, 04 Oct 2026 01:50:59 GMT\\r\\nEXT:\\r\\nLOCATION: http://192.168.1.1:49152/IGDdevicedesc1.xml\\r\\nOPT: \\\"http://schemas.upnp.org/upnp/1/0/\\\"; ns=01\\r\\n01-NLS: ac1d440a-1dd1-11b2-9826-daa4e7969d69\\r\\nSERVER: Linux/3.14.77, UPnP/1.0, Portable SDK for UPnP devices/1.6.19\\r\\nX-User-Agent: redsonic\\r\\nST: urn:schemas-upnp-org:device:InternetGatewayDevice:1\\r\\nUSN: uuid:ebf5a0a0-1dd1-11b2-a90f-c4411eea6bd5::urn:schemas-upnp-org:device:InternetGatewayDevice:1\\r\\n\\r\\n\"\n2026/10/03 18:50:59 portmap: UPnP discovery response from non-UPnP port 50357\n2026/10/03 18:50:59 portmap: [v1] UPnP reply {Location:http://192.168.1.1:49152/IGDdevicedesc.xml Server:Linux/3.14.77, UPnP/1.0, Portable SDK for UPnP devices/1.6.19 USN:uuid:ebf5a0a0-1dd1-11b2-a90f-c4411eea6bd5::urn:schemas-upnp-org:device:InternetGatewayDevice:2}, \"HTTP/1.1 200 OK\\r\\nCACHE-CONTROL: max-age=1800\\r\\nDATE: Sun, 04 Oct 2026 01:50:59 GMT\\r\\nEXT:\\r\\nLOCATION: http://192.168.1.1:49152/IGDdevicedesc.xml\\r\\nOPT: \\\"http://schemas.upnp.org/upnp/1/0/\\\"; ns=01\\r\\n01-NLS: ac1d440a-1dd1-11b2-9826-daa4e7969d69\\r\\nSERVER: Linux/3.14.77, UPnP/1.0, Portable SDK for UPnP devices/1.6.19\\r\\nX-User-Agent: redsonic\\r\\nST: urn:schemas-upnp-org:device:InternetGatewayDevice:2\\r\\nUSN: uuid:ebf5a0a0-1dd1-11b2-a90f-c4411eea6bd5::urn:schemas-upnp-org:device:InternetGatewayDevice:2\\r\\n\\r\\n\"\n2026/10/03 18:50:59 portmap: UPnP meta changed: [{Location:http://192.168.1.1:49152/IGDdevicedesc.xml Server:Linux/3.14.77, UPnP/1.0, Portable SDK for UPnP devices/1.6.19 USN:uuid:ebf5a0a0-1dd1-11b2-a90f-c4411eea6bd5::urn:schemas-upnp-org:device:InternetGatewayDevice:2} {Location:http://192.168.1.1:49152/IGDdevicedesc1.xml Server:Linux/3.14.77, UPnP/1.0, Portable SDK for UPnP devices/1.6.19 USN:uuid:ebf5a0a0-1dd1-11b2-a90f-c4411eea6bd5::urn:schemas-upnp-org:device:InternetGatewayDevice:1}]",
+      "duration_s": 0.289
+    },
+    {
+      "probe": {
+        "name": "ping-v4",
+        "category": "connectivity",
+        "description": "L3 reachability past the LAN, no DNS",
+        "model": "PingV4Report",
+        "argv": [
+          "ping",
+          "-c",
+          "3",
+          "-W",
+          "2",
+          "1.1.1.1"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "ok",
+      "return_code": 0,
+      "model": {
+        "raw": "PING 1.1.1.1 (1.1.1.1): 56 data bytes\n\n--- 1.1.1.1 ping statistics ---\n3 packets transmitted, 3 packets received, 0.0% packet loss, 3 packets out of wait time\nround-trip min/avg/max/stddev = 30.794/73.673/121.099/37.007 ms",
+        "host": "1.1.1.1",
+        "packet_loss": "0.0%",
+        "received": "3",
+        "rtt_avg_ms": "73.673",
+        "rtt_max_ms": "121.099",
+        "rtt_min_ms": "30.794",
+        "transmitted": "3"
+      },
+      "stdout": "PING 1.1.1.1 (1.1.1.1): 56 data bytes\n\n--- 1.1.1.1 ping statistics ---\n3 packets transmitted, 3 packets received, 0.0% packet loss, 3 packets out of wait time\nround-trip min/avg/max/stddev = 30.794/73.673/121.099/37.007 ms",
+      "stderr": null,
+      "duration_s": 2.135
+    },
+    {
+      "probe": {
+        "name": "ping-v6",
+        "category": "connectivity",
+        "description": "IPv6 L3 reachability",
+        "model": "PingV6Report",
+        "argv": [
+          "ping",
+          "-6",
+          "-c",
+          "2",
+          "-W",
+          "2",
+          "2606:4700:4700::1111"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "error",
+      "return_code": 64,
+      "model": null,
+      "stdout": null,
+      "stderr": "ping: invalid option -- 6\nusage: ping [-AaDdfnoQqRrv] [-c count] [-G sweepmaxsize]\n            [-g sweepminsize] [-h sweepincrsize] [-i wait]\n            [-l preload] [-M mask | time] [-m ttl] [-p pattern]\n            [-S src_addr] [-s packetsize] [-t timeout][-W waittime]\n            [-z tos] host\n       ping [-AaDdfLnoQqRrv] [-c count] [-I iface] [-i wait]\n            [-l preload] [-M mask | time] [-m ttl] [-p pattern] [-S src_addr]\n            [-s packetsize] [-T ttl] [-t timeout] [-W waittime]\n            [-z tos] mcast-group\nApple specific options (to be specified before mcast-group or host like all options)\n            -b boundif           # bind the socket to the interface\n            -k traffic_class     # set traffic class socket option\n            -K net_service_type  # set traffic class socket options\n            --apple-connect      # call connect(2) in the socket\n            --apple-time         # display current time\n            --apple-print-id     # display echo ID\n            --apple-print-req    # display echo request",
+      "duration_s": 0.006
+    },
+    {
+      "probe": {
+        "name": "ping-dns",
+        "category": "connectivity",
+        "description": "DNS resolution + reachability",
+        "model": "PingDNSReport",
+        "argv": [
+          "ping",
+          "-c",
+          "2",
+          "-W",
+          "2",
+          "one.one.one.one"
+        ],
+        "timeout_s": 10.0
+      },
+      "status": "ok",
+      "return_code": 0,
+      "model": {
+        "raw": "PING one.one.one.one (1.1.1.1): 56 data bytes\n\n--- one.one.one.one ping statistics ---\n2 packets transmitted, 2 packets received, 0.0% packet loss, 2 packets out of wait time\nround-trip min/avg/max/stddev = 23.375/43.903/64.431/20.528 ms",
+        "host": "one.one.one.one",
+        "packet_loss": "0.0%",
+        "received": "2",
+        "rtt_avg_ms": "43.903",
+        "rtt_max_ms": "64.431",
+        "rtt_min_ms": "23.375",
+        "transmitted": "2"
+      },
+      "stdout": "PING one.one.one.one (1.1.1.1): 56 data bytes\n\n--- one.one.one.one ping statistics ---\n2 packets transmitted, 2 packets received, 0.0% packet loss, 2 packets out of wait time\nround-trip min/avg/max/stddev = 23.375/43.903/64.431/20.528 ms",
+      "stderr": null,
+      "duration_s": 1.073
+    }
+  ]
+}

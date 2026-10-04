@@ -7,6 +7,7 @@ onto the generated model, so it runs via ``CLITransact``/``SSHTransact``
 
 from __future__ import annotations
 
+import platform
 import re
 
 from .PingV6Report import PingV6Report
@@ -36,5 +37,9 @@ def _decode(cls: type[PingV6Report], wire_str: str) -> PingV6Report:
     return cls.from_dict(out)
 
 
-PingV6Report.wire_invoke = ["ping", "-6", "-c", "2", "-W", "2", "2606:4700:4700::1111"]
-PingV6Report.wire_decode = _decode
+if platform.system() == "Darwin":
+    PingV6Report.wire_invoke = ["ping6", "-c", "2", "2606:4700:4700::1111"]
+    PingV6Report.wire_decode = _decode
+else:
+    PingV6Report.wire_invoke = ["ping", "-6", "-c", "2", "-W", "2", "2606:4700:4700::1111"]
+    PingV6Report.wire_decode = _decode

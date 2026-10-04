@@ -7,6 +7,8 @@ onto the generated model, so it runs via ``CLITransact``/``SSHTransact``
 
 from __future__ import annotations
 
+import platform
+
 from .Route6Report import Route6Report
 
 
@@ -33,5 +35,13 @@ def _decode(cls: type[Route6Report], wire_str: str) -> Route6Report:
     return cls.from_dict({"rows": rows, "raw": wire_str.strip()})
 
 
-Route6Report.wire_invoke = ["ip", "-6", "route", "show"]
-Route6Report.wire_decode = _decode
+def _decode_macos(cls: type[Route6Report], wire_str: str) -> Route6Report:
+    return cls.from_dict({"rows": [], "raw": wire_str.strip()})
+
+
+if platform.system() == "Darwin":
+    Route6Report.wire_invoke = ["netstat", "-rn", "-f", "inet6"]
+    Route6Report.wire_decode = _decode_macos
+else:
+    Route6Report.wire_invoke = ["ip", "-6", "route", "show"]
+    Route6Report.wire_decode = _decode
