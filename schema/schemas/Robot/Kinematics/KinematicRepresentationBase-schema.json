@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Kinematics/KinematicRepresentationBase-schema.json",
+  "title": "KinematicRepresentationBase",
+  "type": "object",
+  "description": "Fields common to every kinematic representation, regardless of type.",
+  "required": ["type"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Recommended values: dh, modified_dh, poe, constraint_based. Additional application-defined representations are permitted."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this representation."
+    }
+  }
+}

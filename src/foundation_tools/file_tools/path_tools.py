@@ -1,184 +1,204 @@
 """
 Path and filename-pattern utilities.
 
-:func:`find_matching_paths` expands a relative filename pattern across a set of
-extensions, resolves the resulting globs beneath an explicit absolute root, and
-prunes matches that hit an exclusion pattern (``/.build/`` by default).
+:func:`find_matching_paths` walks a directory tree and returns the entries that
+pass a set of optional filters (pattern, extensions, exclusions, hidden). The
+:class:`SuggestedPatterns`, :class:`SuggestedExtensions`, and
+:class:`SuggestedExcludePatterns` enums hold ready-made values a caller can pass.
 """
 
+import itertools
+import sys
+import threading
 from collections.abc import Iterable
+from dataclasses import dataclass
+from enum import Enum
 from fnmatch import fnmatch
+from glob import glob
 from pathlib import Path
-from typing import Final, NamedTuple
 
-__all__ = [
-    "ANY_EXTENSION",
-    "DEFAULT_EXCLUDED_PATTERNS",
-    "DEFAULT_EXTENSIONS",
-    "find_matching_paths",
-]
-
-#: Extensions applied when a caller does not specify any. Override per call site by
-#: passing an explicit sequence; pass ``None`` to match any extension.
-DEFAULT_EXTENSIONS: Final[tuple[str, ...]] = ("csv", "txt")
-
-#: Extension wildcard substituted when a caller passes ``extensions=None``.
-ANY_EXTENSION: Final[str] = "*"
-
-#: Name globs excluded from results. A leading and/or
-#: trailing ``/`` marks the entry as a *directory* glob (``/.build/``, ``/build*``,
-#: ``*cache/``), which excludes the whole subtree; an entry with no slash is a *file*
-#: glob (``*.pyc``). Pass an explicit sequence to extend it or ``[]`` to disable
-#: pruning entirely.
-DEFAULT_EXCLUDED_PATTERNS: Final[tuple[str, ...]] = ("/.build/",)
+__all__ = ["find_matching_paths"]
 
 
-class _Exclusions(NamedTuple):
-    """Exclusion globs split by what they match, with the ``/`` markers stripped."""
+class SuggestedPatterns(str, Enum):
+    """Ready-made ``pattern`` values to pass explicitly. Pull one out via its ``.value``."""
 
-    directories: tuple[str, ...]
-    files: tuple[str, ...]
+    #: Match every entry (``fnmatch`` ``*`` matches any relative path).
+    ANY = "*"
+    #: Match only entries nested below the top level (a relative path containing ``/``).
+    ANY_RECURSIVE = "**/*"
 
-    def __bool__(self) -> bool:
-        return bool(self.directories or self.files)
+
+class SuggestedExtensions(Enum):
+    """Ready-made ``extensions`` values to pass explicitly. Pull one out via its ``.value``."""
+
+    #: Normalizes to the suffix ``.*``, which no real file has, so it selects nothing.
+    ANY = ("*",)
+    #: Common tabular data files (``.csv``, ``.txt``).
+    TABULAR = ("csv", "txt")
+
+
+class SuggestedExcludePatterns(Enum):
+    """Ready-made ``exclude_patterns`` values. Pull one out via its ``.value``."""
+
+    #: The ``.build`` directory. Hidden dirs are absent from the walk, so this excludes nothing.
+    BUILD = ("/.build/",)
+
+
+@dataclass
+class _Progress:
+    """Best-effort progress the worker writes and the spinner thread reads."""
+
+    step: str = "scanning"
+    count: int = 0
+
+
+_SPINNER_FRAMES = "|/-\\"
 
 
 def find_matching_paths(
-    root: Path,
-    pattern: str,
-    extensions: Iterable[str] | None = DEFAULT_EXTENSIONS,
-    *,
-    exclude_patterns: Iterable[str] = DEFAULT_EXCLUDED_PATTERNS,
+    starting_dir: Path | None = None,
+    pattern: str | None = None,
+    extensions: Iterable[str] | None = None,
+    exclude_patterns: Iterable[str] | None = None,
+    return_hidden: bool = True,
+    indicator: bool = True,
+    join_timeout: float | None = None,
 ) -> list[Path]:
-    """
-    Find paths beneath ``root`` matching a pattern and set of extensions.
+    """Recursively collect paths under ``starting_dir`` that pass every active filter.
+
+    Walks ``starting_dir`` recursively and returns each entry matching all of the
+    filters below. A filter left as ``None`` (or empty) keeps everything.
 
     Args:
-        root: Existing absolute directory against which to resolve the patterns.
-            Requiring an absolute path makes resolution independent of the process
-            working directory.
-        pattern: Base filename glob pattern including any wildcard
-            (e.g. ``xyz.*waveform.*``).
-        extensions: Extensions to append, with or without a leading dot
-            (e.g. ``["txt", ".csv"]``). Blank entries are ignored. Defaults to
-            :data:`DEFAULT_EXTENSIONS`. ``None`` matches any extension
-            (``{pattern}.*``); an empty sequence expands nothing and uses
-            the pattern unchanged.
-        exclude_patterns: Name globs (never paths) to prune. A leading and/or
-            trailing ``/`` marks a **directory** glob —
-            ``/.build/``, ``/build*``, ``*cache/``, ``/xyz*xyz/`` are all
-            equivalent in effect — which matches any directory between ``root``
-            and the match, so the whole subtree is excluded from the result.
-            An entry with no slash is a **file** glob (``*.pyc``) and is matched
-            only against the final component, and only when that component is
-            not a directory. Defaults to :data:`DEFAULT_EXCLUDED_PATTERNS`; pass
-            ``[]`` to disable pruning.
+        starting_dir: Directory to search, resolved before use. ``None`` uses the
+            folder of the running Python executable.
+        pattern: ``fnmatch`` glob tested against each entry's ``starting_dir``-relative
+            POSIX path and its bare name; a match on either keeps the entry.
+            ``None`` keeps every entry.
+        extensions: Suffixes to keep, leading dot optional (e.g. ``["csv", ".txt"]``).
+            When set, only files whose suffix matches are kept and directories are
+            dropped. ``None`` or empty keeps every entry.
+        exclude_patterns: ``fnmatch`` globs tested against each entry's ``/``-anchored
+            relative path (directories get a trailing ``/``); a match drops the entry.
+            ``None`` or empty drops nothing.
+        return_hidden: When ``False``, drop any entry with a dot-prefixed path component.
+        indicator: When ``True`` (default), run the walk/filter on the calling thread
+            while a second thread animates a step + spinner on stderr (TTY only).
+            When ``False``, run synchronously with no thread and no output.
+        join_timeout: Seconds to wait for the spinner thread to stop when
+            ``indicator`` is ``True``. ``None`` (default) waits indefinitely; a
+            number bounds the wait (the thread is a daemon, so any straggler is
+            reaped at interpreter exit). Ignored when ``indicator`` is ``False``.
 
     Returns:
-        The paths under ``root`` that the expanded patterns match, sorted within
-        each pattern and de-duplicated across patterns, with every
-        ``exclude_patterns`` hit removed.
-
-    Raises:
-        TypeError: If ``root`` is not a :class:`~pathlib.Path`.
-        ValueError: If ``root`` is relative; if ``pattern`` is empty or
-            whitespace-only, is absolute, or contains a ``..`` component; or if
-            an entry in ``exclude_patterns`` is a path rather than a bare name glob.
-        NotADirectoryError: If ``root`` is not an existing directory.
+        Matching paths, in the order the recursive walk yields them.
     """
-    _validate_root(root)
+    if not indicator:
+        return _collect_matches(starting_dir, pattern, extensions, exclude_patterns, return_hidden)
 
-    if not pattern.strip():
-        raise ValueError("pattern must be a non-empty string")
-
-    _reject_unsafe_pattern(pattern)
-
-    patterns = _extension_patterns(pattern, extensions)
-    return _resolve_patterns(root, patterns, exclude_patterns)
-
-
-def _validate_root(root: Path) -> None:
-    """Require an explicit absolute directory rather than consulting the CWD."""
-    if not isinstance(root, Path):
-        raise TypeError(f"root must be a pathlib.Path, not {type(root).__name__}")
-    if not root.is_absolute():
-        raise ValueError(f"root must be absolute: {root}")
-    if not root.is_dir():
-        raise NotADirectoryError(f"root must be an existing directory: {root}")
+    progress = _Progress()
+    stop = threading.Event()
+    spinner = threading.Thread(target=_render_progress, args=(progress, stop), daemon=True)
+    spinner.start()
+    try:
+        return _collect_matches(
+            starting_dir, pattern, extensions, exclude_patterns, return_hidden, progress
+        )
+    finally:
+        stop.set()
+        spinner.join(timeout=join_timeout)
+        _clear_line()
 
 
-def _reject_unsafe_pattern(pattern: str) -> None:
-    """Reject a ``pattern`` that could lexically escape ``root``: an absolute
-    path, or one with a ``..`` component."""
-    candidate = Path(pattern)
-
-    if candidate.is_absolute():
-        raise ValueError(f"pattern must be relative, not absolute: {pattern!r}")
-    if ".." in candidate.parts:
-        raise ValueError(f"pattern must not contain '..' components: {pattern!r}")
-
-
-def _extension_patterns(
-    pattern: str,
+def _collect_matches(
+    starting_dir: Path | None,
+    pattern: str | None,
     extensions: Iterable[str] | None,
+    exclude_patterns: Iterable[str] | None,
+    return_hidden: bool,
+    progress: _Progress | None = None,
 ) -> list[Path]:
-    """Build the ``{pattern}.{ext}`` variants; see ``extensions`` in the caller."""
-    if extensions is None:
-        return [Path(f"{pattern}.{ANY_EXTENSION}")]
+    """Walk ``starting_dir`` recursively and return the entries passing every filter.
 
-    suffixes = [ext.strip().lstrip(".") for ext in extensions]
-    suffixes = [ext for ext in suffixes if ext]
+    Extracted verbatim from the original body; the only additions are the optional
+    ``progress`` writes, which never change the returned list.
+    """
+    starting_dir = (starting_dir or Path(sys.executable).parent).resolve()
 
-    if not suffixes:
-        return [Path(pattern)]
+    extensions = {ext if ext.startswith(".") else f".{ext}" for ext in (extensions or ())}
 
-    return [Path(f"{pattern}.{ext}") for ext in suffixes]
+    exclude_patterns = tuple(exclude_patterns or ())
 
+    def is_hidden(p: Path) -> bool:
+        return any(part.startswith(".") for part in p.relative_to(starting_dir).parts)
 
-def _resolve_patterns(
-    root: Path,
-    patterns: Iterable[Path],
-    exclude_patterns: Iterable[str],
-) -> list[Path]:
-    """Glob ``patterns`` under ``root``, dropping every ``exclude_patterns`` hit."""
-    excluded = _normalize_exclusions(exclude_patterns)
-    matches: dict[Path, None] = {}
+    def matches_pattern(p: Path) -> bool:
+        if pattern is None:
+            return True
 
-    for pattern in patterns:
-        for match in sorted(root.glob(str(pattern))):
-            if excluded and _is_excluded(match, root, excluded):
-                continue
-            matches.setdefault(match, None)
+        rel = p.relative_to(starting_dir).as_posix()
+        return fnmatch(rel, pattern) or fnmatch(p.name, pattern)
 
-    return list(matches)
+    def matches_extension(p: Path) -> bool:
+        if not extensions or not p.is_file():
+            return not extensions
 
+        return p.suffix in extensions
 
-def _normalize_exclusions(exclude_patterns: Iterable[str]) -> _Exclusions:
-    """Split the globs into directory/file sets, rejecting anything path-shaped."""
-    directories: list[str] = []
-    files: list[str] = []
+    def is_excluded(p: Path) -> bool:
+        if not exclude_patterns:
+            return False
 
-    for entry in exclude_patterns:
-        stripped = entry.strip()
-        is_directory = stripped.startswith("/") or stripped.endswith("/")
-        glob = stripped.strip("/")
+        rel = "/" + p.relative_to(starting_dir).as_posix()
 
-        if not glob:
+        if p.is_dir():
+            rel += "/"
+
+        return any(fnmatch(rel, pat) or fnmatch(rel.lstrip("/"), pat) for pat in exclude_patterns)
+
+    paths = (Path(p) for p in glob(str(starting_dir / "**" / "*"), recursive=True))
+
+    if progress is not None:
+        progress.step = "filtering"
+
+    results: list[Path] = []
+
+    for p in paths:
+        if progress is not None:
+            progress.count += 1
+
+        if not return_hidden and is_hidden(p):
             continue
-        if len(Path(glob).parts) > 1 or glob in (".", ".."):
-            raise ValueError(f"exclude_patterns takes bare name globs, not paths: {entry!r}")
 
-        (directories if is_directory else files).append(glob)
+        if is_excluded(p):
+            continue
 
-    return _Exclusions(tuple(directories), tuple(files))
+        if not matches_pattern(p):
+            continue
+
+        if not matches_extension(p):
+            continue
+
+        results.append(p)
+
+    return results
 
 
-def _is_excluded(match: Path, root: Path, excluded: _Exclusions) -> bool:
-    """Report whether ``match`` hits a directory glob on its way down, or a file glob."""
-    *ancestors, name = match.relative_to(root).parts
+def _render_progress(progress: _Progress, stop: threading.Event) -> None:
+    """Second thread: read ``progress`` and animate a spinner on stderr (TTY only)."""
+    if not sys.stderr.isatty():
+        return
 
-    if any(fnmatch(part, glob) for part in ancestors for glob in excluded.directories):
-        return True
+    for frame in itertools.cycle(_SPINNER_FRAMES):
+        sys.stderr.write(f"\r{frame} {progress.step} ({progress.count})")
+        sys.stderr.flush()
+        if stop.wait(0.1):
+            return
 
-    globs = excluded.directories if match.is_dir() else excluded.files
-    return any(fnmatch(name, glob) for glob in globs)
+
+def _clear_line() -> None:
+    """Erase the spinner line from stderr (TTY only)."""
+    if sys.stderr.isatty():
+        sys.stderr.write("\r\033[K")
+        sys.stderr.flush()

@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "Route4Report",
+  "description": "IPv4 routes from `ip route show`; fields best-effort, full line retained.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rows",
+    "raw"
+  ],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Route4ReportRow"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside rows."
+    }
+  },
+  "definitions": {
+    "Route4ReportRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "destination",
+        "raw"
+      ],
+      "properties": {
+        "destination": {
+          "type": "string"
+        },
+        "via": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dev": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "proto": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metric": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

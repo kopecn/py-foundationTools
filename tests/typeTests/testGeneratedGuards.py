@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from typing import Any
 
-from foundationTypes.commonTypes.disk_usage.DiskUsage import DiskUsage
+from foundationTypes.commonTypes.cli_types.disk_usage.DiskUsage import DiskUsage
 from foundationTypes.commonTypes.GeoCoordinate import GeoCoordinate
 from foundationTypes.commonTypes.ModelContextProtocol import Basemetadata
 from foundationTypes.cvTypes.ChArUcoConfig import ChArUcoBoard

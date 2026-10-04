@@ -17,9 +17,10 @@ as composition and inverse belong in higher-level implementations, not here.
 """
 
 from abc import abstractmethod
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 
+@runtime_checkable
 class PositionABC(Protocol):
     """Shared, storage-independent abstraction for a 3D position (``x``, ``y``, ``z``).
 
@@ -52,6 +53,7 @@ class PositionABC(Protocol):
         """Construct from a ``{"x", "y", "z"}`` dict."""
 
 
+@runtime_checkable
 class QuaternionABC(Protocol):
     """Shared, storage-independent abstraction for a quaternion.
 
@@ -96,6 +98,7 @@ class QuaternionABC(Protocol):
         """Construct from a ``{"w", "x", "y", "z"}`` dict."""
 
 
+@runtime_checkable
 class SpatialTransformABC(Protocol):
     """Shared abstraction for a 6-DOF pose (position + orientation).
 

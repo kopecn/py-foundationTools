@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Kinematics/DHParameter-schema.json",
+  "title": "DHParameter",
+  "type": "object",
+  "description": "The four Denavit-Hartenberg parameters for one joint in a DH kinematic chain.",
+  "required": ["joint"],
+  "properties": {
+    "joint": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the joint this DH row describes."
+    },
+    "a": {
+      "$ref": "DHValue-schema.json",
+      "description": "The link length parameter."
+    },
+    "alpha": {
+      "$ref": "DHValue-schema.json",
+      "description": "The link twist parameter."
+    },
+    "d": {
+      "$ref": "DHValue-schema.json",
+      "description": "The link offset parameter."
+    },
+    "theta": {
+      "$ref": "DHValue-schema.json",
+      "description": "The joint angle parameter."
+    }
+  },
+  "additionalProperties": false
+}

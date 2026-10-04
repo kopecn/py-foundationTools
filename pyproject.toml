@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyFoundationTools"
-version = "0.0.5"
+version = "0.0.6"
 description = "A dependency-free Python collection providing reusable code extensions and foundational type utilities built exclusively on Python’s standard library. Designed to establish a consistent type foundation across automation modules."
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.11"
@@ -35,6 +35,13 @@ license = {text = "MIT"}
 #   dependencies = ["requests"]
 dependencies = [
 ]
+
+# Console scripts. network-diag is a read-only, collect-only Linux network
+# diagnostics tool built on the stdlib + the host's own system tools, so it runs
+# on a network-broken host with nothing to install. See
+# .claude/specs/networkDiag.md.
+[project.scripts]
+network-diag = "foundation_tools.network_diag.cli:main"
 
 # First-class quality tooling: flake8 (lint) + black (format) + mypy (typecheck).
 # ruff and ty are kept installed but SECOND-CLASS — available, not wired into the gate.

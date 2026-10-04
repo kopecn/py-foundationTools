@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Kinematics/VariableReference-schema.json",
+  "title": "VariableReference",
+  "type": "object",
+  "description": "A reference to a joint coordinate, used where a value is driven by a joint variable rather than fixed.",
+  "required": ["variable"],
+  "properties": {
+    "variable": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Id of the referenced joint coordinate."
+    }
+  },
+  "additionalProperties": false
+}

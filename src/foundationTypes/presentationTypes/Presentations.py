@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from foundationTypes.data_model_helper import (
     DataModelHelper,
     from_bool,
+    from_dict,
     from_float,
     from_int,
     from_list,
@@ -19,7 +20,7 @@ from foundationTypes.data_model_helper import (
     to_enum,
     to_float,
 )
-from typing import Optional, Any, List, TypeVar, Type, cast, Callable
+from typing import Optional, Any, List, Dict, TypeVar, Type, cast, Callable
 from enum import Enum
 
 T = TypeVar("T")
@@ -247,9 +248,38 @@ class ThemeColorRef(Enum):
 
     Semantic color name resolved from PresentationColorTheme.
 
-    Optional semantic series color resolved from PresentationColorTheme.
-
     Semantic color resolved from PresentationColorTheme.
+
+    Diagram canvas background color role. No default -- absence means the renderer chooses.
+
+    Node and edge border color role. No default -- absence means the renderer chooses.
+
+    Border color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+
+    Fill color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+
+    Text color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+
+    Semantic error/failure state color role. No default -- absence means the renderer
+    chooses.
+
+    Edge/connector line color role. No default -- absence means the renderer chooses.
+
+    Primary node fill color role. No default -- absence means the renderer chooses.
+
+    Secondary node fill color role. No default -- absence means the renderer chooses.
+
+    Semantic success/healthy state color role. No default -- absence means the renderer
+    chooses.
+
+    Tertiary node fill color role. No default -- absence means the renderer chooses.
+
+    Diagram text color role. No default -- absence means the renderer chooses.
+
+    Optional semantic series color resolved from PresentationColorTheme.
     """
 
     ACCENT_AMBER_ACCENT = "accentAmber.accent"
@@ -425,6 +455,27 @@ class LayoutDefaults(DataModelHelper):
         return result
 
 
+class Density(Enum):
+    """Layout capacity and semantic roles (R20): the overall content density this layout is
+    designed for, consumed by the downstream authoring skill for layout selection (not by the
+    renderer). No default -- absence means no declared density class.
+    """
+
+    BALANCED = "balanced"
+    DENSE = "dense"
+    SPARSE = "sparse"
+
+
+class Purpose(Enum):
+    CLOSING = "closing"
+    COMPARISON = "comparison"
+    EVIDENCE = "evidence"
+    METRIC = "metric"
+    PROCESS = "process"
+    SECTION = "section"
+    STATEMENT = "statement"
+
+
 class Align(Enum):
     """Horizontal text alignment."""
 
@@ -433,13 +484,107 @@ class Align(Enum):
     RIGHT = "right"
 
 
+class ContentType(Enum):
+    """Content block kind. Each arm has a payload capable of expressing it and a renderer
+    capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
+    diagram source with no renderer yet (see 'mermaidSource').
+    """
+
+    BULLETS = "bullets"
+    CHART = "chart"
+    IMAGE = "image"
+    MERMAID = "mermaid"
+    METRIC = "metric"
+    TABLE = "table"
+    TEXT = "text"
+
+
+@dataclass
+class Style(DataModelHelper):
+    """Metric style roles (R17): style override for a metric region's delta field. Reuses the
+    existing style shape (R2) rather than re-declaring it. No default -- absence means the
+    renderer chooses.
+
+    Optional style overrides for this content block.
+
+    Metric style roles (R17): style override for a metric region's label field. Reuses the
+    existing style shape (R2) rather than re-declaring it. No default -- absence means the
+    renderer chooses.
+
+    Metric style roles (R17): style override for a metric region's headline value field.
+    Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence
+    means the renderer chooses.
+    """
+
+    align: Optional[Align] = None
+    """Horizontal text alignment."""
+
+    bold: Optional[bool] = None
+    """Whether the content renders bold."""
+
+    color: Optional[ThemeColorRef] = None
+    """Semantic color resolved from PresentationColorTheme."""
+
+    font_size: Optional[float] = None
+    """Font size override in points."""
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "Style":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        align = from_union([Align, from_none], obj.get("align"))
+        bold = from_union([from_bool, from_none], obj.get("bold"))
+        color = from_union([ThemeColorRef, from_none], obj.get("color"))
+        font_size = from_union([from_float, from_none], obj.get("fontSize"))
+        return Style(align, bold, color, font_size)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.align is not None:
+            result["align"] = from_union([lambda x: to_enum(Align, x), from_none], self.align)
+        if self.bold is not None:
+            result["bold"] = from_union([from_bool, from_none], self.bold)
+        if self.color is not None:
+            result["color"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
+            )
+        if self.font_size is not None:
+            result["fontSize"] = from_union([to_float, from_none], self.font_size)
+        return result
+
+
+class Occupancy(Enum):
+    """Layout capacity and semantic roles (R20): whether a slide using this layout must, should,
+    or may populate this region. Consumed by the downstream design-lint tier. No default --
+    absence means no occupancy constraint.
+    """
+
+    OPTIONAL = "optional"
+    RECOMMENDED = "recommended"
+    REQUIRED = "required"
+
+
 class Overflow(Enum):
     """Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip'
-    truncates at the boundary.
+    truncates at the boundary; 'shrink' deterministically reduces font size within the bounds
+    declared by minFontSize/maxLines/scaleLadder.
     """
 
     CLIP = "clip"
+    SHRINK = "shrink"
     WRAP = "wrap"
+
+
+class Role(Enum):
+    """Layout capacity and semantic roles (R20): the region's semantic identity, consumed by the
+    downstream renderer for shape identity and reading order. No default -- absence means no
+    declared semantic role.
+    """
+
+    DECK_TITLE = "deckTitle"
+    EVIDENCE = "evidence"
+    METRIC_VALUE = "metricValue"
+    PRESENTER_NAME = "presenterName"
 
 
 class RegionType(Enum):
@@ -475,9 +620,24 @@ class Region(DataModelHelper):
     align: Optional[Align] = None
     """Horizontal text alignment."""
 
+    allowed_content_types: Optional[List[ContentType]] = None
+    """Layout capacity and semantic roles (R20): the set of content block kinds this region
+    accepts, reusing the block 'type' enum by reference rather than redeclaring it. Consumed
+    by the downstream design-lint tier. No default -- absence means no content-type
+    restriction.
+    """
     color: Optional[ThemeColorRef] = None
     """Semantic color name resolved from PresentationColorTheme."""
 
+    delta_permitted: Optional[bool] = None
+    """Metric style roles (R17): whether a metric region's delta field is permitted. No default
+    -- absence means permitted.
+    """
+    delta_style: Optional[Style] = None
+    """Metric style roles (R17): style override for a metric region's delta field. Reuses the
+    existing style shape (R2) rather than re-declaring it. No default -- absence means the
+    renderer chooses.
+    """
     font_family: Optional[str] = None
     """Font family override. When unset, inherits `metadata.defaults.fontFamily`."""
 
@@ -487,16 +647,106 @@ class Region(DataModelHelper):
     height: Optional[float] = None
     """Region height in pixels."""
 
+    label_permitted: Optional[bool] = None
+    """Metric style roles (R17): whether a metric region's label field is permitted. No default
+    -- absence means permitted.
+    """
+    label_style: Optional[Style] = None
+    """Metric style roles (R17): style override for a metric region's label field. Reuses the
+    existing style shape (R2) rather than re-declaring it. No default -- absence means the
+    renderer chooses.
+    """
+    line_spacing: Optional[float] = None
+    """Paragraph rhythm (R16): line spacing multiplier for text in this region, e.g. 1.15 for
+    115%. No default -- absence means the renderer chooses.
+    """
+    max_aspect_ratio: Optional[float] = None
+    """Media fit and aspect (R18): upper bound of an acceptable width/height aspect-ratio range
+    for media placed in this region. No default -- absence means no upper bound.
+    """
+    max_characters: Optional[int] = None
+    """Layout capacity and semantic roles (R20): the maximum total character count this region's
+    content may contain. Consumed by the downstream design-lint tier. No default -- absence
+    means no character-count bound.
+    """
+    max_characters_per_item: Optional[int] = None
+    """Layout capacity and semantic roles (R20): the maximum character count for any single list
+    item in this region. Consumed by the downstream design-lint tier. No default -- absence
+    means no per-item character bound.
+    """
+    max_items: Optional[int] = None
+    """Layout capacity and semantic roles (R20): the maximum number of list items (e.g. bullets)
+    this region may contain. Consumed by the downstream design-lint tier. No default --
+    absence means no item-count bound.
+    """
+    max_lines: Optional[int] = None
+    """Responsive fit budget (R15): the maximum number of lines the renderer may use when
+    shrinking under overflow 'shrink'. Also the layout capacity bound (R20) consumed by the
+    downstream design-lint tier -- one field, two consumers, per the single-definition rule.
+    No default -- absence means no responsive budget / no capacity bound.
+    """
+    metric_gap: Optional[float] = None
+    """Metric style roles (R17): inter-field gap in pixels between a metric region's
+    value/label/delta fields. No default -- absence means the renderer chooses.
+    """
+    min_aspect_ratio: Optional[float] = None
+    """Media fit and aspect (R18): lower bound of an acceptable width/height aspect-ratio range
+    for media placed in this region, an alternative to a single 'preferredAspectRatio' when a
+    range is acceptable. No default -- absence means no lower bound.
+    """
+    min_fill_ratio: Optional[float] = None
+    """Media fit and aspect (R18): minimum fraction of the region's area that placed media must
+    fill before a downstream lint warns that a source cannot satisfy the region without an
+    author decision. No default -- absence means no fill-ratio floor.
+    """
+    min_font_size: Optional[float] = None
+    """Responsive fit budget (R15): the smallest font size in points the renderer may shrink to
+    under overflow 'shrink'. No default -- absence means no responsive budget.
+    """
+    occupancy: Optional[Occupancy] = None
+    """Layout capacity and semantic roles (R20): whether a slide using this layout must, should,
+    or may populate this region. Consumed by the downstream design-lint tier. No default --
+    absence means no occupancy constraint.
+    """
     overflow: Optional[Overflow] = None
     """Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip'
-    truncates at the boundary.
+    truncates at the boundary; 'shrink' deterministically reduces font size within the bounds
+    declared by minFontSize/maxLines/scaleLadder.
     """
     padding: Optional[float] = None
     """Inner padding in pixels."""
 
+    preferred_aspect_ratio: Optional[float] = None
+    """Media fit and aspect (R18): the region's preferred width/height ratio for media content,
+    e.g. 1.778 for 16:9. Defined once here -- R20 (layout capacity) $refs this field rather
+    than redeclaring it. No default -- absence means no aspect preference.
+    """
+    role: Optional[Role] = None
+    """Layout capacity and semantic roles (R20): the region's semantic identity, consumed by the
+    downstream renderer for shape identity and reading order. No default -- absence means no
+    declared semantic role.
+    """
+    scale_ladder: Optional[List[float]] = None
+    """Responsive fit budget (R15): an optional array of descending font sizes in points the
+    renderer steps through under overflow 'shrink', never going below minFontSize. No default
+    -- absence means no responsive budget.
+    """
+    space_after: Optional[float] = None
+    """Paragraph rhythm (R16): space in pixels added after each paragraph in this region. No
+    default -- absence means the renderer chooses.
+    """
+    space_before: Optional[float] = None
+    """Paragraph rhythm (R16): space in pixels added before each paragraph in this region. No
+    default -- absence means the renderer chooses.
+    """
     type: Optional[RegionType] = None
     """Region kind, informing default styling."""
 
+    value_style: Optional[Style] = None
+    """Metric style roles (R17): style override for a metric region's headline value field.
+    Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence
+    means the renderer chooses.
+    """
     vertical_align: Optional[VerticalAlign] = None
     """Vertical text alignment."""
 
@@ -515,13 +765,41 @@ class Region(DataModelHelper):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         id = from_str(obj.get("id"))
         align = from_union([Align, from_none], obj.get("align"))
+        allowed_content_types = from_union(
+            [lambda x: from_list(ContentType, x), from_none], obj.get("allowedContentTypes")
+        )
         color = from_union([ThemeColorRef, from_none], obj.get("color"))
+        delta_permitted = from_union([from_bool, from_none], obj.get("deltaPermitted"))
+        delta_style = from_union([Style.from_dict, from_none], obj.get("deltaStyle"))
         font_family = from_union([from_str, from_none], obj.get("fontFamily"))
         font_size = from_union([from_float, from_none], obj.get("fontSize"))
         height = from_union([from_float, from_none], obj.get("height"))
+        label_permitted = from_union([from_bool, from_none], obj.get("labelPermitted"))
+        label_style = from_union([Style.from_dict, from_none], obj.get("labelStyle"))
+        line_spacing = from_union([from_float, from_none], obj.get("lineSpacing"))
+        max_aspect_ratio = from_union([from_float, from_none], obj.get("maxAspectRatio"))
+        max_characters = from_union([from_int, from_none], obj.get("maxCharacters"))
+        max_characters_per_item = from_union([from_int, from_none], obj.get("maxCharactersPerItem"))
+        max_items = from_union([from_int, from_none], obj.get("maxItems"))
+        max_lines = from_union([from_int, from_none], obj.get("maxLines"))
+        metric_gap = from_union([from_float, from_none], obj.get("metricGap"))
+        min_aspect_ratio = from_union([from_float, from_none], obj.get("minAspectRatio"))
+        min_fill_ratio = from_union([from_float, from_none], obj.get("minFillRatio"))
+        min_font_size = from_union([from_float, from_none], obj.get("minFontSize"))
+        occupancy = from_union([Occupancy, from_none], obj.get("occupancy"))
         overflow = from_union([Overflow, from_none], obj.get("overflow"))
         padding = from_union([from_float, from_none], obj.get("padding"))
+        preferred_aspect_ratio = from_union(
+            [from_float, from_none], obj.get("preferredAspectRatio")
+        )
+        role = from_union([Role, from_none], obj.get("role"))
+        scale_ladder = from_union(
+            [lambda x: from_list(from_float, x), from_none], obj.get("scaleLadder")
+        )
+        space_after = from_union([from_float, from_none], obj.get("spaceAfter"))
+        space_before = from_union([from_float, from_none], obj.get("spaceBefore"))
         type = from_union([RegionType, from_none], obj.get("type"))
+        value_style = from_union([Style.from_dict, from_none], obj.get("valueStyle"))
         vertical_align = from_union([VerticalAlign, from_none], obj.get("verticalAlign"))
         width = from_union([from_float, from_none], obj.get("width"))
         x = from_union([from_float, from_none], obj.get("x"))
@@ -529,13 +807,35 @@ class Region(DataModelHelper):
         return Region(
             id,
             align,
+            allowed_content_types,
             color,
+            delta_permitted,
+            delta_style,
             font_family,
             font_size,
             height,
+            label_permitted,
+            label_style,
+            line_spacing,
+            max_aspect_ratio,
+            max_characters,
+            max_characters_per_item,
+            max_items,
+            max_lines,
+            metric_gap,
+            min_aspect_ratio,
+            min_fill_ratio,
+            min_font_size,
+            occupancy,
             overflow,
             padding,
+            preferred_aspect_ratio,
+            role,
+            scale_ladder,
+            space_after,
+            space_before,
             type,
+            value_style,
             vertical_align,
             width,
             x,
@@ -547,9 +847,20 @@ class Region(DataModelHelper):
         result["id"] = from_str(self.id)
         if self.align is not None:
             result["align"] = from_union([lambda x: to_enum(Align, x), from_none], self.align)
+        if self.allowed_content_types is not None:
+            result["allowedContentTypes"] = from_union(
+                [lambda x: from_list(lambda x: to_enum(ContentType, x), x), from_none],
+                self.allowed_content_types,
+            )
         if self.color is not None:
             result["color"] = from_union(
                 [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
+            )
+        if self.delta_permitted is not None:
+            result["deltaPermitted"] = from_union([from_bool, from_none], self.delta_permitted)
+        if self.delta_style is not None:
+            result["deltaStyle"] = from_union(
+                [lambda x: to_class(Style, x), from_none], self.delta_style
             )
         if self.font_family is not None:
             result["fontFamily"] = from_union([from_str, from_none], self.font_family)
@@ -557,14 +868,64 @@ class Region(DataModelHelper):
             result["fontSize"] = from_union([to_float, from_none], self.font_size)
         if self.height is not None:
             result["height"] = from_union([to_float, from_none], self.height)
+        if self.label_permitted is not None:
+            result["labelPermitted"] = from_union([from_bool, from_none], self.label_permitted)
+        if self.label_style is not None:
+            result["labelStyle"] = from_union(
+                [lambda x: to_class(Style, x), from_none], self.label_style
+            )
+        if self.line_spacing is not None:
+            result["lineSpacing"] = from_union([to_float, from_none], self.line_spacing)
+        if self.max_aspect_ratio is not None:
+            result["maxAspectRatio"] = from_union([to_float, from_none], self.max_aspect_ratio)
+        if self.max_characters is not None:
+            result["maxCharacters"] = from_union([from_int, from_none], self.max_characters)
+        if self.max_characters_per_item is not None:
+            result["maxCharactersPerItem"] = from_union(
+                [from_int, from_none], self.max_characters_per_item
+            )
+        if self.max_items is not None:
+            result["maxItems"] = from_union([from_int, from_none], self.max_items)
+        if self.max_lines is not None:
+            result["maxLines"] = from_union([from_int, from_none], self.max_lines)
+        if self.metric_gap is not None:
+            result["metricGap"] = from_union([to_float, from_none], self.metric_gap)
+        if self.min_aspect_ratio is not None:
+            result["minAspectRatio"] = from_union([to_float, from_none], self.min_aspect_ratio)
+        if self.min_fill_ratio is not None:
+            result["minFillRatio"] = from_union([to_float, from_none], self.min_fill_ratio)
+        if self.min_font_size is not None:
+            result["minFontSize"] = from_union([to_float, from_none], self.min_font_size)
+        if self.occupancy is not None:
+            result["occupancy"] = from_union(
+                [lambda x: to_enum(Occupancy, x), from_none], self.occupancy
+            )
         if self.overflow is not None:
             result["overflow"] = from_union(
                 [lambda x: to_enum(Overflow, x), from_none], self.overflow
             )
         if self.padding is not None:
             result["padding"] = from_union([to_float, from_none], self.padding)
+        if self.preferred_aspect_ratio is not None:
+            result["preferredAspectRatio"] = from_union(
+                [to_float, from_none], self.preferred_aspect_ratio
+            )
+        if self.role is not None:
+            result["role"] = from_union([lambda x: to_enum(Role, x), from_none], self.role)
+        if self.scale_ladder is not None:
+            result["scaleLadder"] = from_union(
+                [lambda x: from_list(to_float, x), from_none], self.scale_ladder
+            )
+        if self.space_after is not None:
+            result["spaceAfter"] = from_union([to_float, from_none], self.space_after)
+        if self.space_before is not None:
+            result["spaceBefore"] = from_union([to_float, from_none], self.space_before)
         if self.type is not None:
             result["type"] = from_union([lambda x: to_enum(RegionType, x), from_none], self.type)
+        if self.value_style is not None:
+            result["valueStyle"] = from_union(
+                [lambda x: to_class(Style, x), from_none], self.value_style
+            )
         if self.vertical_align is not None:
             result["verticalAlign"] = from_union(
                 [lambda x: to_enum(VerticalAlign, x), from_none], self.vertical_align
@@ -591,11 +952,22 @@ class SlideLayout(DataModelHelper):
     regions: List[Region]
     """The regions making up this layout."""
 
+    density: Optional[Density] = None
+    """Layout capacity and semantic roles (R20): the overall content density this layout is
+    designed for, consumed by the downstream authoring skill for layout selection (not by the
+    renderer). No default -- absence means no declared density class.
+    """
     description: Optional[str] = None
     """Human-readable layout description."""
 
     notes: Optional[str] = None
     """Authoring guidance for agents or presentation generators."""
+
+    purpose: Optional[List[Purpose]] = None
+    """Layout capacity and semantic roles (R20): the communication purpose tag set this layout
+    serves, consumed by the downstream authoring skill for layout selection (not by the
+    renderer). No default -- absence means no declared purpose.
+    """
 
     @classmethod
     def from_dict(cls, obj: Any) -> "SlideLayout":
@@ -604,19 +976,27 @@ class SlideLayout(DataModelHelper):
         id = from_str(obj.get("id"))
         name = from_str(obj.get("name"))
         regions = from_list(Region.from_dict, obj.get("regions"))
+        density = from_union([Density, from_none], obj.get("density"))
         description = from_union([from_str, from_none], obj.get("description"))
         notes = from_union([from_str, from_none], obj.get("notes"))
-        return SlideLayout(id, name, regions, description, notes)
+        purpose = from_union([lambda x: from_list(Purpose, x), from_none], obj.get("purpose"))
+        return SlideLayout(id, name, regions, density, description, notes, purpose)
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         result["id"] = from_str(self.id)
         result["name"] = from_str(self.name)
         result["regions"] = from_list(lambda x: to_class(Region, x), self.regions)
+        if self.density is not None:
+            result["density"] = from_union([lambda x: to_enum(Density, x), from_none], self.density)
         if self.description is not None:
             result["description"] = from_union([from_str, from_none], self.description)
         if self.notes is not None:
             result["notes"] = from_union([from_str, from_none], self.notes)
+        if self.purpose is not None:
+            result["purpose"] = from_union(
+                [lambda x: from_list(lambda x: to_enum(Purpose, x), x), from_none], self.purpose
+            )
         return result
 
 
@@ -654,12 +1034,23 @@ class Defaults(DataModelHelper):
     body_font_size: Optional[float] = None
     """Default body font size in points."""
 
+    font_fallback_stack: Optional[List[str]] = None
+    """Ordered font family fallback stack (R21): the preferred family (fontFamily) followed by
+    acceptable substitutes, most preferred first. No default -- absence means the downstream
+    renderer applies its own fallback and cannot report a substitution against an authored
+    intent.
+    """
     font_family: Optional[str] = None
     """Default font family."""
 
     small_font_size: Optional[float] = None
     """Default small/footer font size in points."""
 
+    substitution_allowed: Optional[bool] = None
+    """Whether the downstream renderer may substitute a font from 'fontFallbackStack' (or its
+    own default) when 'fontFamily' is unavailable at build time (R21). No default -- absence
+    means the renderer decides.
+    """
     title_font_size: Optional[float] = None
     """Default title font size in points."""
 
@@ -668,19 +1059,38 @@ class Defaults(DataModelHelper):
         if not isinstance(obj, dict):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         body_font_size = from_union([from_float, from_none], obj.get("bodyFontSize"))
+        font_fallback_stack = from_union(
+            [lambda x: from_list(from_str, x), from_none], obj.get("fontFallbackStack")
+        )
         font_family = from_union([from_str, from_none], obj.get("fontFamily"))
         small_font_size = from_union([from_float, from_none], obj.get("smallFontSize"))
+        substitution_allowed = from_union([from_bool, from_none], obj.get("substitutionAllowed"))
         title_font_size = from_union([from_float, from_none], obj.get("titleFontSize"))
-        return Defaults(body_font_size, font_family, small_font_size, title_font_size)
+        return Defaults(
+            body_font_size,
+            font_fallback_stack,
+            font_family,
+            small_font_size,
+            substitution_allowed,
+            title_font_size,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         if self.body_font_size is not None:
             result["bodyFontSize"] = from_union([to_float, from_none], self.body_font_size)
+        if self.font_fallback_stack is not None:
+            result["fontFallbackStack"] = from_union(
+                [lambda x: from_list(from_str, x), from_none], self.font_fallback_stack
+            )
         if self.font_family is not None:
             result["fontFamily"] = from_union([from_str, from_none], self.font_family)
         if self.small_font_size is not None:
             result["smallFontSize"] = from_union([to_float, from_none], self.small_font_size)
+        if self.substitution_allowed is not None:
+            result["substitutionAllowed"] = from_union(
+                [from_bool, from_none], self.substitution_allowed
+            )
         if self.title_font_size is not None:
             result["titleFontSize"] = from_union([to_float, from_none], self.title_font_size)
         return result
@@ -811,6 +1221,11 @@ class PresentationMetadata(DataModelHelper):
     description: Optional[str] = None
     """Short description of the presentation purpose."""
 
+    keywords: Optional[str] = None
+    """Document core-property keywords (R22), consumed downstream as the PPTX package's keywords
+    property. No default -- absence means the downstream renderer leaves the property unset
+    rather than inheriting the base template's value.
+    """
     layout_version: Optional[LayoutVersion] = None
     """Identity of the slide layout standard (PresentationSlideLayouts) this deck was authored
     against, recorded so a separate migration tool can later decide whether the deck needs
@@ -843,6 +1258,7 @@ class PresentationMetadata(DataModelHelper):
         title = from_str(obj.get("title"))
         defaults = from_union([Defaults.from_dict, from_none], obj.get("defaults"))
         description = from_union([from_str, from_none], obj.get("description"))
+        keywords = from_union([from_str, from_none], obj.get("keywords"))
         layout_version = from_union([LayoutVersion.from_dict, from_none], obj.get("layoutVersion"))
         subtitle = from_union([from_str, from_none], obj.get("subtitle"))
         tags = from_union([lambda x: from_list(from_str, x), from_none], obj.get("tags"))
@@ -856,6 +1272,7 @@ class PresentationMetadata(DataModelHelper):
             title,
             defaults,
             description,
+            keywords,
             layout_version,
             subtitle,
             tags,
@@ -876,6 +1293,8 @@ class PresentationMetadata(DataModelHelper):
             )
         if self.description is not None:
             result["description"] = from_union([from_str, from_none], self.description)
+        if self.keywords is not None:
+            result["keywords"] = from_union([from_str, from_none], self.keywords)
         if self.layout_version is not None:
             result["layoutVersion"] = from_union(
                 [lambda x: to_class(LayoutVersion, x), from_none], self.layout_version
@@ -893,6 +1312,16 @@ class PresentationMetadata(DataModelHelper):
         return result
 
 
+class BulletStyle(Enum):
+    """Bullet marker style for a 'bullets' block (R16). No default -- absence means the renderer
+    chooses, rather than a marker being silently inferred from text.
+    """
+
+    DASH = "dash"
+    DISC = "disc"
+    NONE = "none"
+
+
 class ChartKind(Enum):
     """Chart kind for a 'chart' block. Placeholder set; an arm is added only once it is
     renderable downstream.
@@ -900,6 +1329,241 @@ class ChartKind(Enum):
 
     BAR = "bar"
     LINE = "line"
+
+
+@dataclass
+class DiagramClassRole(DataModelHelper):
+    """Semantic color roles bound to a custom Mermaid node-class name (R19): fill, border, and
+    text, each a themeColorRef (R4) address, never a literal.
+    """
+
+    border: Optional[ThemeColorRef] = None
+    """Border color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+    """
+    fill: Optional[ThemeColorRef] = None
+    """Fill color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+    """
+    text: Optional[ThemeColorRef] = None
+    """Text color role for nodes carrying this class. No default -- absence means the renderer
+    chooses.
+    """
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "DiagramClassRole":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        border = from_union([ThemeColorRef, from_none], obj.get("border"))
+        fill = from_union([ThemeColorRef, from_none], obj.get("fill"))
+        text = from_union([ThemeColorRef, from_none], obj.get("text"))
+        return DiagramClassRole(border, fill, text)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.border is not None:
+            result["border"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.border
+            )
+        if self.fill is not None:
+            result["fill"] = from_union([lambda x: to_enum(ThemeColorRef, x), from_none], self.fill)
+        if self.text is not None:
+            result["text"] = from_union([lambda x: to_enum(ThemeColorRef, x), from_none], self.text)
+        return result
+
+
+class ThemeBinding(Enum):
+    """Whether this diagram's colors resolve against the active PresentationColorTheme
+    ('themed') or are an intentional, inspectable literal-color opt-out ('fixed'). No
+    schema-declared default -- absence means 'themed' (documented here rather than declared
+    as a JSON Schema default, per R12, to avoid a second semver bump).
+    """
+
+    FIXED = "fixed"
+    THEMED = "themed"
+
+
+@dataclass
+class DiagramStyle(DataModelHelper):
+    """Semantic diagram style for a 'mermaid' block (R19): diagram colors expressed as semantic
+    theme references, never CSS/hex literals. No default -- absence means the renderer
+    applies no diagram-specific theming.
+
+    Semantic diagram color roles and node-class bindings for a 'mermaid' block (R19). Every
+    color-role value is a themeColorRef (R4) -- a semantic address into
+    PresentationColorTheme -- never a literal CSS/hex string, so an intentional literal-color
+    diagram must go through the explicit 'fixed' themeBinding opt-out rather than a raw value
+    here. Resolving these references into a concrete diagram configuration (e.g. mermaid
+    themeVariables) is a downstream concern; this repository owns only the typed shape and
+    the reference enumeration.
+    """
+
+    background: Optional[ThemeColorRef] = None
+    """Diagram canvas background color role. No default -- absence means the renderer chooses."""
+
+    border: Optional[ThemeColorRef] = None
+    """Node and edge border color role. No default -- absence means the renderer chooses."""
+
+    class_roles: Optional[Dict[str, DiagramClassRole]] = None
+    """Bounded map from a custom Mermaid node-class name (as used in the diagram source's
+    classDef) to semantic role colors (R19). Keys are author-chosen class names; values are
+    the bounded diagramClassRole shape -- never free-form string interpolation.
+    """
+    error: Optional[ThemeColorRef] = None
+    """Semantic error/failure state color role. No default -- absence means the renderer chooses."""
+
+    line: Optional[ThemeColorRef] = None
+    """Edge/connector line color role. No default -- absence means the renderer chooses."""
+
+    primary_fill: Optional[ThemeColorRef] = None
+    """Primary node fill color role. No default -- absence means the renderer chooses."""
+
+    secondary_fill: Optional[ThemeColorRef] = None
+    """Secondary node fill color role. No default -- absence means the renderer chooses."""
+
+    success: Optional[ThemeColorRef] = None
+    """Semantic success/healthy state color role. No default -- absence means the renderer
+    chooses.
+    """
+    tertiary_fill: Optional[ThemeColorRef] = None
+    """Tertiary node fill color role. No default -- absence means the renderer chooses."""
+
+    text: Optional[ThemeColorRef] = None
+    """Diagram text color role. No default -- absence means the renderer chooses."""
+
+    theme_binding: Optional[ThemeBinding] = None
+    """Whether this diagram's colors resolve against the active PresentationColorTheme
+    ('themed') or are an intentional, inspectable literal-color opt-out ('fixed'). No
+    schema-declared default -- absence means 'themed' (documented here rather than declared
+    as a JSON Schema default, per R12, to avoid a second semver bump).
+    """
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "DiagramStyle":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        background = from_union([ThemeColorRef, from_none], obj.get("background"))
+        border = from_union([ThemeColorRef, from_none], obj.get("border"))
+        class_roles = from_union(
+            [lambda x: from_dict(DiagramClassRole.from_dict, x), from_none], obj.get("classRoles")
+        )
+        error = from_union([ThemeColorRef, from_none], obj.get("error"))
+        line = from_union([ThemeColorRef, from_none], obj.get("line"))
+        primary_fill = from_union([ThemeColorRef, from_none], obj.get("primaryFill"))
+        secondary_fill = from_union([ThemeColorRef, from_none], obj.get("secondaryFill"))
+        success = from_union([ThemeColorRef, from_none], obj.get("success"))
+        tertiary_fill = from_union([ThemeColorRef, from_none], obj.get("tertiaryFill"))
+        text = from_union([ThemeColorRef, from_none], obj.get("text"))
+        theme_binding = from_union([ThemeBinding, from_none], obj.get("themeBinding"))
+        return DiagramStyle(
+            background,
+            border,
+            class_roles,
+            error,
+            line,
+            primary_fill,
+            secondary_fill,
+            success,
+            tertiary_fill,
+            text,
+            theme_binding,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.background is not None:
+            result["background"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.background
+            )
+        if self.border is not None:
+            result["border"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.border
+            )
+        if self.class_roles is not None:
+            result["classRoles"] = from_union(
+                [lambda x: from_dict(lambda x: to_class(DiagramClassRole, x), x), from_none],
+                self.class_roles,
+            )
+        if self.error is not None:
+            result["error"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.error
+            )
+        if self.line is not None:
+            result["line"] = from_union([lambda x: to_enum(ThemeColorRef, x), from_none], self.line)
+        if self.primary_fill is not None:
+            result["primaryFill"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.primary_fill
+            )
+        if self.secondary_fill is not None:
+            result["secondaryFill"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.secondary_fill
+            )
+        if self.success is not None:
+            result["success"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.success
+            )
+        if self.tertiary_fill is not None:
+            result["tertiaryFill"] = from_union(
+                [lambda x: to_enum(ThemeColorRef, x), from_none], self.tertiary_fill
+            )
+        if self.text is not None:
+            result["text"] = from_union([lambda x: to_enum(ThemeColorRef, x), from_none], self.text)
+        if self.theme_binding is not None:
+            result["themeBinding"] = from_union(
+                [lambda x: to_enum(ThemeBinding, x), from_none], self.theme_binding
+            )
+        return result
+
+
+class Fit(Enum):
+    """Media fit mode for 'image' and 'mermaid' blocks (R18): how intrinsic media dimensions map
+    into the layout region. 'contain' scales to fit entirely inside the region without
+    cropping or distortion; 'cover' scales to fully fill the region, cropping the overflow
+    (optionally guided by 'focalPoint'); 'fitWidth'/'fitHeight' scale to match one region
+    dimension exactly, allowing the other to overflow or underflow. Declares 'contain' as the
+    default so the downstream renderer never has to choose one for either block type. The
+    schema carries geometry intent only; fit geometry and placement live downstream.
+    """
+
+    CONTAIN = "contain"
+    COVER = "cover"
+    FIT_HEIGHT = "fitHeight"
+    FIT_WIDTH = "fitWidth"
+
+
+@dataclass
+class FocalPoint(DataModelHelper):
+    """Focal point guiding 'cover' fit cropping for 'image' and 'mermaid' blocks (R18). No
+    default -- absence means the geometric center.
+
+    Normalized focal point within an 'image' or 'mermaid' block's intrinsic media, used to
+    bias 'cover' fit cropping toward a specific area (R18), e.g. a face off-center in a photo.
+    """
+
+    x: Optional[float] = None
+    """Horizontal focal point as a fraction of intrinsic width, 0 (left) to 1 (right). No
+    default -- absence means centered (0.5).
+    """
+    y: Optional[float] = None
+    """Vertical focal point as a fraction of intrinsic height, 0 (top) to 1 (bottom). No default
+    -- absence means centered (0.5).
+    """
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> "FocalPoint":
+        if not isinstance(obj, dict):
+            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
+        x = from_union([from_float, from_none], obj.get("x"))
+        y = from_union([from_float, from_none], obj.get("y"))
+        return FocalPoint(x, y)
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.x is not None:
+            result["x"] = from_union([to_float, from_none], self.x)
+        if self.y is not None:
+            result["y"] = from_union([to_float, from_none], self.y)
+        return result
 
 
 @dataclass
@@ -968,62 +1632,6 @@ class ChartSeries(DataModelHelper):
 
 
 @dataclass
-class Style(DataModelHelper):
-    """Optional style overrides for this content block."""
-
-    align: Optional[Align] = None
-    """Horizontal text alignment."""
-
-    bold: Optional[bool] = None
-    """Whether the content renders bold."""
-
-    color: Optional[ThemeColorRef] = None
-    """Semantic color resolved from PresentationColorTheme."""
-
-    font_size: Optional[float] = None
-    """Font size override in points."""
-
-    @classmethod
-    def from_dict(cls, obj: Any) -> "Style":
-        if not isinstance(obj, dict):
-            raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
-        align = from_union([Align, from_none], obj.get("align"))
-        bold = from_union([from_bool, from_none], obj.get("bold"))
-        color = from_union([ThemeColorRef, from_none], obj.get("color"))
-        font_size = from_union([from_float, from_none], obj.get("fontSize"))
-        return Style(align, bold, color, font_size)
-
-    def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        if self.align is not None:
-            result["align"] = from_union([lambda x: to_enum(Align, x), from_none], self.align)
-        if self.bold is not None:
-            result["bold"] = from_union([from_bool, from_none], self.bold)
-        if self.color is not None:
-            result["color"] = from_union(
-                [lambda x: to_enum(ThemeColorRef, x), from_none], self.color
-            )
-        if self.font_size is not None:
-            result["fontSize"] = from_union([to_float, from_none], self.font_size)
-        return result
-
-
-class ContentType(Enum):
-    """Content block kind. Each arm has a payload capable of expressing it and a renderer
-    capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
-    diagram source with no renderer yet (see 'mermaidSource').
-    """
-
-    BULLETS = "bullets"
-    CHART = "chart"
-    IMAGE = "image"
-    MERMAID = "mermaid"
-    METRIC = "metric"
-    TABLE = "table"
-    TEXT = "text"
-
-
-@dataclass
 class ContentBlock(DataModelHelper):
     """A single piece of slide content placed into a named layout region."""
 
@@ -1036,9 +1644,27 @@ class ContentBlock(DataModelHelper):
     capable of drawing it, except 'mermaid': a schema-only nucleation point that stores
     diagram source with no renderer yet (see 'mermaidSource').
     """
+    alt_text: Optional[str] = None
+    """Accessible text description for 'image' and 'mermaid' blocks (R21), e.g. a photo's
+    content or a diagram's summary. No default -- absence means the downstream renderer has
+    no accessible description to set; this repository only stores the value.
+    """
+    bullet_hanging_indent: Optional[List[float]] = None
+    """Hanging indent in pixels per bullet level, one entry per level 0-4 (R16): offsets wrapped
+    lines relative to the marker so wrapped text aligns under the first character, not the
+    marker. No default -- absence means no explicit per-level hanging indent.
+    """
+    bullet_indent: Optional[List[float]] = None
+    """Paragraph indent in pixels per bullet level, one entry per level 0-4 (R16). No default --
+    absence means no explicit per-level indent.
+    """
     bullet_levels: Optional[List[int]] = None
     """Optional indent level per entry in 'items', 0 (outermost) to 4. Shorter than 'items'
     leaves the remaining bullets at level 0.
+    """
+    bullet_style: Optional[BulletStyle] = None
+    """Bullet marker style for a 'bullets' block (R16). No default -- absence means the renderer
+    chooses, rather than a marker being silently inferred from text.
     """
     categories: Optional[List[str]] = None
     """Shared x-axis category labels for a 'chart' block."""
@@ -1050,6 +1676,24 @@ class ContentBlock(DataModelHelper):
     delta: Optional[str] = None
     """Optional change indicator for a 'metric' block, e.g. '+3.1pp QoQ'. Empty when the metric
     shows no comparison.
+    """
+    diagram_style: Optional[DiagramStyle] = None
+    """Semantic diagram style for a 'mermaid' block (R19): diagram colors expressed as semantic
+    theme references, never CSS/hex literals. No default -- absence means the renderer
+    applies no diagram-specific theming.
+    """
+    fit: Optional[Fit] = None
+    """Media fit mode for 'image' and 'mermaid' blocks (R18): how intrinsic media dimensions map
+    into the layout region. 'contain' scales to fit entirely inside the region without
+    cropping or distortion; 'cover' scales to fully fill the region, cropping the overflow
+    (optionally guided by 'focalPoint'); 'fitWidth'/'fitHeight' scale to match one region
+    dimension exactly, allowing the other to overflow or underflow. Declares 'contain' as the
+    default so the downstream renderer never has to choose one for either block type. The
+    schema carries geometry intent only; fit geometry and placement live downstream.
+    """
+    focal_point: Optional[FocalPoint] = None
+    """Focal point guiding 'cover' fit cropping for 'image' and 'mermaid' blocks (R18). No
+    default -- absence means the geometric center.
     """
     headers: Optional[List[str]] = None
     """Optional column headers for a 'table' block. Empty for a headerless table."""
@@ -1096,14 +1740,25 @@ class ContentBlock(DataModelHelper):
             raise TypeError(f"Expected dict, got {obj.__class__.__name__}")
         region = from_str(obj.get("region"))
         type = ContentType(obj.get("type"))
+        alt_text = from_union([from_str, from_none], obj.get("altText"))
+        bullet_hanging_indent = from_union(
+            [lambda x: from_list(from_float, x), from_none], obj.get("bulletHangingIndent")
+        )
+        bullet_indent = from_union(
+            [lambda x: from_list(from_float, x), from_none], obj.get("bulletIndent")
+        )
         bullet_levels = from_union(
             [lambda x: from_list(from_int, x), from_none], obj.get("bulletLevels")
         )
+        bullet_style = from_union([BulletStyle, from_none], obj.get("bulletStyle"))
         categories = from_union(
             [lambda x: from_list(from_str, x), from_none], obj.get("categories")
         )
         chart_kind = from_union([ChartKind, from_none], obj.get("chartKind"))
         delta = from_union([from_str, from_none], obj.get("delta"))
+        diagram_style = from_union([DiagramStyle.from_dict, from_none], obj.get("diagramStyle"))
+        fit = from_union([Fit, from_none], obj.get("fit"))
+        focal_point = from_union([FocalPoint.from_dict, from_none], obj.get("focalPoint"))
         headers = from_union([lambda x: from_list(from_str, x), from_none], obj.get("headers"))
         items = from_union([lambda x: from_list(from_str, x), from_none], obj.get("items"))
         label = from_union([from_str, from_none], obj.get("label"))
@@ -1122,10 +1777,17 @@ class ContentBlock(DataModelHelper):
         return ContentBlock(
             region,
             type,
+            alt_text,
+            bullet_hanging_indent,
+            bullet_indent,
             bullet_levels,
+            bullet_style,
             categories,
             chart_kind,
             delta,
+            diagram_style,
+            fit,
+            focal_point,
             headers,
             items,
             label,
@@ -1143,9 +1805,23 @@ class ContentBlock(DataModelHelper):
         result: dict[str, Any] = {}
         result["region"] = from_str(self.region)
         result["type"] = to_enum(ContentType, self.type)
+        if self.alt_text is not None:
+            result["altText"] = from_union([from_str, from_none], self.alt_text)
+        if self.bullet_hanging_indent is not None:
+            result["bulletHangingIndent"] = from_union(
+                [lambda x: from_list(to_float, x), from_none], self.bullet_hanging_indent
+            )
+        if self.bullet_indent is not None:
+            result["bulletIndent"] = from_union(
+                [lambda x: from_list(to_float, x), from_none], self.bullet_indent
+            )
         if self.bullet_levels is not None:
             result["bulletLevels"] = from_union(
                 [lambda x: from_list(from_int, x), from_none], self.bullet_levels
+            )
+        if self.bullet_style is not None:
+            result["bulletStyle"] = from_union(
+                [lambda x: to_enum(BulletStyle, x), from_none], self.bullet_style
             )
         if self.categories is not None:
             result["categories"] = from_union(
@@ -1157,6 +1833,16 @@ class ContentBlock(DataModelHelper):
             )
         if self.delta is not None:
             result["delta"] = from_union([from_str, from_none], self.delta)
+        if self.diagram_style is not None:
+            result["diagramStyle"] = from_union(
+                [lambda x: to_class(DiagramStyle, x), from_none], self.diagram_style
+            )
+        if self.fit is not None:
+            result["fit"] = from_union([lambda x: to_enum(Fit, x), from_none], self.fit)
+        if self.focal_point is not None:
+            result["focalPoint"] = from_union(
+                [lambda x: to_class(FocalPoint, x), from_none], self.focal_point
+            )
         if self.headers is not None:
             result["headers"] = from_union(
                 [lambda x: from_list(from_str, x), from_none], self.headers

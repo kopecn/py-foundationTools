@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Mechanism/Classification-schema.json",
+  "title": "Classification",
+  "type": "object",
+  "description": "Descriptive, non-exclusive classification. Multiple architectures/functions/tags may apply simultaneously; none of these values gate which structural fields (bodies/joints/constraints/...) are usable.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "A human-readable name for this classification (e.g. \"Stewart Platform\")."
+    },
+    "topology": {
+      "type": "string",
+      "enum": ["open_chain", "closed_chain", "parallel", "hybrid", "composite"],
+      "description": "The mechanism's high-level kinematic topology."
+    },
+    "architecture": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Extensible; a composite mechanism may list multiple architectures (e.g. [\"parallel\", \"serial\"])."
+    },
+    "functions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Extensible functional roles (e.g. \"manipulator\")."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Extensible free-form tags (e.g. \"gimbal\", \"wrist\")."
+    }
+  },
+  "additionalProperties": false
+}

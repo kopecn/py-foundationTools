@@ -1,22 +1,28 @@
 ---
 spec: SocketTransact
 scope: project
-status: implemented
+status: superseded
+superseded_by: threadedSocketTransaction.md
 applies_to: src/foundation_tools/socket_transaction/
-last_updated: 2026-07-05
-semver: 0.4.0
+last_updated: 2026-09-13
+semver: 0.6.2
 author: Nicholas Bergantz
 ---
 
 # Socket Transaction Transport Layer Specification
 
-> **Status — implemented.** All layers described below — the raw transport, the
-> framing codecs, the transaction router, and both the client (`SocketTransact`)
-> and server (`SocketTransactServer`) facades — are implemented in
-> `foundation_tools/socket_transaction/`: an **asyncio-native**, long-lived-connection
-> counterpart to the process-transaction family. It supersedes an earlier
+> **Superseded on 2026-09-12.** The accepted replacement contract is [threadedSocketTransaction.md](threadedSocketTransaction.md) and its linked transport, protocol, and facade specifications. The breaking cutover (Action Plan 25, chunk 16) has been executed: `src/foundation_tools/socket_transaction/` now implements only the threaded contract. This document retains the asyncio-era contract as implementation history only.
+
+> **Status — historical (asyncio-era; superseded, see above).** All layers
+> described below — the raw transport, the framing codecs, the transaction
+> router, and both the client (`SocketTransact`) and server
+> (`SocketTransactServer`) facades — were implemented in
+> `foundation_tools/socket_transaction/` as an **asyncio-native**,
+> long-lived-connection counterpart to the process-transaction family, and have
+> since been deleted by the Action Plan 25 cutover. It superseded an earlier
 > thread-driven draft; the thread/callback model was intentionally replaced by
-> asyncio primitives (see [Learned Behaviors](#learned-behaviors)).
+> asyncio primitives (see [Learned Behaviors](#learned-behaviors)) before this
+> whole contract was itself superseded by the threaded replacement.
 >
 > This is the stream-transport family of the umbrella
 > [transport_transaction_architecture.md](transport_transaction_architecture.md);
@@ -100,7 +106,7 @@ idea of the original draft, recast from callback threads to async streams.)
 
 # Layer 1 — SocketByteTransport
 
-Status: Implemented (`socket_byte_transport.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`socket_byte_transport.py`)
 
 An asyncio TCP client implementing `foundation_abc.PeripheralByteTransport`
 (`connect` / `disconnect` / `send` / `receive` / `is_connected`, plus the async
@@ -131,7 +137,7 @@ Guarantees:
 
 # Layer 2 — Framing Codecs
 
-Status: Implemented (`framing_codecs.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`framing_codecs.py`)
 
 A codec converts between a byte stream and discrete frames. Codecs are pluggable
 behind one protocol (structural typing / `typing.Protocol`):
@@ -176,7 +182,7 @@ Bridge** section of
 
 # Layer 3 — Transaction Router
 
-Status: Implemented (`transaction_router.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`transaction_router.py`)
 
 The router owns the single reader task and correlates request/response traffic.
 
@@ -254,7 +260,7 @@ Invariants:
 
 # Layer 4 — SocketTransact (public facade)
 
-Status: Implemented (`socketTransact.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`socketTransact.py`)
 
 `SocketTransact` is the only class end users need. It mirrors the process family's
 ethos: minimal surface, result objects, no exceptions on the transaction surface.
@@ -321,7 +327,7 @@ class SocketTransactResult:
 
 # Layer 4b — SocketTransactServer (server role)
 
-Status: Implemented (`socketTransactServer.py`)
+Status: Historical — implemented, then deleted by the Action Plan 25 cutover (`socketTransactServer.py`)
 
 `SocketTransactServer` is the server-side counterpart of `SocketTransact`: it
 accepts connections, services **plural inbound requests simultaneously**, and feeds
@@ -401,6 +407,48 @@ A compliant `SocketTransactServer` MUST:
 6. support `None` handler returns (no reply) and `broadcast` for uncorrelated push
 7. cancel in-flight handler tasks and close connections on teardown
 8. add zero external runtime dependencies (stdlib only)
+
+---
+
+# Lifecycle & resource ownership
+
+Records the bare-bones lifecycle decision made on 2026-09-05 and implemented under
+fix-12. Automatic reconnect and cross-dropout upper-layer continuity are
+**explicitly out of scope** here — deferred to a future scoping effort for a real
+state-machine handler.
+
+Every stateful component (`SocketByteTransport`, `TransactionRouter`,
+`SocketTransact`, `SocketTransactServer`) is **manually re-usable** across a single
+two-state model, shared via `socket_transaction/_lifecycle.py`:
+
+```
+IDLE  <->  ACTIVE
+```
+
+- **`IDLE → ACTIVE`** — `connect()` / `start()` acquires a live resource (raw socket
+  handle, reader task, or `asyncio` server).
+- **`ACTIVE → IDLE`** — an explicit `disconnect()` / `stop()` tears the resource
+  down and clears in-flight state (pending futures, buffered frames) while
+  **retaining construction configuration**, so the same instance may be activated
+  again.
+- **`ACTIVE → connect()/start()` again** — **raises `RuntimeError`.** A live socket
+  or server is never silently replaced (`SocketByteTransport.connect`,
+  `SocketTransact.connect`, `SocketTransactServer.start`).
+- **`IDLE → disconnect()`** — a no-op.
+
+The **raw socket handle is destroy-and-recreate**: a closed Python socket is never
+restarted; the next `connect()` opens a fresh handle. The **router is restartable** —
+`start()` is idempotent while a reader is actually running, but after a reader
+finishes (explicit `stop()` or a detected connection loss) `start()` opens a fresh
+epoch, resetting the closed flag, the pending map, and the unsolicited queue.
+
+**Dependency defaults use `is None`,** never truthiness — a valid falsy or
+zero-configured injected object is never mistaken for "unset".
+
+**Numeric configuration is validated at construction** (raises `ValueError`):
+`connect_timeout`, `read_size`, `poll_timeout` must be `> 0`; `unsolicited_maxsize`
+`>= 1`; `max_concurrent` is `None` (unbounded) or `>= 1` — an explicit `0` is
+rejected rather than silently meaning "unbounded".
 
 ---
 

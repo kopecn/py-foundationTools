@@ -13,6 +13,16 @@ def _load(name: str) -> dict[str, Any]:
         return result
 
 
+def _assert_optional_and_default_free(
+    definition: dict[str, Any], field_names: tuple[str, ...]
+) -> None:
+    required = definition.get("required", [])
+    properties = definition["properties"]
+    for field_name in field_names:
+        assert field_name not in required
+        assert "default" not in properties[field_name]
+
+
 def test_no_layout_library_key_anywhere() -> None:
     for path in SCHEMA_DIR.glob("*.json"):
         text = path.read_text(encoding="utf-8")
@@ -168,6 +178,122 @@ def test_metadata_theme_and_layout_version_identity_present_and_optional() -> No
         assert set(block["properties"]) == {"id", "version"}
         assert block["properties"]["id"]["type"] == "string"
         assert block["properties"]["version"]["type"] == "string"
+
+
+def test_r15_responsive_fit_budget_schema_contract() -> None:
+    layouts = _load("PresentationSlideLayouts-schema.json")
+    region = layouts["definitions"]["region"]
+    properties = region["properties"]
+
+    assert "shrink" in properties["overflow"]["enum"]
+    assert properties["maxLines"]["minimum"] == 1
+    assert properties["scaleLadder"]["items"]["type"] == "number"
+    _assert_optional_and_default_free(region, ("minFontSize", "maxLines", "scaleLadder"))
+
+
+def test_r16_bullet_and_paragraph_typography_schema_contract() -> None:
+    deck = _load("PresentationDeck-schema.json")
+    content_block = deck["definitions"]["contentBlock"]
+    block_properties = content_block["properties"]
+    assert block_properties["bulletStyle"]["enum"] == ["disc", "dash", "none"]
+    for field_name in ("bulletIndent", "bulletHangingIndent"):
+        field = block_properties[field_name]
+        assert field["items"]["minimum"] == 0
+        assert field["maxItems"] == 5
+    _assert_optional_and_default_free(
+        content_block, ("bulletStyle", "bulletIndent", "bulletHangingIndent")
+    )
+
+    layouts = _load("PresentationSlideLayouts-schema.json")
+    region = layouts["definitions"]["region"]
+    for field_name in ("lineSpacing", "spaceBefore", "spaceAfter"):
+        assert region["properties"][field_name]["minimum"] == 0
+    _assert_optional_and_default_free(region, ("lineSpacing", "spaceBefore", "spaceAfter"))
+
+
+def test_r17_metric_style_roles_schema_contract() -> None:
+    layouts = _load("PresentationSlideLayouts-schema.json")
+    region = layouts["definitions"]["region"]
+    properties = region["properties"]
+    style_ref = "PresentationDeck-schema.json#/definitions/contentBlock/properties/style"
+    for field_name in ("valueStyle", "labelStyle", "deltaStyle"):
+        assert properties[field_name]["$ref"] == style_ref
+    assert properties["metricGap"]["minimum"] == 0
+    for field_name in ("labelPermitted", "deltaPermitted"):
+        assert properties[field_name]["type"] == "boolean"
+    _assert_optional_and_default_free(
+        region,
+        (
+            "valueStyle",
+            "labelStyle",
+            "deltaStyle",
+            "metricGap",
+            "labelPermitted",
+            "deltaPermitted",
+        ),
+    )
+
+
+def test_r18_media_fit_and_region_aspect_schema_contract() -> None:
+    deck = _load("PresentationDeck-schema.json")
+    content_block = deck["definitions"]["contentBlock"]
+    block_properties = content_block["properties"]
+    assert block_properties["fit"]["enum"] == ["contain", "cover", "fitWidth", "fitHeight"]
+    assert block_properties["fit"]["default"] == "contain"
+    assert "fit" not in content_block.get("required", [])
+    _assert_optional_and_default_free(content_block, ("focalPoint",))
+
+    focal_point = deck["definitions"]["focalPoint"]
+    for axis in ("x", "y"):
+        assert focal_point["properties"][axis]["minimum"] == 0
+        assert focal_point["properties"][axis]["maximum"] == 1
+    _assert_optional_and_default_free(focal_point, ("x", "y"))
+
+    layouts = _load("PresentationSlideLayouts-schema.json")
+    region = layouts["definitions"]["region"]
+    properties = region["properties"]
+    for field_name in ("preferredAspectRatio", "minAspectRatio", "maxAspectRatio"):
+        assert properties[field_name]["exclusiveMinimum"] == 0
+    assert properties["minFillRatio"]["minimum"] == 0
+    assert properties["minFillRatio"]["maximum"] == 1
+    _assert_optional_and_default_free(
+        region,
+        ("preferredAspectRatio", "minAspectRatio", "maxAspectRatio", "minFillRatio"),
+    )
+
+
+def test_r20_layout_capacity_schema_contract() -> None:
+    layouts = _load("PresentationSlideLayouts-schema.json")
+    region = layouts["definitions"]["region"]
+    properties = region["properties"]
+    assert properties["allowedContentTypes"]["items"]["$ref"] == (
+        "PresentationDeck-schema.json#/definitions/contentBlock/properties/type"
+    )
+    assert properties["occupancy"]["enum"] == ["required", "recommended", "optional"]
+    capacity_fields = ("maxLines", "maxCharacters", "maxItems", "maxCharactersPerItem")
+    for field_name in capacity_fields:
+        assert properties[field_name]["minimum"] == 1
+    _assert_optional_and_default_free(
+        region, ("allowedContentTypes", "occupancy", *capacity_fields)
+    )
+
+
+def test_r21_r22_accessibility_portability_and_metadata_schema_contract() -> None:
+    deck = _load("PresentationDeck-schema.json")
+    content_block = deck["definitions"]["contentBlock"]
+    assert content_block["properties"]["altText"]["type"] == "string"
+    _assert_optional_and_default_free(content_block, ("altText",))
+
+    metadata = _load("PresentationMetadata-schema.json")
+    defaults = metadata["properties"]["defaults"]
+    default_properties = defaults["properties"]
+    assert default_properties["fontFallbackStack"]["type"] == "array"
+    assert default_properties["fontFallbackStack"]["items"]["type"] == "string"
+    assert default_properties["substitutionAllowed"]["type"] == "boolean"
+    _assert_optional_and_default_free(defaults, ("fontFallbackStack", "substitutionAllowed"))
+
+    assert metadata["properties"]["keywords"]["type"] == "string"
+    _assert_optional_and_default_free(metadata, ("keywords",))
 
 
 if __name__ == "__main__":

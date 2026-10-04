@@ -38,6 +38,23 @@ def to_class(c: type[DMH], x: Any) -> dict[str, Any]:
     return x.to_dict()
 
 
+def to_class_abc(c: type[Any], x: Any) -> dict[str, Any]:
+    """Serialize a value held behind a structural protocol.
+
+    Unlike :func:`to_class`, ``c`` is a ``typing.Protocol`` describing a shape,
+    not a ``DataModelHelper`` subclass. Any object satisfying the protocol — the
+    default carrier or a caller's own implementation — is accepted, and its
+    ``to_dict()`` result is returned. ``c`` must be ``@runtime_checkable`` for the
+    isinstance guard; the protocol declares ``to_dict``, so the call is safe.
+    """
+    if not isinstance(x, c):
+        raise TypeError(f"Expected {c.__name__}, got {type(x).__name__}")
+    result = x.to_dict()
+    if not isinstance(result, dict):
+        raise TypeError(f"{c.__name__}.to_dict() must return a dict, got {type(result).__name__}")
+    return result
+
+
 def from_dict(f: Callable[[Any], T], x: Any) -> dict[str, T]:
     if not isinstance(x, dict):
         raise TypeError(f"Expected dict, got {type(x).__name__}")

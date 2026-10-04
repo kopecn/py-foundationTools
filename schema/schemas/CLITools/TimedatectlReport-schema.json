@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "TimedatectlReport",
+  "description": "timedatectl status as `key: value` fields (clock and time sync state).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entries",
+    "raw"
+  ],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TimedatectlReportEntry"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside fields."
+    }
+  },
+  "definitions": {
+    "TimedatectlReportEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

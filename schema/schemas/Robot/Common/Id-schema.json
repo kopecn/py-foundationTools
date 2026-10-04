@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Common/Id-schema.json",
+  "title": "Id",
+  "type": "string",
+  "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$",
+  "description": "A stable identifier, unique within the enclosing collection. Global uniqueness across a repository/collection is an application concern, not enforced by this schema."
+}

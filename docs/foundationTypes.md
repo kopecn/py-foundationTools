@@ -131,17 +131,18 @@ All under `foundationTypes/`, all subclassing `DataModelHelper`:
 | Package | Contents |
 |---|---|
 | `commonTypes/` | `GeoCoordinate`, `ModelContextProtocol`, and `disk_usage/` (`DiskUsage` + hand-written `wire_config.py`) |
-| `mathTypes/` | concrete Math-domain `DataModelHelper` models; independent structural protocols live in [foundation_abc](foundation_abc.md) |
+| `mathTypes/` | concrete Math-domain `DataModelHelper` models; independent structural protocols live in [foundation_abc](foundation_abc.md) and are the shared interface other domains reuse (e.g. `automationTypes/` types its geometry fields to them) |
 | `cvTypes/` | `ChArUcoConfig` (computer-vision calibration board config) |
 | `standardizedLoggerConfig/` | `StandardizedLoggerConfig`, consumed by the logger in [foundation_tools](foundation_tools.md#standardizedlogger) |
 | `presentationTypes/` | the Presentations schema: `PresentationColorTheme`, `SlideLayout`, `Region`, `PresentationSlideLayouts`, and more — resolved by the `foundation_tools/presentation/` helpers |
+| `automationTypes/` | `RobotConfig` (`MechanismDefinition` and friends) — a recursive, compositional robot/mechanism schema; positions/poses reuse the Math canonical types, typed to the `foundation_abc.math` protocols (see [automationTypes doc](automationTypes.md) and [`.claude/specs/mathTypeTiers.md`](../.claude/specs/mathTypeTiers.md)) |
 
 ### The `wire_config.py` sibling pattern
 
-A model that needs hand-written wire behavior lives in **its own subfolder** next to a `wire_config.py`, rather than editing the generated `.py`. The folder's `__init__.py` imports `wire_config` for its side effect, so the wiring activates on any import. `commonTypes/disk_usage/` is the canonical shape:
+A model that needs hand-written wire behavior lives in **its own subfolder** next to a `wire_config.py`, rather than editing the generated `.py`. The folder's `__init__.py` imports `wire_config` for its side effect, so the wiring activates on any import. `commonTypes/cli_types/disk_usage/` is the canonical shape:
 
 ```
-commonTypes/disk_usage/
+commonTypes/cli_types/disk_usage/
 ├── __init__.py        # imports wire_config for its side effect
 ├── DiskUsage.py       # GENERATED — do not hand-edit
 └── wire_config.py     # hand-written: assigns wire_encode / wire_decode / wire_invoke

@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "TailscaleStatusReport",
+  "description": "Tailscale backend/peer state (tailscale status --json), fed through as a structured object.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["response"],
+  "properties": {
+    "response": {
+      "type": "object",
+      "description": "The tool's JSON output, parsed and fed through unchanged."
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Constraints/Constraint-schema.json",
+  "title": "Constraint",
+  "type": "object",
+  "description": "A generic, extensible constraint. This schema describes constraints; it does not evaluate them mathematically.",
+  "required": ["id", "type"],
+  "properties": {
+    "id": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Stable identifier for this constraint."
+    },
+    "type": {
+      "type": "string",
+      "description": "Recommended values: loop_closure, coincident, fixed_distance, fixed_orientation. Additional application-defined constraint types are permitted."
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "$ref": "../Common/Id-schema.json"
+      },
+      "description": "Ids of the bodies, frames, or other entities this constraint relates."
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Constraint-specific numeric or configuration data (e.g. a fixed_distance value)."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this constraint."
+    }
+  },
+  "additionalProperties": false
+}

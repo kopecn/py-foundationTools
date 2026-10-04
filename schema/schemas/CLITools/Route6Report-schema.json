@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "Route6Report",
+  "description": "IPv6 routes from `ip -6 route show`; fields best-effort, full line retained.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rows",
+    "raw"
+  ],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Route6ReportRow"
+      }
+    },
+    "raw": {
+      "type": "string",
+      "description": "Verbatim stdout, retained alongside rows."
+    }
+  },
+  "definitions": {
+    "Route6ReportRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "destination",
+        "raw"
+      ],
+      "properties": {
+        "destination": {
+          "type": "string"
+        },
+        "via": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dev": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "proto": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metric": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

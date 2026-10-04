@@ -1,10 +1,14 @@
 ---
 spec: SchemaCodegen
+version: 1.0
+type: specification
+name: schemaCodegen
+purpose: Defines the schema-first codegen pipeline that generates DataModelHelper models from JSON Schema.
 scope: project
 status: implemented
-applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/cvTypes/, src/foundationTypes/standardizedLoggerConfig/
-last_updated: 2026-09-07
-semver: 0.3.0
+applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/cvTypes/, src/foundationTypes/standardizedLoggerConfig/, src/foundationTypes/automationTypes/
+last_updated: 2026-09-28
+semver: 0.6.0
 author: Nicholas Bergantz
 ---
 
@@ -14,6 +18,12 @@ author: Nicholas Bergantz
 > by `schema/scripts/reuse/codegen.sh` + `schema/scripts/reuse/add_datamodelhelper.sh`
 > and the per-model scripts in `schema/scripts/`. The workflow is structured to scale
 > to additional output languages later; today it emits **Python only**.
+
+## Goal
+
+Specify the schema-first codegen pipeline — one script per model, the shared pipeline
+functions each script calls, and the fleet-wide normalization sweep — so every generated
+model is produced by one process instead of per-script variants.
 
 ## Overview
 
@@ -37,11 +47,23 @@ logic inline.
 
 **Conformance rule (Increase Quality Through Conformance / Chamber Match):** per-model
 scripts SHALL be structurally identical apart from their model-specific variables — a
-diff of any two conforming scripts with model names filtered out SHALL be empty. The
-**only** sanctioned deviation from the stock pipeline is a family that shares
-schema enums with an independent protocol package, per the Math pattern
-(`generateMathTypes.sh` + `reuse/postprocess_mathtypes.py`, governed by
-[`mathTypeTiers.md`](mathTypeTiers.md)).
+diff of any two conforming scripts with model names filtered out SHALL be empty. Two
+sanctioned deviations from the stock pipeline exist, both a family adding one narrow
+post-processor to the stock pipeline and both governed by
+[`mathTypeTiers.md`](mathTypeTiers.md):
+
+1. **Math family** — shares schema enums with an independent protocol package
+   (`generateMathTypes.sh` + `reuse/postprocess_mathtypes.py`).
+2. **Robot family** — reuses the canonical Math geometry schemas across domains and
+   inverts the dependency onto the `foundation_abc.math` protocols
+   (`generateRobotConfig.sh` + `reuse/postprocess_robotconfig.py`): after quicktype
+   inlines the Math carriers, the post-processor strips them, imports the canonical
+   carriers from `foundationTypes.mathTypes.MathTypes`, and retypes the geometry
+   fields to the protocols. Construction routes through a user-overridable `ClassVar`
+   knob on `RobotConfig` (e.g. `SPATIAL_TRANSFORM_IMPL`, defaulting to the Math
+   carrier) so a caller can inject their own conforming type; serialization routes
+   through `to_class_abc`. See [`mathTypeTiers.md`](mathTypeTiers.md).
+
 Any other need for per-model behavior goes into the shared libraries (behind an opt-in
 function) or into a `wire_config.py` sibling (below) — never into a bespoke script.
 
@@ -53,13 +75,13 @@ A conforming script:
    `SCRIPT_DIR`.
 3. Calls the pipeline **in this order**:
    `setup_quicktype` → `run_quicktype` → `add_base_class` → `add_helper_imports`
-   → `add_autogen_header` → `run_ruff` → `ensure_py_typed`.
+   → `add_autogen_header` → `run_black` → `ensure_py_typed`.
 
 ## Shared Libraries (source of truth for behavior)
 
 - `schema/scripts/reuse/codegen.sh` — quicktype invocation and post-processing:
   `setup_quicktype`, `run_quicktype`, `add_autogen_header`, `strip_schema_suffix`
-  (opt-in), `fix_to_dict_return_type`, `run_ruff`, `ensure_py_typed`. Resolves the
+  (opt-in), `fix_to_dict_return_type`, `run_black`, `ensure_py_typed`. Resolves the
   output path under `src/foundationTypes/` from `OUTPUT_PYTHON_REL`.
 - `schema/scripts/reuse/add_datamodelhelper.sh` — `add_base_class` (inject
   `DataModelHelper` parent + import) and `add_helper_imports` (strip quicktype's inline
@@ -84,7 +106,7 @@ A conforming script:
   3. Rewrites quicktype's bare `assert isinstance(obj, dict)` dict-type guard to an
      explicit `TypeError` check (below).
 
-  Idempotent and safe on hand-written files. Both `codegen.sh`'s `run_ruff` (per file)
+  Idempotent and safe on hand-written files. Both `codegen.sh`'s `run_black` (per file)
   and the `make codegen-all` final sweep (whole tree) call it — neither owns the
   rewrite logic.
 
@@ -98,17 +120,17 @@ quicktype targets Python 3.7 and emits loose types (bare `dict`, `Type[T]`). Gen
 output SHALL nonetheless satisfy the project's strict gate (`make uv-typecheck`, mypy
 `strict = true`). The pipeline restores modern strict typing **after** quicktype:
 
-- `fix_to_dict_return_type` (called inside `run_ruff`) rewrites `-> dict` /
+- `fix_to_dict_return_type` (called inside `run_black`) rewrites `-> dict` /
   `result: dict = {}` to `dict[str, Any]`.
-- `fix_from_dict_classmethod` (called inside `run_ruff`, delegating to
+- `fix_from_dict_classmethod` (called inside `run_black`, delegating to
   `normalize_generated.sh`) converts the `from_dict` `@staticmethod` to the
   `@classmethod` contract.
-- `run_ruff` applies ruff `format` + `check --fix --unsafe-fixes`, whose `UP` rules
-  modernize annotations (e.g. `Type[T]` → `type[T]`, `Optional[X]` → `X | None`).
-  `--unsafe-fixes` holds the generated tree to the same autofix level as hand-written
-  source (mirrors the `uv-format` target). `make codegen-all` additionally runs
-  `ruff format` + `ruff check --fix --unsafe-fixes` over the whole `_PYTHON_TYPES_BASE`
-  tree after generation, so files from non-conforming scripts are fixed too.
+- `run_black` applies the two sed-based fixes above, then black's format-only pass
+  (first-class formatter, per this repository's toolchain). Black formats only — there
+  is no lint-autofix pass; quicktype's loose typing (e.g. `Type[T]`, `Optional[X]`)
+  is left as emitted and caught by `make lint` (flake8) rather than autofixed here.
+  `make codegen-all` additionally runs black over the whole `_PYTHON_TYPES_BASE` tree
+  after generation, so files from non-conforming scripts are formatted too.
 - `ensure_py_typed` touches the package `py.typed` marker so the strict types are
   exported.
 
@@ -150,7 +172,7 @@ Rules:
 - Rationale: the sibling externalizes wire access — an end user can rebind the
   ClassVars to a protocol of their own without forking the model or the pipeline.
 
-`src/foundationTypes/commonTypes/disk_usage/` is the canonical exemplar
+`src/foundationTypes/commonTypes/cli_types/disk_usage/` is the canonical exemplar
 (`DiskUsage.py` generated by `generateDiskUsage.sh`; `wire_config.py` assigns the
 `df -h` codec pair and `wire_invoke = ["df", "-h"]`). Models with no hand-written
 wire behavior stay flat (a single generated `.py`, no subfolder).
@@ -161,8 +183,13 @@ wire behavior stay flat (a single generated `.py`, no subfolder).
   `MCP/`, `ComputerVisions/`), targeting the matching package under
   `src/foundationTypes/` (`mathTypes/`, `commonTypes/`, `cvTypes/`,
   `standardizedLoggerConfig/`). The schema filename and `title`/class name drive the generated class name.
-- Keep schemas **self-contained** — avoid cross-domain `$ref`; duplicate shared fields
-  rather than coupling domains.
+- Keep schemas **self-contained by default** — avoid cross-domain `$ref` for ordinary
+  fields; duplicate shared fields rather than coupling domains. The sanctioned
+  exception is reusing a **canonical Math geometry type** (`Position`, `Quaternion`,
+  `SpatialTransform`) from another domain, where the reuse is inverted onto the
+  `foundation_abc.math` protocols by that domain's post-processor (the Robot family
+  above; see [`mathTypeTiers.md`](mathTypeTiers.md)). Do not cross-`$ref` domains
+  outside that pattern.
 - **Skip discriminated unions** — quicktype cannot represent them in its dataclass
   codegen.
 
@@ -177,7 +204,7 @@ is an array, and a script SHALL list every schema its module needs
 supported shape — the module is the unit a script owns. After all scripts run, it applies a
 **fleet-wide normalization sweep** (`normalize_generated.sh` over `_PYTHON_TYPES_BASE`)
 so contract rewrites reach every generated model — including output from
-non-conforming or future scripts that bypass the shared `run_ruff` pipeline. This is a
+non-conforming or future scripts that bypass the shared `run_black` pipeline. This is a
 poka-yoke: a sloppy script cannot ship a model that violates the normalized contract.
 
 ## Generated `from_dict` Dict-Type Guard

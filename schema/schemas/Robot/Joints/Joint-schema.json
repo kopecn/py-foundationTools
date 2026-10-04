@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Joints/Joint-schema.json",
+  "title": "Joint",
+  "description": "A kinematic joint. Structural fields beyond the base shape are activated by `type` for the recognized joint types; unrecognized types receive only the base shape.",
+  "allOf": [
+    {
+      "$ref": "JointBase-schema.json"
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "revolute"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "axis": {
+            "$ref": "../Geometry/Vector3-schema.json",
+            "description": "The axis of rotation, in the joint's local frame."
+          },
+          "limits": {
+            "$ref": "JointLimits-schema.json",
+            "description": "This joint's motion limits."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "prismatic"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "axis": {
+            "$ref": "../Geometry/Vector3-schema.json",
+            "description": "The axis of translation, in the joint's local frame."
+          },
+          "limits": {
+            "$ref": "JointLimits-schema.json",
+            "description": "This joint's motion limits."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "helical"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "axis": {
+            "$ref": "../Geometry/Vector3-schema.json",
+            "description": "The screw axis, in the joint's local frame."
+          },
+          "pitch": {
+            "$ref": "../Units/Quantity-schema.json",
+            "description": "The screw pitch: translation per full rotation about the axis."
+          },
+          "limits": {
+            "$ref": "JointLimits-schema.json",
+            "description": "This joint's motion limits."
+          }
+        },
+        "required": ["axis", "pitch"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": ["spherical", "universal", "planar"]
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "dof": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The number of degrees of freedom this joint provides."
+          },
+          "axes": {
+            "type": "array",
+            "items": {
+              "$ref": "../Geometry/Vector3-schema.json"
+            },
+            "description": "The joint's elementary motion axes, one per degree of freedom, where applicable."
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "$ref": "JointLimits-schema.json"
+            },
+            "description": "Per-coordinate motion limits, one entry per degree of freedom."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "fixed"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "transform": {
+            "$ref": "../../Math/SpatialTransform-schema.json",
+            "description": "The fixed relative transform from the parent to the child body."
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

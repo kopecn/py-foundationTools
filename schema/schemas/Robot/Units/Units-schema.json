@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Units/Units-schema.json",
+  "title": "Units",
+  "type": "object",
+  "description": "Default unit system for this mechanism. Individual quantities may override these via an explicit value/unit pair.",
+  "properties": {
+    "length": {
+      "$ref": "Unit-schema.json",
+      "description": "The default unit for length quantities."
+    },
+    "angle": {
+      "$ref": "Unit-schema.json",
+      "description": "The default unit for angle quantities."
+    },
+    "mass": {
+      "$ref": "Unit-schema.json",
+      "description": "The default unit for mass quantities."
+    },
+    "time": {
+      "$ref": "Unit-schema.json",
+      "description": "The default unit for time quantities."
+    }
+  },
+  "additionalProperties": false
+}

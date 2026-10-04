@@ -1,16 +1,24 @@
 ---
 spec: PresentationSchema
+version: 1.0
+type: specification
+name: presentationSchema
+purpose: Defines the schema, codegen, and stdlib resolution contract for the Presentations domain.
 scope: project
 status: draft
 applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.sh, src/foundationTypes/presentationTypes/, src/foundation_tools/presentation/
-last_updated: 2026-09-04
-semver: 0.7.0
+last_updated: 2026-09-28
+semver: 0.10.0
 author: Nicholas Bergantz
 ---
 
 # Presentation Schema Specification
 
-> **Status — draft.** Nothing in this spec is implemented yet. The four schemas in `schema/schemas/Presentations/` exist but are unlinked and have no codegen script or generated package. This spec is the contract the tier-1 chunks build to. Keep it in sync with `schema/schemas/Presentations/` and `src/foundation_tools/presentation/` as they change.
+> **Status — draft.** The four schemas in `schema/schemas/Presentations/` are linked, generated via `schema/scripts/generatePresentations.sh` into `src/foundationTypes/presentationTypes/Presentations.py`, and resolved by the stdlib layer in `src/foundation_tools/presentation/`. `status` stays `draft` because this domain's broader implementation lifecycle (additional block types, tiers) remains open, not because the implementation described here is absent. Keep this spec in sync with `schema/schemas/Presentations/` and `src/foundation_tools/presentation/` as they change.
+
+## Goal
+
+Specify the Presentations domain's schema shape, codegen pipeline, and stdlib resolution contract so a downstream renderer can construct a deck from typed, validated data instead of a template.
 
 ## Overview
 
@@ -169,6 +177,110 @@ a newer corporate standard.
 `00-overview.md`'s tier-3 gate states "Mermaid has a bounded schema attachment point," and chunk 11 authorizes it as "the smallest typed attachment point for Mermaid source ... to reserve an agreed cross-repository shape for later growth," requiring only that "descriptions MUST clearly state whether rendering is available." This is a deliberate, narrow exception to R7's normal rule that an arm ships only once it has a renderer: `contentBlock.type` gains `"mermaid"` with a single sibling field, `mermaidSource` (string), carrying raw Mermaid diagram source text and nothing else.
 
 This repository SHALL NOT parse, lay out, generate an image from, or otherwise render Mermaid source; `mermaidSource`'s schema description SHALL state this plainly. Widening this arm (structured node/edge data, a `diagramKind` discriminator, rendering) is out of scope until real usage justifies it, per the roadmap's "smallest usable form" planning rule.
+
+## FA-closure schema additions
+
+> R15–R22 are derived from the downstream 2026-09-14 presentation visual-quality audit
+> (`py-clerical-tools/.claude/fa_reports/`), which is investigation evidence, not
+> authorization. They were **accepted at the FA-closure scope gate (2026-09-14)**; the
+> top-level spec `status` stays `draft` because this domain's broader implementation
+> lifecycle is owned by this repo's own roadmap, not by that gate. They give the
+> downstream renderer typed fields to consume instead of embedding resolved values in
+> content. All are additive and optional (enum widenings are non-breaking per R7), so
+> every existing deck still validates and round-trips, and adding any `default` here
+> bumps semver per R12. This repository still renders nothing — it owns only the schema,
+> generated types, and stdlib resolution of these fields.
+
+### R15 — Responsive fit budget (FA-01)
+
+`region.overflow` SHALL gain the `shrink` value deferred in R8, now that a downstream
+renderer measures font metrics. A region MAY additionally declare `minFontSize`
+(number, pt), `maxLines` (integer), and an optional `scaleLadder` (array of descending
+pt sizes). These bound deterministic shrinking: the renderer prefers a ladder step and
+never goes below `minFontSize`. The schema declares no default sizes here; absence means
+"no responsive budget, use the fixed nominal size."
+
+### R16 — Bullet and paragraph typography (FA-02)
+
+The `bullets` arm MAY declare a bullet `style` (`disc` | `dash` | `none`) and bounded
+per-level indent/hanging-indent tokens, so a marker is an explicit choice, never
+inferred from text. Text-bearing regions MAY declare paragraph rhythm — `lineSpacing`,
+`spaceBefore`, `spaceAfter` — resolved through the same cascade as other style values.
+Keep defaults absent so output does not silently depend on a PowerPoint template.
+
+### R17 — Metric style roles (FA-02)
+
+A `metric` region MAY declare separate style roles for `value`, `label`, and `delta`
+(each an existing `style` shape), an inter-field gap, and whether `label`/`delta` are
+permitted. This lets the renderer give the three fields distinct typography instead of
+one headline size, without the renderer inventing a hierarchy.
+
+### R18 — Media fit intent and region aspect (FA-03)
+
+`image` and `mermaid` blocks MAY declare a `fit` mode (`contain` | `cover` | `fitWidth`
+| `fitHeight`), with `contain` the schema-declared default for both `image` and
+`mermaid` (so the downstream renderer never has to choose a default for either). `cover`
+MAY carry focal-point metadata. A visual region MAY declare a `preferredAspectRatio` (or
+an acceptable min/max aspect range) and a `minFillRatio`, so a downstream linter can warn
+when a source cannot satisfy the region without an author decision. `preferredAspectRatio`
+is one property on `region`, shared by R18 and R20; it SHALL remain a single declaration,
+never a redundant re-declaration or `$ref`. This repository owns the pure fit-geometry
+math for each `fit` mode (`src/foundation_tools/presentation/image_fit.py`: `fit_into_box`,
+`cover_into_box`, `fit_width_into_box`, `fit_height_into_box` — each a total function that
+turns intrinsic media dimensions and a region's bounding box into a placement rectangle).
+Reading a source's intrinsic pixel dimensions and rendering the placed result (e.g. calling
+`add_picture`) require a library this repository does not depend on and remain downstream.
+
+### R19 — Semantic diagram styles (FA-04)
+
+A typed diagram-style object SHALL express diagram colors as **semantic theme
+references**, not CSS strings — covering at least background, primary/secondary/tertiary
+fill, border, text, line, and error/success roles — plus a bounded map from a custom
+node-class name to those semantic roles. A `themeBinding` flag (`themed` default |
+`fixed`) SHALL make an intentional literal-color diagram an explicit, inspectable
+opt-out. Resolution of these references into a concrete diagram configuration is a
+downstream concern; this repository owns the typed shape and the reference enumeration
+(R4).
+
+### R20 — Machine-readable layout capacity and semantic roles (FA-05)
+
+A layout region MAY declare verifiable capacity and intent so a schema-valid slide
+cannot silently contradict the layout's purpose. Every field here has a named downstream
+consumer, per the rule that only verifiable constraints belong in the schema:
+
+- `allowedContentTypes`, occupancy (`required` | `recommended` | `optional`), `maxLines`,
+  `maxCharacters`, `maxItems`, `maxCharactersPerItem` — consumed by the downstream
+  design-lint tier (deckQuality.md Q4).
+- `preferredAspectRatio` — the single `region` property shared with R18 (one
+  declaration, never redeclared); consumed by media-fit lint.
+- a semantic `role` (e.g. `presenterName`, `deckTitle`, `metricValue`, `evidence`) —
+  consumed by the renderer for shape identity and reading order (deckBuilder.md R10).
+- a layout `purpose`/tag set and `density` class — consumed by the authoring skill for
+  layout selection (FA-05), not by the renderer.
+
+Qualitative guidance stays in human notes.
+
+### R21 — Accessibility and portability fields (FA-07)
+
+`image` and `mermaid` blocks MAY declare `altText`. The typography contract MAY declare
+an ordered font fallback stack and whether substitution is allowed. These carry no
+schema-level behavior beyond identity; they exist so a downstream renderer can set
+accessible descriptions and report font substitution instead of guessing.
+
+### R22 — Document core-property metadata (FA-07)
+
+`PresentationMetadata` maps onto PPTX document core properties: `description`
+(subject/description), `author`, and `version` (revision) predate this chunk with their
+existing required/default semantics (`author` is required; `description` and `version`
+each declare an existing default) and are unchanged here. `keywords` is the field R22
+actually adds — additive, optional, and declares no default, so its absence means the
+downstream renderer leaves the PPTX keywords property unset rather than inheriting the
+base template's value. (`title` reuses the deck's existing title; created/modified
+timestamps are a package concern set at write time downstream, not schema state.) None of
+these fields carry schema-level behavior beyond identity; they exist so the downstream
+renderer maps deck metadata into the PPTX package core properties (deckBuilder.md R10)
+instead of leaving the base template's identity in place. This repository does not write a
+PPTX and resolves these only as ordinary metadata.
 
 ## Resolution Layer
 

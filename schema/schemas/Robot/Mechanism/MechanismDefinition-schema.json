@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Mechanism/MechanismDefinition-schema.json",
+  "title": "MechanismDefinition",
+  "type": "object",
+  "description": "The fundamental, recursive object. A robot is a mechanism; a mechanism may also be a reusable submechanism referenced by other mechanisms' components.",
+  "required": ["id", "robot_type"],
+  "properties": {
+    "id": {
+      "$ref": "../Common/Id-schema.json",
+      "description": "Stable string handle for this mechanism definition (format defined by the shared Id type; not a UUID). It is the anchor of the document's reference graph: a `Component` elsewhere names this `id` to instantiate the definition without copying it, so it must be unique across the set of definitions that reference each other. Uniqueness is the author's responsibility; the schema does not enforce it globally."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable display name for this mechanism, for UIs, logs, and diagrams. Not an identifier — references use `id`, and names need not be unique."
+    },
+    "version": {
+      "type": "string",
+      "description": "Optional free-form version string (e.g. a semantic version or build tag) distinguishing revisions of the same `id`. The schema does not parse or order it; consumers decide what it means."
+    },
+    "robot_type": {
+      "type": "string",
+      "enum": ["ur", "obsbot", "brooksPrecisionFlex"],
+      "description": "Required supplier/product-family this definition belongs to, one of the recognized values `ur` (Universal Robots), `obsbot`, or `brooksPrecisionFlex`. It groups definitions by origin for selection and tooling; it is descriptive and does not change the kinematic structure."
+    },
+    "classification": {
+      "$ref": "Classification-schema.json",
+      "description": "Descriptive topology/architecture/function tags for this mechanism (see `Classification`). Purely for humans, search, and filtering: it is non-structural, meaning it never gates which of `bodies`/`joints`/`constraints`/`components` are valid — a Stewart platform and a serial arm differ in those fields, not here."
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "$ref": "../Structure/Frame-schema.json"
+      },
+      "description": "The named coordinate frames this mechanism defines, each explicitly attached to one of its bodies, joints, components, or interfaces and located by a relative transform. They provide reference points for mounting, measurement, and tool/sensor placement beyond the bodies' own frames."
+    },
+    "bodies": {
+      "type": "array",
+      "items": {
+        "$ref": "../Structure/Body-schema.json"
+      },
+      "description": "The rigid bodies (links) that make up this mechanism, each carrying its own inertia and frames. Joints, frames, and constraints refer to these bodies by their `id`."
+    },
+    "joints": {
+      "type": "array",
+      "items": {
+        "$ref": "../Joints/Joint-schema.json"
+      },
+      "description": "The kinematic joints coupling this mechanism's bodies. Each joint names a `parent` and a `child` body by `id` and contributes the mechanism's degrees of freedom; a joint whose `type` is not one of the recognized kinds is carried with its base fields only."
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "$ref": "../Constraints/Constraint-schema.json"
+      },
+      "description": "Explicit constraints (e.g. loop closures, coincidence) relating bodies or frames by `id`, describing the parallel or closed-chain couplings that ordinary joint topology cannot express. Descriptive only — the schema records constraints but does not evaluate them."
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "../Composition/Component-schema.json"
+      },
+      "description": "Submechanisms instantiated within this mechanism. Each `Component` references another definition by `id` (or nests one inline) and can be placed relative to a mount, giving the schema unbounded recursive composition — a mechanism built from mechanisms."
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "$ref": "../Composition/Connection-schema.json"
+      },
+      "description": "Explicit connections that mount this mechanism's `components` to one another by named interface, so a child mechanism need not know in advance what it will attach to. Each connection links one component's interface to another's."
+    },
+    "kinematics": {
+      "$ref": "../Kinematics/Kinematics-schema.json",
+      "description": "The kinematic representation(s) of this mechanism (see `Kinematics`). A mechanism may carry more than one at once — e.g. a Denavit-Hartenberg (DH) chain and a product-of-exponentials (PoE) description — that describe the same structure differently for different consumers."
+    },
+    "interfaces": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "../Composition/Interface-schema.json"
+      },
+      "description": "This mechanism's named, externally-visible mounting/reference points, keyed by interface name (e.g. \"base\", \"tool\"). A parent mechanism's `connections` attach to these names, so they form this mechanism's public contract for being mounted — a child exposes interfaces without knowing its eventual parent."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Opaque, application-defined data carried alongside this mechanism. The schema neither constrains nor interprets its contents — a place for consumer-specific annotations that survive round-tripping."
+    }
+  },
+  "additionalProperties": false
+}

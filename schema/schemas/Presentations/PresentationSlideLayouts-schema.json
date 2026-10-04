@@ -148,6 +148,7 @@
         },
         "type": {
           "type": "string",
+          "title": "RegionType",
           "enum": [
             "title",
             "subtitle",
@@ -226,10 +227,129 @@
           "type": "string",
           "enum": [
             "wrap",
-            "clip"
+            "clip",
+            "shrink"
           ],
           "default": "wrap",
-          "description": "Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip' truncates at the boundary."
+          "description": "Behavior when content exceeds the region box. 'wrap' flows text within the box; 'clip' truncates at the boundary; 'shrink' deterministically reduces font size within the bounds declared by minFontSize/maxLines/scaleLadder."
+        },
+        "minFontSize": {
+          "type": "number",
+          "description": "Responsive fit budget (R15): the smallest font size in points the renderer may shrink to under overflow 'shrink'. No default -- absence means no responsive budget."
+        },
+        "maxLines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Responsive fit budget (R15): the maximum number of lines the renderer may use when shrinking under overflow 'shrink'. Also the layout capacity bound (R20) consumed by the downstream design-lint tier -- one field, two consumers, per the single-definition rule. No default -- absence means no responsive budget / no capacity bound."
+        },
+        "scaleLadder": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "Responsive fit budget (R15): an optional array of descending font sizes in points the renderer steps through under overflow 'shrink', never going below minFontSize. No default -- absence means no responsive budget."
+        },
+        "lineSpacing": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Paragraph rhythm (R16): line spacing multiplier for text in this region, e.g. 1.15 for 115%. No default -- absence means the renderer chooses."
+        },
+        "spaceBefore": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Paragraph rhythm (R16): space in pixels added before each paragraph in this region. No default -- absence means the renderer chooses."
+        },
+        "spaceAfter": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Paragraph rhythm (R16): space in pixels added after each paragraph in this region. No default -- absence means the renderer chooses."
+        },
+        "valueStyle": {
+          "$ref": "PresentationDeck-schema.json#/definitions/contentBlock/properties/style",
+          "description": "Metric style roles (R17): style override for a metric region's headline value field. Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence means the renderer chooses."
+        },
+        "labelStyle": {
+          "$ref": "PresentationDeck-schema.json#/definitions/contentBlock/properties/style",
+          "description": "Metric style roles (R17): style override for a metric region's label field. Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence means the renderer chooses."
+        },
+        "deltaStyle": {
+          "$ref": "PresentationDeck-schema.json#/definitions/contentBlock/properties/style",
+          "description": "Metric style roles (R17): style override for a metric region's delta field. Reuses the existing style shape (R2) rather than re-declaring it. No default -- absence means the renderer chooses."
+        },
+        "metricGap": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Metric style roles (R17): inter-field gap in pixels between a metric region's value/label/delta fields. No default -- absence means the renderer chooses."
+        },
+        "labelPermitted": {
+          "type": "boolean",
+          "description": "Metric style roles (R17): whether a metric region's label field is permitted. No default -- absence means permitted."
+        },
+        "deltaPermitted": {
+          "type": "boolean",
+          "description": "Metric style roles (R17): whether a metric region's delta field is permitted. No default -- absence means permitted."
+        },
+        "preferredAspectRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Media fit and aspect (R18): the region's preferred width/height ratio for media content, e.g. 1.778 for 16:9. Defined once here -- R20 (layout capacity) $refs this field rather than redeclaring it. No default -- absence means no aspect preference."
+        },
+        "minAspectRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Media fit and aspect (R18): lower bound of an acceptable width/height aspect-ratio range for media placed in this region, an alternative to a single 'preferredAspectRatio' when a range is acceptable. No default -- absence means no lower bound."
+        },
+        "maxAspectRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Media fit and aspect (R18): upper bound of an acceptable width/height aspect-ratio range for media placed in this region. No default -- absence means no upper bound."
+        },
+        "minFillRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Media fit and aspect (R18): minimum fraction of the region's area that placed media must fill before a downstream lint warns that a source cannot satisfy the region without an author decision. No default -- absence means no fill-ratio floor."
+        },
+        "allowedContentTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "PresentationDeck-schema.json#/definitions/contentBlock/properties/type"
+          },
+          "description": "Layout capacity and semantic roles (R20): the set of content block kinds this region accepts, reusing the block 'type' enum by reference rather than redeclaring it. Consumed by the downstream design-lint tier. No default -- absence means no content-type restriction."
+        },
+        "occupancy": {
+          "type": "string",
+          "enum": [
+            "required",
+            "recommended",
+            "optional"
+          ],
+          "description": "Layout capacity and semantic roles (R20): whether a slide using this layout must, should, or may populate this region. Consumed by the downstream design-lint tier. No default -- absence means no occupancy constraint."
+        },
+        "maxCharacters": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Layout capacity and semantic roles (R20): the maximum total character count this region's content may contain. Consumed by the downstream design-lint tier. No default -- absence means no character-count bound."
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Layout capacity and semantic roles (R20): the maximum number of list items (e.g. bullets) this region may contain. Consumed by the downstream design-lint tier. No default -- absence means no item-count bound."
+        },
+        "maxCharactersPerItem": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Layout capacity and semantic roles (R20): the maximum character count for any single list item in this region. Consumed by the downstream design-lint tier. No default -- absence means no per-item character bound."
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "presenterName",
+            "deckTitle",
+            "metricValue",
+            "evidence"
+          ],
+          "description": "Layout capacity and semantic roles (R20): the region's semantic identity, consumed by the downstream renderer for shape identity and reading order. No default -- absence means no declared semantic role."
         }
       }
     },
@@ -267,6 +387,31 @@
           "type": "string",
           "default": "",
           "description": "Authoring guidance for agents or presentation generators."
+        },
+        "purpose": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "section",
+              "statement",
+              "evidence",
+              "comparison",
+              "process",
+              "metric",
+              "closing"
+            ]
+          },
+          "description": "Layout capacity and semantic roles (R20): the communication purpose tag set this layout serves, consumed by the downstream authoring skill for layout selection (not by the renderer). No default -- absence means no declared purpose."
+        },
+        "density": {
+          "type": "string",
+          "enum": [
+            "sparse",
+            "balanced",
+            "dense"
+          ],
+          "description": "Layout capacity and semantic roles (R20): the overall content density this layout is designed for, consumed by the downstream authoring skill for layout selection (not by the renderer). No default -- absence means no declared density class."
         }
       }
     }

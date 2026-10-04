@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Geometry/Vector6-schema.json",
+  "title": "Vector6",
+  "type": "array",
+  "items": {
+    "type": "number"
+  },
+  "minItems": 6,
+  "maxItems": 6,
+  "description": "A 6-component vector."
+}

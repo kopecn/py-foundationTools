@@ -1,44 +1,67 @@
 """
-Socket Transaction Stack — the stream-transport counterpart to the process family.
+Threaded Socket Transaction Stack -- the synchronous, standard-library
+counterpart to the process (CLI) transaction family.
 
-Layers as: ``SocketTransact`` (Layer 4 facade) over a transaction router
-(tx_id correlation) over framing codecs (``DataModelHelper`` wire
-serialization) over ``SocketByteTransport``
-(``foundation_abc.PeripheralByteTransport``) over asyncio streams.
+Layers as: ``TransactingSocketHandlerClient`` / ``TransactingSocketHandlerServer``
+(the transacting facades) over ``TransactionCore`` (identifiers, pending
+state, routing) and a pluggable ``TransactionCodec`` (``JsonTransactionCodec``
+or ``AngleBracketTransactionCodec``) over ``SocketHandlerClient`` /
+``SocketHandlerServer`` (connection lifecycle, receive/accept threads) over
+``SocketHandler`` (epoch-bound socket ownership) over ``socket.socket`` and
+``threading``. ``BinaryFramedSocketHandlerClient`` is a parallel transport
+specialization for pluggable binary framing.
 
-See ``.claude/specs/socketTransact.md`` and
-``.claude/specs/transport_transaction_architecture.md`` (Stream-Transport Family)
-for the full contract. Status: ``SocketByteTransport`` (Layer 1), the framing
-codecs (Layer 2), ``TransactionRouter`` (Layer 3), ``SocketTransact`` (Layer 4,
-client facade), and ``SocketTransactServer`` (Layer 4b, server role) implemented.
+The package uses only ``socket`` and ``threading`` -- it has no event-loop
+dependency and exposes no coroutine-based or compatibility facade.
+
+See ``.claude/specs/threadedSocketTransaction.md`` (architecture and public
+surface), ``.claude/specs/threadedSocketTransport.md`` (transport layer),
+``.claude/specs/threadedTransactionProtocol.md`` (protocol layer),
+``.claude/specs/transactingSocketHandlers.md`` (transacting facades), and
+``.claude/specs/transport_transaction_architecture.md`` (Stream-Transport
+Family) for the full contract.
 """
 
-from foundation_tools.socket_transaction.framing_codecs import (
-    DelimiterCodec,
-    FramingCodec,
-    LengthPrefixedCodec,
+from foundation_tools.socket_transaction.binary_framed_socket_handler_client import (
+    BinaryFramedSocketHandlerClient,
 )
-from foundation_tools.socket_transaction.socket_byte_transport import SocketByteTransport
-from foundation_tools.socket_transaction.socketTransact import (
-    SocketTransact,
-    SocketTransactResult,
-    SocketTransactResultModel,
+from foundation_tools.socket_transaction.socket_handler import SocketHandler
+from foundation_tools.socket_transaction.socket_handler_client import SocketHandlerClient
+from foundation_tools.socket_transaction.socket_handler_server import SocketHandlerServer
+from foundation_tools.socket_transaction.transacting_socket_handler import InboundTransaction
+from foundation_tools.socket_transaction.transacting_socket_handler_client import (
+    TransactingSocketHandlerClient,
 )
-from foundation_tools.socket_transaction.socketTransactServer import SocketTransactServer
-from foundation_tools.socket_transaction.transaction_router import (
-    ConnectionClosedError,
-    TransactionRouter,
+from foundation_tools.socket_transaction.transacting_socket_handler_server import (
+    TransactingSocketHandlerServer,
+)
+from foundation_tools.socket_transaction.transaction_codecs import (
+    AngleBracketTransactionCodec,
+    JsonTransactionCodec,
+    TransactionCodec,
+)
+from foundation_tools.socket_transaction.transaction_models import (
+    AckStatus,
+    CompletionStatus,
+    SendStatus,
+    TransactionFrame,
+    TransactionOutcome,
 )
 
 __all__ = [
-    "ConnectionClosedError",
-    "DelimiterCodec",
-    "FramingCodec",
-    "LengthPrefixedCodec",
-    "SocketByteTransport",
-    "SocketTransact",
-    "SocketTransactResult",
-    "SocketTransactResultModel",
-    "SocketTransactServer",
-    "TransactionRouter",
+    "AckStatus",
+    "AngleBracketTransactionCodec",
+    "BinaryFramedSocketHandlerClient",
+    "CompletionStatus",
+    "InboundTransaction",
+    "JsonTransactionCodec",
+    "SendStatus",
+    "SocketHandler",
+    "SocketHandlerClient",
+    "SocketHandlerServer",
+    "TransactingSocketHandlerClient",
+    "TransactingSocketHandlerServer",
+    "TransactionCodec",
+    "TransactionFrame",
+    "TransactionOutcome",
 ]

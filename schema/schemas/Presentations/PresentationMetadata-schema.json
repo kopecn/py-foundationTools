@@ -69,6 +69,10 @@
       "default": "",
       "description": "Short description of the presentation purpose."
     },
+    "keywords": {
+      "type": "string",
+      "description": "Document core-property keywords (R22), consumed downstream as the PPTX package's keywords property. No default -- absence means the downstream renderer leaves the property unset rather than inheriting the base template's value."
+    },
     "defaults": {
       "type": "object",
       "description": "Rendering defaults inherited by slides and layouts unless overridden.",
@@ -92,6 +96,17 @@
           "type": "number",
           "default": 12,
           "description": "Default small/footer font size in points."
+        },
+        "fontFallbackStack": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ordered font family fallback stack (R21): the preferred family (fontFamily) followed by acceptable substitutes, most preferred first. No default -- absence means the downstream renderer applies its own fallback and cannot report a substitution against an authored intent."
+        },
+        "substitutionAllowed": {
+          "type": "boolean",
+          "description": "Whether the downstream renderer may substitute a font from 'fontFallbackStack' (or its own default) when 'fontFamily' is unavailable at build time (R21). No default -- absence means the renderer decides."
         }
       }
     },

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Joints/JointLimits-schema.json",
+  "title": "JointLimits",
+  "type": "object",
+  "description": "Motion limits for a joint or a single joint coordinate.",
+  "properties": {
+    "position": {
+      "type": "object",
+      "description": "The allowed range of motion.",
+      "properties": {
+        "min": {
+          "$ref": "../Units/Quantity-schema.json",
+          "description": "The minimum allowed position."
+        },
+        "max": {
+          "$ref": "../Units/Quantity-schema.json",
+          "description": "The maximum allowed position."
+        }
+      },
+      "additionalProperties": false
+    },
+    "velocity": {
+      "$ref": "../Units/Quantity-schema.json",
+      "description": "The maximum allowed velocity magnitude."
+    },
+    "acceleration": {
+      "$ref": "../Units/Quantity-schema.json",
+      "description": "The maximum allowed acceleration magnitude."
+    },
+    "effort": {
+      "$ref": "../Units/Quantity-schema.json",
+      "description": "The maximum allowed force/torque magnitude."
+    }
+  },
+  "additionalProperties": false
+}

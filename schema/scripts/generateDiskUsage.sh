@@ -8,7 +8,7 @@ set -euo pipefail
 
 # === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/DiskUsage-schema.json"
+  "schema/schemas/CLITools/DiskUsage-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===
@@ -18,7 +18,7 @@ CLASSES_FOR_BASE_PARENT=(
 )
 
 # === Output (relative to src/foundationTypes) ===
-OUTPUT_PYTHON_REL="commonTypes/disk_usage/DiskUsage.py"
+OUTPUT_PYTHON_REL="commonTypes/cli_types/disk_usage/DiskUsage.py"
 
 # === quicktype target. quicktype only emits up to 3.7; modern typing is
 #     restored afterwards by fix_to_dict_return_type + normalization passes. ===

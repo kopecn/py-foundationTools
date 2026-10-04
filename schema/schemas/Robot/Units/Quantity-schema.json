@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Robot/Units/Quantity-schema.json",
+  "title": "Quantity",
+  "description": "A numeric quantity, either a bare number (using the mechanism's global unit for its context) or an explicit value/unit pair.",
+  "oneOf": [
+    {
+      "type": "number"
+    },
+    {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "Unit-schema.json"
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

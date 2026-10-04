@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-10-03
+
+### Changed
+- Replaced the asyncio socket stack with a threaded socket transaction family (`socket_transaction/`: transaction codecs, core, models; `TransactingSocketHandler` client/server), and hardened the presentation layer (responsive fit budget, media-fit/aspect geometry, layout capacity, accessibility metadata).
+
+### Added
+- Schema-driven CLI-tool data models under `foundationTypes/commonTypes/cli_types`.
+
 ## [0.0.5] - 2026-09-08
 
 ### Added
