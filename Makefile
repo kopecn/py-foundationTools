@@ -144,10 +144,10 @@ clean-test: ## Remove test, coverage, and lint caches
 	rm -rf \
 		htmlcov/ \
 		.pytest_cache/ \
-		.mypy_cache/ \
 		.ruff_cache/ \
 		.tox/ \
 		.nox/
+	find . -name '.mypy_cache' -type d -exec rm -rf {} +
 
 clean-node: ## Remove node_modules directories and related package files
 	find . -name 'node_modules' -type d -prune | while read -r dir; do \
