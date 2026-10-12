@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Mermaid/diagrams/gantt.schema.json",
+  "title": "GanttDiagram",
+  "type": "object",
+  "description": "The gantt diagram body: a time-scheduled bar chart. It carries diagram-level date and axis settings, excluded dates, flat sections, and tasks whose start and end are expressed as dates, durations, or references to other tasks. A sibling of the flowchart and class diagram bodies in this folder; it reuses the same method (self-contained $defs, readable enums, OCP-open objects) over gantt's own shape.",
+  "$comment": "Deferred, to revisit: Interaction — `click <taskId> call/href` — not yet modeled. (Mirrors the flowchart and class diagram deferrals.)",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "An optional title displayed at the top of the chart."
+    },
+    "dateFormat": {
+      "type": "string",
+      "description": "The format of the date input of the gantt elements (dayjs tokens, e.g. `YYYY-MM-DD`, the default, or `X` for a Unix timestamp). Defines how `startDate`/`endDate` strings are parsed."
+    },
+    "axisFormat": {
+      "type": "string",
+      "description": "The output date format on the rendered axis (d3-time-format tokens, e.g. `%Y-%m-%d`). Default `YYYY-MM-DD`."
+    },
+    "tickInterval": {
+      "type": "string",
+      "pattern": "^([1-9][0-9]*)(millisecond|second|minute|hour|day|week|month)$",
+      "description": "The axis tick spacing, a positive integer followed by a unit, e.g. `1day` or `1week`. Default is auto."
+    },
+    "weekday": {
+      "$ref": "#/$defs/weekday"
+    },
+    "weekend": {
+      "$ref": "#/$defs/weekendStart"
+    },
+    "excludes": {
+      "type": "array",
+      "description": "Dates excluded from task duration calculations. Each entry is a specific date (in `dateFormat`), a day of the week (e.g. `sunday`), or `weekends`. The word `weekdays` is not supported.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "todayMarker": {
+      "type": "string",
+      "description": "The today marker. A style string (e.g. `stroke-width:5px,stroke:#0f0,opacity:0.5`), or `off` to hide it."
+    },
+    "tasks": {
+      "type": "array",
+      "description": "Tasks not placed in a section.",
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    },
+    "sections": {
+      "type": "array",
+      "description": "The sections that group tasks.",
+      "items": {
+        "$ref": "#/$defs/section"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "weekday": {
+      "type": "string",
+      "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+      "description": "The weekday a week-based `tickInterval` starts on. Default is sunday."
+    },
+    "weekendStart": {
+      "type": "string",
+      "enum": ["friday", "saturday"],
+      "description": "Which day the weekend starts on when excluding weekends (v11.0.0+). `saturday` is the default (Saturday and Sunday); `friday` makes the weekend Friday and Saturday."
+    },
+    "taskType": {
+      "type": "string",
+      "enum": ["task", "milestone", "verticalMarker"],
+      "description": "The kind of gantt element. `task` a normal bar; `milestone` a single instant drawn at startDate + duration/2 (Mermaid `milestone`); `verticalMarker` a full-height reference line that takes no row (Mermaid `vert`)."
+    },
+    "taskTag": {
+      "type": "string",
+      "enum": ["active", "done", "critical"],
+      "description": "A status tag on a task. `active` (Mermaid `active`); `done` (`done`); `critical` (`crit`)."
+    },
+    "duration": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(ms|s|m|h|d|w|M|y)$",
+      "description": "A task length: a number (decimals allowed) followed by a unit suffix. `ms` milliseconds; `s` seconds; `m` minutes; `h` hours; `d` days; `w` weeks; `M` months; `y` years. Example `30d` or `1.5d`."
+    },
+    "task": {
+      "type": "object",
+      "description": "A gantt task. Start and end are composed from the fields below, mirroring Mermaid's task metadata: start is `startDate`, else `after` (the latest end of the referenced tasks), else the preceding task's end when both are omitted; end is `endDate`, else `duration` (added to the start), else `until` (the start of the referenced tasks). Set at most one start source and at most one end source.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The task label."
+        },
+        "id": {
+          "type": "string",
+          "description": "The task id, referenced by other tasks' `after` and `until`."
+        },
+        "type": {
+          "$ref": "#/$defs/taskType"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Status tags on the task.",
+          "items": {
+            "$ref": "#/$defs/taskTag"
+          }
+        },
+        "startDate": {
+          "type": "string",
+          "description": "An explicit start, parsed with `dateFormat`."
+        },
+        "after": {
+          "type": "array",
+          "description": "Start at the latest end of these task ids (Mermaid `after <id> ...`). Ignored if `startDate` is set.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "endDate": {
+          "type": "string",
+          "description": "An explicit end, parsed with `dateFormat`."
+        },
+        "duration": {
+          "$ref": "#/$defs/duration"
+        },
+        "until": {
+          "type": "array",
+          "description": "End at the start of these task ids (Mermaid `until <id> ...`, v10.9.0+). Ignored if `endDate` or `duration` is set.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["title"]
+    },
+    "section": {
+      "type": "object",
+      "description": "A named section grouping tasks.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The section name (required by Mermaid)."
+        },
+        "tasks": {
+          "type": "array",
+          "description": "The tasks in this section.",
+          "items": {
+            "$ref": "#/$defs/task"
+          }
+        }
+      },
+      "required": ["name"]
+    }
+  }
+}

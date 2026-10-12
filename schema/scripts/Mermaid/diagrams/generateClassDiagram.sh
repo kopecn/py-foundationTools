@@ -15,11 +15,16 @@ INPUT_SCHEMA_FILES=(
 )
 
 # === Classes that should inherit from DataModelHelper ===
-# The top class is driven by the --out basename (ClassDiagram). Nested dataclasses
-# emitted by this schema must be appended here after the first successful run
-# (read them off the generated file), exactly as generateFlowchartDiagram.sh lists
-# its nested classes.
+# Top class is driven by the --out basename (ClassDiagram); nested dataclasses
+# follow, read off the first run.
 CLASSES_FOR_BASE_PARENT=(
+  "AttributeElement"
+  "ClassDefElement"
+  "ClassElement"
+  "MethodElement"
+  "NamespaceElement"
+  "NoteElement"
+  "RelationshipElement"
   "ClassDiagram"
 )
 
