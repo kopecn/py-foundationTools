@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Mermaid/mermaidDirectives-schema.json",
+  "title": "MermaidDirectives",
+  "type": "object",
+  "description": "Mermaid pre-render directives (the `%%{ ... }%%` block). API docs: https://mermaid.ai/open-source/config/directives.html . Placeholder: a single generic `init` object for now, to be refined later.",
+  "properties": {
+    "init": {
+      "type": "object",
+      "description": "The `%%{init: ...}%%` directive payload. Generic object for now; to be refined later.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

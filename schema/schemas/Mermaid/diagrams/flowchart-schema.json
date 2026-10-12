@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Mermaid/diagrams/flowchart-schema.json",
+  "title": "FlowchartDiagram",
+  "type": "object",
+  "description": "The flowchart diagram body. Placeholder for now, to be populated with its direction, nodes, edges, and subgraphs. This is the first of several diagram bodies; swimlane, gantt, and the rest follow as sibling schemas in this folder.",
+  "properties": {},
+  "additionalProperties": true
+}

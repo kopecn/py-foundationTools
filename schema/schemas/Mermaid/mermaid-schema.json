@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Mermaid/mermaid-schema.json",
+  "title": "Mermaid",
+  "type": "object",
+  "description": "Top-level schema for a Mermaid diagram document. It gathers the cross-cutting nodes (config, directives) and one optional node per diagram type (flowchart first; swimlane, gantt, and the rest follow as sibling nodes). Every node is optional. Breadcrumbs for the config node: the official config schema is https://mermaid.js.org/schemas/config.schema.json and its API docs are https://mermaid.js.org/config/schema-docs/config.html . The local `mermaidConfig-schema.json` is a copy of that official schema with every `required` array removed, because the official `required` describes the fully-resolved runtime config, not a partial author config.",
+  "properties": {
+    "config": {
+      "$ref": "mermaidConfig-schema.json",
+      "description": "Optional. The Mermaid configuration object (local copy of the official schema, with `required` removed)."
+    },
+    "directives": {
+      "$ref": "mermaidDirectives-schema.json",
+      "description": "Optional. Pre-render directives."
+    },
+    "flowchart": {
+      "$ref": "diagrams/flowchart-schema.json",
+      "description": "Optional. The flowchart diagram body. One of several diagram bodies; more are added as sibling nodes."
+    }
+  },
+  "additionalProperties": false
+}
