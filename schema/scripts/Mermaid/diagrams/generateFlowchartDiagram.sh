@@ -16,6 +16,13 @@ INPUT_SCHEMA_FILES=(
 
 # === Classes that should inherit from DataModelHelper ===
 CLASSES_FOR_BASE_PARENT=(
+  "ClassDefElement"
+  "Icon"
+  "Image"
+  "LinkStyleElement"
+  "NodeElement"
+  "RelationshipElement"
+  "Subgraphs"
   "FlowchartDiagram"
 )
 

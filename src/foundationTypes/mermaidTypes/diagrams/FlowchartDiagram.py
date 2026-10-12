@@ -27,7 +27,7 @@ EnumT = TypeVar("EnumT", bound=Enum)
 
 
 @dataclass
-class ClassDefElement:
+class ClassDefElement(DataModelHelper):
     """A named style class (Mermaid `classDef name style`), bound to nodes and relationships by
     name through their `classes` field.
     """
@@ -58,7 +58,7 @@ class ClassDefElement:
 
 
 @dataclass
-class LinkStyleElement:
+class LinkStyleElement(DataModelHelper):
     """A link styling by definition order (Mermaid `linkStyle`), distinct from class binding."""
 
     style: str
@@ -111,7 +111,7 @@ class Pos(Enum):
 
 
 @dataclass
-class Icon:
+class Icon(DataModelHelper):
     """An icon node (Mermaid `@{ icon: ... }`). Requires a registered icon pack."""
 
     icon: str
@@ -162,7 +162,7 @@ class Constraint(Enum):
 
 
 @dataclass
-class Image:
+class Image(DataModelHelper):
     """An image node (Mermaid `@{ img: ... }`)."""
 
     img: str
@@ -268,7 +268,7 @@ class Shape(Enum):
 
 
 @dataclass
-class NodeElement:
+class NodeElement(DataModelHelper):
     """A flowchart node. Populated incrementally with the attributes that make up a node."""
 
     id: str
@@ -382,7 +382,7 @@ class LinkType(Enum):
 
 
 @dataclass
-class RelationshipElement:
+class RelationshipElement(DataModelHelper):
     """A relationship (edge) between flowchart nodes. Populated incrementally with the
     attributes that make up a relationship.
     """
@@ -484,7 +484,7 @@ class View(Enum):
 
 
 @dataclass
-class Subgraphs:
+class Subgraphs(DataModelHelper):
     """A flowchart graph: its nodes, the relationships between them, and nested subgraphs.
     Recursive — each subgraph is itself a graph.
     """
