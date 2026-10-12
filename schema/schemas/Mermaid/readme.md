@@ -29,10 +29,10 @@ Two parser rules from the source constrain this order:
 
 | # | Element | Required | Marker | Modeled by |
 | --- | --- | --- | --- | --- |
-| 1 | Frontmatter | No | `---` … `---` | `mermaidFrontmatter-schema.json` (with the vendored config) |
-| 2 | Directive | No | `%%{` … `}%%` | not yet modeled |
-| 3 | Diagram type declaration | Yes | first token (e.g. `erDiagram`, `flowchart LR`) | not yet modeled |
-| 4 | Diagram body | Yes | lines after the declaration | not yet modeled (one branch per diagram type) |
+| 1 | Frontmatter | No | `---` … `---` | not yet modeled (its `config` key is modeled by the parent `mermaid-schema.json`, which references the vendored config) |
+| 2 | Directive | No | `%%{` … `}%%` | placeholder in `mermaidDirectives-schema.json` (referenced by the parent) |
+| 3 | Diagram type declaration | Yes | first token (e.g. `erDiagram`, `flowchart LR`) | the type selector is the `diagramType` enum in `mermaid-schema.json`; the literal declaration token is not yet modeled |
+| 4 | Diagram body | Yes | lines after the declaration | the `body` node in `mermaid-schema.json`; each type's body content is a separate file (one branch per diagram type) |
 
 A comment (`%%`) is a lexical element, not a root. It lives inside the diagram body (section 4.1).
 
@@ -69,7 +69,7 @@ Official sources:
 1. Download the official schema verbatim to `vendor/mermaidConfig.upstream-schema.json`. Do not hand-edit the vendored copy; it is the provenance baseline for the diff on the next bump. Every `$ref` in it is internal, so this is one file, not a tree.
 2. Produce the author-input copy `mermaidConfig-schema.json` by one deterministic transform of the vendored copy: remove the top-level `required` array and every `required` array inside `$defs`. Change nothing else — keep `properties`, `$defs`, enums, and defaults.
 3. The upstream schema carries no version field, so pin by ingest date: record today's date as the pinned version in the table below.
-4. `mermaidFrontmatter-schema.json` references the author-input copy for its `config` property.
+4. `mermaid-schema.json` references the author-input copy for its `config` property.
 
 #### Codegen caveats (do not resolve in Python)
 
@@ -90,7 +90,7 @@ The upstream schema carries no version field, so the pin is the ingest date.
 
 ## 2. Directive
 
-Status: not yet modeled.
+Status: placeholder modeled by `mermaidDirectives-schema.json` (a single generic `init` object), referenced by the parent `mermaid-schema.json`. To be refined later.
 
 A directive is an optional `%%{ }%%` block that reconfigures the diagram just before the render. The source states two properties the schema must respect:
 
@@ -99,17 +99,17 @@ A directive is an optional `%%{ }%%` block that reconfigures the diagram just be
 
 ## 3. Diagram type declaration
 
-Status: not yet modeled.
+Status: the type selector is modeled by the `diagramType` enum in `mermaid-schema.json` (populated with `flowchart`). The literal declaration token is not yet modeled.
 
-The declaration is the required first token of the definition (for example `erDiagram`, `flowchart LR`, `gitGraph`). It tells the parser which diagram type to build, and it selects which body branch applies.
+The declaration is the required first token of the definition (for example `erDiagram`, `flowchart LR`, `gitGraph`). It tells the parser which diagram type to build, and it selects which body branch applies. The parent schema models this choice as the `diagramType` enum, which names the body that applies, not the literal token string.
 
 Caveat for the declaration-keyword set: the declaration keywords are not the same strings as the config namespace names in section 1.3. The config uses camelCase names (`xyChart`, `c4`, `gitGraph`), while the declaration uses keywords such as `xychart-beta`, `C4Context`, and `stateDiagram-v2`. The declaration-keyword enum is its own authored source; it is informed by the config namespace list but not copied from it.
 
 ## 4. Diagram body
 
-Status: not yet modeled. One branch schema per diagram type.
+Status: modeled by the `body` node in `mermaid-schema.json`. One branch schema per diagram type, each generated in its own file.
 
-The body is the type-specific content after the declaration — the nodes, edges, commits, and other structures that each diagram type defines. Each diagram type gets its own body schema, added one at a time.
+The body is the type-specific content after the declaration — the nodes, edges, commits, and other structures that each diagram type defines. The parent schema holds a thin `body` object; each diagram type gets its own body schema, added one at a time and generated independently, so the parent does not grow with every type.
 
 ### 4.1 Comments
 

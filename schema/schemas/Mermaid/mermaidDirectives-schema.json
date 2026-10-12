@@ -4,6 +4,7 @@
   "title": "MermaidDirectives",
   "type": "object",
   "description": "Mermaid pre-render directives (the `%%{ ... }%%` block). API docs: https://mermaid.ai/open-source/config/directives.html . Placeholder: a single generic `init` object for now, to be refined later.",
+  "required": ["init"],
   "properties": {
     "init": {
       "type": "object",

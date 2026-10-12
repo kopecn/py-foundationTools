@@ -3,7 +3,365 @@
   "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Mermaid/diagrams/flowchart-schema.json",
   "title": "FlowchartDiagram",
   "type": "object",
-  "description": "The flowchart diagram body. Placeholder for now, to be populated with its direction, nodes, edges, and subgraphs. This is the first of several diagram bodies; swimlane, gantt, and the rest follow as sibling schemas in this folder.",
-  "properties": {},
-  "additionalProperties": true
+  "description": "The flowchart diagram body: its orientation, its root graph, and the nodes and relationships that make it up. This is the first of several diagram bodies; swimlane, gantt, and the rest follow as sibling schemas in this folder.",
+  "$comment": "Deferred, to revisit: (4) inline per-node `style` string — held pending a simple representation; class binding via `classes` is the current path. (13) node interaction — `click` events (callback/href/tooltip/target) — not yet modeled.",
+  "properties": {
+    "orientation": {
+      "$ref": "#/$defs/orientation"
+    },
+    "subgraphs": {
+      "$ref": "#/$defs/graph"
+    },
+    "nodes": {
+      "type": "array",
+      "description": "The nodes in the flowchart.",
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "description": "The relationships (edges) between nodes in the flowchart.",
+      "items": {
+        "$ref": "#/$defs/relationship"
+      }
+    },
+    "classDefs": {
+      "type": "array",
+      "description": "The flowchart's style classes. Declared at the top level because classDef is diagram-global, not subgraph-scoped: node and relationship ids share one global namespace, so a class binds by name from anywhere in the diagram.",
+      "items": {
+        "$ref": "#/$defs/classDef"
+      }
+    },
+    "linkStyles": {
+      "type": "array",
+      "description": "Link styling by definition order (Mermaid `linkStyle`), distinct from class binding.",
+      "items": {
+        "$ref": "#/$defs/linkStyle"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "nodeShape": {
+      "type": "string",
+      "description": "A Mermaid node shape, named by its descriptive geometry (v11.3.0+). These are readable names, not the literal `@{ shape: <name> }` tokens Mermaid accepts; a mapping to those short tokens is still needed before this is referenced by the main schema.",
+      "enum": [
+        "rectangle",
+        "rounded",
+        "stadium",
+        "subprocess",
+        "cylinder",
+        "circle",
+        "odd",
+        "diamond",
+        "hexagon",
+        "leanRight",
+        "leanLeft",
+        "datastore",
+        "trapezoidBaseBottom",
+        "trapezoidBaseTop",
+        "doubleCircle",
+        "text",
+        "notchedRectangle",
+        "linedRectangle",
+        "smallCircle",
+        "framedCircle",
+        "fork",
+        "hourglass",
+        "comment",
+        "braceRight",
+        "braces",
+        "lightningBolt",
+        "document",
+        "delay",
+        "directAccessStorage",
+        "linedCylinder",
+        "curvedTrapezoid",
+        "dividedRectangle",
+        "triangle",
+        "windowPane",
+        "filledCircle",
+        "linedDocument",
+        "notchedPentagon",
+        "flippedTriangle",
+        "slopedRectangle",
+        "stackedDocument",
+        "stackedRectangle",
+        "flag",
+        "bowTieRectangle",
+        "crossedCircle",
+        "taggedDocument",
+        "taggedRectangle"
+      ]
+    },
+    "linkType": {
+      "type": "string",
+      "description": "A Mermaid flowchart link (edge) kind, named by the connection it draws. These are readable names, not the literal Mermaid operators (`-->`, `---`, `-.->`, `==>`, `~~~`, `--o`, `--x`, `o--o`, `<-->`, `x--x`); a mapping to those operators is still needed before this is referenced by the main schema.",
+      "enum": [
+        "arrow",
+        "open",
+        "dotted",
+        "thick",
+        "invisible",
+        "circleEdge",
+        "crossEdge",
+        "multiDirectionalArrow",
+        "multiDirectionalCircle",
+        "multiDirectionalCross"
+      ]
+    },
+    "relationship": {
+      "type": "object",
+      "description": "A relationship (edge) between flowchart nodes. Populated incrementally with the attributes that make up a relationship.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "An optional edge ID (the `id@` prefix in Mermaid, e.g. `A e1@--> B`), usable later for styling, classes, and animation."
+        },
+        "from": {
+          "type": "string",
+          "description": "The id of the source node the relationship starts from."
+        },
+        "to": {
+          "type": "string",
+          "description": "The id of the target node the relationship points to."
+        },
+        "linkType": {
+          "$ref": "#/$defs/linkType"
+        },
+        "classes": {
+          "type": "array",
+          "description": "Names of classDefs applied to this relationship (bound by the edge id). Each entry must match a classDefs[].name.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "label": {
+          "type": "string",
+          "description": "Text attached to the link, rendered on the edge."
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The number of ranks the link spans. 1 is the default; a higher value lengthens the link (the extra dashes in Mermaid). The renderer may still draw it longer to satisfy other links."
+        },
+        "animate": {
+          "type": "boolean",
+          "description": "Whether the edge is animated (requires the edge `id`)."
+        },
+        "animation": {
+          "type": "string",
+          "enum": ["fast", "slow"],
+          "description": "The animation speed; setting it implies animate:true."
+        },
+        "curve": {
+          "$ref": "#/$defs/curveStyle"
+        }
+      },
+      "required": ["from", "to"]
+    },
+    "node": {
+      "type": "object",
+      "description": "A flowchart node. Populated incrementally with the attributes that make up a node.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The node's identifier, used to reference it from relationships."
+        },
+        "text": {
+          "type": "string",
+          "description": "The display text in the node box, differing from the id. Stored as a raw Unicode string; the renderer quotes it (Mermaid requires double quotes around Unicode text, e.g. id[\"This ❤ Unicode\"]). When text is defined several times for a node, Mermaid uses the last definition."
+        },
+        "markdown": {
+          "type": "boolean",
+          "description": "Whether text is a Markdown string. When true the renderer encloses it in double quotes and backticks (e.g. id[\"`This **is** _Markdown_`\"]), enabling bold/italics, automatic wrapping, and newline-based line breaks. Defaults to false (plain text).",
+          "default": false
+        },
+        "classes": {
+          "type": "array",
+          "description": "Names of classDefs applied to this node (Mermaid `class`/`:::`). Each entry must match a classDefs[].name.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shape": {
+          "$ref": "#/$defs/nodeShape"
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "image": {
+          "$ref": "#/$defs/image"
+        }
+      },
+      "required": ["id"]
+    },
+    "classDef": {
+      "type": "object",
+      "description": "A named style class (Mermaid `classDef name style`), bound to nodes and relationships by name through their `classes` field.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The class name referenced by a node or relationship `classes` entry. The reserved name `default` applies to every node without an explicit class."
+        },
+        "style": {
+          "type": "string",
+          "description": "The style declarations, comma-separated as Mermaid writes them, e.g. `fill:#f9f,stroke:#333,stroke-width:4px`."
+        }
+      },
+      "required": ["name"]
+    },
+    "orientation": {
+      "type": "string",
+      "enum": ["TB", "TD", "BT", "RL", "LR"],
+      "description": "The orientation of the graph. `TB` top to bottom; `TD` top-down (same as top to bottom); `BT` bottom to top; `RL` right to left; `LR` left to right."
+    },
+    "icon": {
+      "type": "object",
+      "description": "An icon node (Mermaid `@{ icon: ... }`). Requires a registered icon pack.",
+      "properties": {
+        "icon": {
+          "type": "string",
+          "description": "The icon name from the registered icon pack, e.g. `fa:user`."
+        },
+        "form": {
+          "type": "string",
+          "enum": ["square", "circle", "rounded"],
+          "description": "The background shape behind the icon. Omitted means no background."
+        },
+        "label": {
+          "type": "string",
+          "description": "The text label for the icon. Omitted means no label."
+        },
+        "pos": {
+          "type": "string",
+          "enum": ["t", "b"],
+          "description": "The label position, top or bottom. Defaults to bottom."
+        },
+        "h": {
+          "type": "number",
+          "description": "The icon height. Defaults to 48, which is the minimum."
+        }
+      },
+      "required": ["icon"]
+    },
+    "image": {
+      "type": "object",
+      "description": "An image node (Mermaid `@{ img: ... }`).",
+      "properties": {
+        "img": {
+          "type": "string",
+          "description": "The URL of the image to display."
+        },
+        "label": {
+          "type": "string",
+          "description": "The text label for the image. Omitted means no label."
+        },
+        "pos": {
+          "type": "string",
+          "enum": ["t", "b"],
+          "description": "The label position, top or bottom. Defaults to bottom."
+        },
+        "w": {
+          "type": "number",
+          "description": "The image width. Defaults to the natural width."
+        },
+        "h": {
+          "type": "number",
+          "description": "The image height. Defaults to the natural height."
+        },
+        "constraint": {
+          "type": "string",
+          "enum": ["on", "off"],
+          "description": "Whether the image constrains the node size and keeps its aspect ratio. Defaults to off."
+        }
+      },
+      "required": ["img"]
+    },
+    "curveStyle": {
+      "type": "string",
+      "enum": [
+        "basis",
+        "bumpX",
+        "bumpY",
+        "cardinal",
+        "catmullRom",
+        "linear",
+        "monotoneX",
+        "monotoneY",
+        "natural",
+        "step",
+        "stepAfter",
+        "stepBefore"
+      ],
+      "description": "The curve style for a link's line."
+    },
+    "linkStyle": {
+      "type": "object",
+      "description": "A link styling by definition order (Mermaid `linkStyle`), distinct from class binding.",
+      "properties": {
+        "indices": {
+          "type": "array",
+          "description": "The zero-based order indices of the links this style applies to (the Nth link defined in the diagram).",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "default": {
+          "type": "boolean",
+          "description": "Apply the style to all links (Mermaid `linkStyle default ...`) instead of specific indices."
+        },
+        "style": {
+          "type": "string",
+          "description": "The style declarations, comma-separated as Mermaid writes them, e.g. `stroke:#ff3,stroke-width:4px,color:red`."
+        }
+      },
+      "required": ["style"]
+    },
+    "graph": {
+      "type": "object",
+      "description": "A flowchart graph: its nodes, the relationships between them, and nested subgraphs. Recursive — each subgraph is itself a graph.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The subgraph's displayed name."
+        },
+        "id": {
+          "type": "string",
+          "description": "An explicit subgraph id (Mermaid `subgraph id [Title]`), referenced by edges to and from the subgraph and required to collapse it."
+        },
+        "view": {
+          "type": "string",
+          "enum": ["expanded", "collapsed"],
+          "description": "Whether the subgraph is drawn in full (`expanded`, the default) or as a single compact node carrying its title (`collapsed`, Mermaid `@{ view: collapsed }`)."
+        },
+        "orientation": {
+          "$ref": "#/$defs/orientation"
+        },
+        "nodes": {
+          "type": "array",
+          "description": "The nodes in this graph.",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "description": "The relationships (edges) between nodes in this graph.",
+          "items": {
+            "$ref": "#/$defs/relationship"
+          }
+        },
+        "subgraphs": {
+          "type": "array",
+          "description": "Nested subgraphs, each a graph in its own right.",
+          "items": {
+            "$ref": "#/$defs/graph"
+          }
+        }
+      }
+    }
+  }
 }

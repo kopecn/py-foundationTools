@@ -3,7 +3,8 @@
   "$id": "https://github.com/kopecn/py_foundation_tools/schema/schemas/Mermaid/mermaid-schema.json",
   "title": "Mermaid",
   "type": "object",
-  "description": "Top-level schema for a Mermaid diagram document. It gathers the cross-cutting nodes (config, directives) and one optional node per diagram type (flowchart first; swimlane, gantt, and the rest follow as sibling nodes). Every node is optional. Breadcrumbs for the config node: the official config schema is https://mermaid.js.org/schemas/config.schema.json and its API docs are https://mermaid.js.org/config/schema-docs/config.html . The local `mermaidConfig-schema.json` is a copy of that official schema with every `required` array removed, because the official `required` describes the fully-resolved runtime config, not a partial author config.",
+  "description": "Top-level schema for a Mermaid diagram document. It gathers the cross-cutting nodes (config, directives) a `diagramType` discriminator that names which diagram body applies, and a single `body` node that holds it (flowchart first; swimlane, gantt, and the rest are added to the `diagramType` enum as they are modeled). Every node is optional. Breadcrumbs for the config node: the official config schema is https://mermaid.js.org/schemas/config.schema.json and its API docs are https://mermaid.js.org/config/schema-docs/config.html . The local `mermaidConfig-schema.json` is a copy of that official schema with every `required` array removed, because the official `required` describes the fully-resolved runtime config, not a partial author config.",
+  "required": ["diagramType", "body"],
   "properties": {
     "config": {
       "$ref": "mermaidConfig-schema.json",
@@ -13,9 +14,14 @@
       "$ref": "mermaidDirectives-schema.json",
       "description": "Optional. Pre-render directives."
     },
-    "flowchart": {
-      "$ref": "diagrams/flowchart-schema.json",
-      "description": "Optional. The flowchart diagram body. One of several diagram bodies; more are added as sibling nodes."
+    "diagramType": {
+      "type": "string",
+      "enum": ["flowchart"],
+      "description": "The diagram body type. Each value names a body schema that is generated independently in its own file. Populated with `flowchart` for now; more values are added as body types are modeled."
+    },
+    "body": {
+      "type": "object",
+      "description": "The body for the Mermaid diagram."
     }
   },
   "additionalProperties": false
