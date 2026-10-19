@@ -4,6 +4,9 @@ scope: project
 last_updated: 2026-09-11
 semver: 0.0.7
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # State Machine Handler

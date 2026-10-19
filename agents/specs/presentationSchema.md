@@ -2,7 +2,7 @@
 spec: PresentationSchema
 version: 1.0
 type: specification
-name: presentationSchema
+name: presentation-schema
 purpose: Defines the schema, codegen, and stdlib resolution contract for the Presentations domain.
 scope: project
 status: draft
@@ -10,6 +10,9 @@ applies_to: schema/schemas/Presentations/, schema/scripts/generatePresentations.
 last_updated: 2026-09-28
 semver: 0.10.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Presentation Schema Specification

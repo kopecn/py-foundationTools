@@ -4,11 +4,14 @@ type: architecture-specification
 name: threaded-socket-transaction
 purpose: Define the architecture and shared invariants of the synchronous threaded socket transaction family.
 scope: project
-status: accepted
+status: active
 applies_to: src/foundation_tools/socket_transaction/
 last_updated: 2026-09-12
 semver: 1.0.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Threaded Socket Transaction Architecture

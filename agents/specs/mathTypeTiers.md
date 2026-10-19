@@ -1,11 +1,14 @@
 ---
 spec: MathTypeTiers
 scope: project
-status: implemented
+status: active
 applies_to: schema/schemas/Math/, schema/schemas/Robot/, schema/scripts/generateMathTypes.sh, schema/scripts/generateRobotConfig.sh, schema/scripts/reuse/postprocess_mathtypes.py, schema/scripts/reuse/postprocess_robotconfig.py, src/foundationTypes/mathTypes/, src/foundationTypes/automationTypes/, src/foundation_abc/math/, tests/typeTests/test_math_tier_contract.py, tests/typeTests/testRobotConfigGeometry.py
 last_updated: 2026-09-28
 semver: 1.2.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Math data and interface boundaries

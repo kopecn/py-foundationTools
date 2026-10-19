@@ -1,11 +1,14 @@
 ---
 spec: SSHTransact
 scope: project
-status: implemented
+status: active
 applies_to: src/foundation_tools/cli_transaction/sshTransact.py
 last_updated: 2026-07-09
 semver: 0.3.1
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # SSH Transaction Manager Specification

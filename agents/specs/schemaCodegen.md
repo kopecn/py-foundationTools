@@ -2,14 +2,17 @@
 spec: SchemaCodegen
 version: 1.0
 type: specification
-name: schemaCodegen
+name: schema-codegen
 purpose: Defines the schema-first codegen pipeline that generates DataModelHelper models from JSON Schema.
 scope: project
-status: implemented
+status: active
 applies_to: schema/, src/foundationTypes/commonTypes/, src/foundationTypes/mathTypes/, src/foundationTypes/cvTypes/, src/foundationTypes/standardizedLoggerConfig/, src/foundationTypes/automationTypes/
 last_updated: 2026-09-28
 semver: 0.6.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Schema Codegen Specification

@@ -1,11 +1,14 @@
 ---
 spec: NetworkDiag
 scope: project
-status: implemented
+status: active
 applies_to: src/foundation_tools/network_diag/
 last_updated: 2026-10-03
 semver: 0.3.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Network Diagnostics Collector Specification

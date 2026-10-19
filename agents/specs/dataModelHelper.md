@@ -1,11 +1,14 @@
 ---
 spec: DataModelHelper
 scope: project
-status: implemented
+status: active
 applies_to: src/foundationTypes/data_model_helper.py
 last_updated: 2026-09-28
 semver: 0.3.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # DataModelHelper Specification

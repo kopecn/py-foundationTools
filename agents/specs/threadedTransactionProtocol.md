@@ -4,11 +4,14 @@ type: behavioral-specification
 name: threaded-transaction-protocol
 purpose: Define transaction frames, wire codecs, pending state, synchronization, and routing.
 scope: project
-status: accepted
+status: active
 applies_to: src/foundation_tools/socket_transaction/
 last_updated: 2026-09-12
 semver: 1.0.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Threaded Transaction Protocol

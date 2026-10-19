@@ -4,11 +4,14 @@ type: behavioral-specification
 name: transacting-socket-handlers
 purpose: Define synchronous client and server facades that compose threaded transport with transaction semantics.
 scope: project
-status: accepted
+status: active
 applies_to: src/foundation_tools/socket_transaction/
 last_updated: 2026-09-12
 semver: 1.0.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Transacting Socket Handlers

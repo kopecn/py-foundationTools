@@ -7,6 +7,9 @@ applies_to: src/foundation_tools/socket_transaction/
 last_updated: 2026-09-13
 semver: 0.6.2
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Socket Transaction Transport Layer Specification

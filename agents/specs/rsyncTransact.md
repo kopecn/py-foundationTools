@@ -1,11 +1,14 @@
 ---
 spec: RsyncTransact
 scope: project
-status: implemented
+status: active
 applies_to: src/foundation_tools/cli_transaction/rsyncTransact.py
 last_updated: 2026-07-06
 semver: 0.4.0
 author: Nicholas Bergantz
+frontmatter_schema_semver: 1.1.1
+structured_language: creative
+document_type: specification
 ---
 
 # Rsync Transaction Manager Specification

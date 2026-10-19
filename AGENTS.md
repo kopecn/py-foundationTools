@@ -1,3 +1,12 @@
+---
+last_updated: 2026-10-18
+semver: 0.0.1
+frontmatter_schema_semver: 1.1.1
+author: Nicholas Bergantz
+structured_language: creative
+document_type: policy
+---
+
 # pyFoundationTools
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
