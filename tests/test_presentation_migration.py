@@ -105,9 +105,7 @@ class TestUnplaceableContentIsReported:
             content=[ContentBlock(region="orphanRegion", type=ContentType.TEXT, text="keep me")],
         )
         deck = _deck(slide)
-        mapping = MigrationMapping(
-            layout_map={"one-column": "one-column"}, region_map={}
-        )
+        mapping = MigrationMapping(layout_map={"one-column": "one-column"}, region_map={})
 
         result = migrate_deck(deck, mapping)
 

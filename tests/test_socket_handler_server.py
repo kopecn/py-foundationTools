@@ -294,14 +294,10 @@ class TestListenSocketOptionsAndAddress:
         created = _install_fake_listener_factory(monkeypatch)
         server = _HarnessSocketHandlerServer(_logger("options-reuseaddr"))
         server.listen(12345)
-        assert created[0].setsockopt_calls == [
-            (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        ]
+        assert created[0].setsockopt_calls == [(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)]
         server.stop()
 
-    def test_binds_wildcard_host_with_requested_port(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_binds_wildcard_host_with_requested_port(self, monkeypatch: pytest.MonkeyPatch) -> None:
         created = _install_fake_listener_factory(monkeypatch)
         server = _HarnessSocketHandlerServer(_logger("options-bind"))
         server.listen(54321)
@@ -788,9 +784,7 @@ class TestAdmissionDecisions:
             challenger_local, challenger_remote = socket.socketpair()
             try:
                 with caplog.at_level(logging.ERROR):
-                    server.handle_accepted_candidate(
-                        epoch, challenger_local, ("192.0.2.15", 7005)
-                    )
+                    server.handle_accepted_candidate(epoch, challenger_local, ("192.0.2.15", 7005))
 
                 assert challenger_local.fileno() == -1
                 assert server.active_peer == ("192.0.2.14", 7004)
@@ -1087,9 +1081,7 @@ class TestReceiveWorkerStartFailureRollback:
         monkeypatch.setattr(threading.Thread, "start", _failing_start)
         try:
             with caplog.at_level(logging.ERROR):
-                server.handle_accepted_candidate(
-                    epoch, challenger_local, ("192.0.2.99", 9500)
-                )
+                server.handle_accepted_candidate(epoch, challenger_local, ("192.0.2.99", 9500))
         finally:
             monkeypatch.undo()
 

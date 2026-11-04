@@ -23,7 +23,9 @@ from foundationTypes.presentationTypes.Presentations import (
     SlideLayout,
 )
 
-SCHEMA_DIR = Path(__file__).resolve().parents[1] / "schema" / "schemas" / "schemas" / "Presentations"
+SCHEMA_DIR = (
+    Path(__file__).resolve().parents[1] / "schema" / "schemas" / "schemas" / "Presentations"
+)
 
 
 def test_region_capacity_roundtrip() -> None:
@@ -85,9 +87,7 @@ def test_layout_purpose_density_roundtrip() -> None:
 def test_preferred_aspect_ref_shared() -> None:
     # R20 shares the single preferredAspectRatio declared on 'region' (chunk 04)
     # rather than redeclaring a copy -- assert exactly one definition site exists.
-    schema_text = (SCHEMA_DIR / "PresentationSlideLayouts-schema.json").read_text(
-        encoding="utf-8"
-    )
+    schema_text = (SCHEMA_DIR / "PresentationSlideLayouts-schema.json").read_text(encoding="utf-8")
     assert schema_text.count('"preferredAspectRatio":') == 1
 
     region_schema = json.loads(schema_text)["definitions"]["region"]["properties"]
