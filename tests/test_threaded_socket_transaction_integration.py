@@ -198,8 +198,9 @@ class TestSimultaneousBidirectionalTransactions:
                     )
                     outcomes.put(("server", outcome))
 
-                with start_worker("initiate-client", _initiate_from_client), start_worker(
-                    "initiate-server", _initiate_from_server
+                with (
+                    start_worker("initiate-client", _initiate_from_client),
+                    start_worker("initiate-server", _initiate_from_server),
                 ):
                     both_registered.wait(TEST_TIMEOUT)
 
@@ -384,9 +385,7 @@ class TestAdmittedReplacementWhileResponderRetained:
 
 class TestMalformedMessageAndCallbackExceptionRecovery:
     def test_server_role_survives_malformed_token_and_a_raising_inbound_handler(self) -> None:
-        server = TransactingSocketHandlerServer(
-            _logger("server-malformed"), JsonTransactionCodec()
-        )
+        server = TransactingSocketHandlerServer(_logger("server-malformed"), JsonTransactionCodec())
         tokens: queue.Queue[str] = queue.Queue()
         server.set_string_message_handler(tokens.put)
         server.listen(0)

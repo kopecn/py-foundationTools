@@ -4,7 +4,9 @@ from typing import Any
 
 import pytest
 
-SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schema" / "schemas" / "Presentations"
+SCHEMA_DIR = (
+    Path(__file__).resolve().parents[2] / "schema" / "schemas" / "schemas" / "Presentations"
+)
 
 
 def _load(name: str) -> dict[str, Any]:

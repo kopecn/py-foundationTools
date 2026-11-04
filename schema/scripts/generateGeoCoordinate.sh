@@ -8,7 +8,7 @@ set -euo pipefail
 
 # === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/GeoCoordinate-schema.json"
+  "schema/schemas/schemas/GeoCoordinate-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===

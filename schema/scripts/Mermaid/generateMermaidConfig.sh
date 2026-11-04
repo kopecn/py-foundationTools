@@ -14,7 +14,7 @@ set -euo pipefail
 
 # === Input schema (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/Mermaid/mermaidConfig-schema.json"
+  "schema/schemas/schemas/Mermaid/mermaidConfig-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===

@@ -8,7 +8,7 @@ set -euo pipefail
 
 # === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/StandardizedLoggerConfig/StandardizedLoggerConfig-schema.json"
+  "schema/schemas/schemas/StandardizedLoggerConfig/StandardizedLoggerConfig-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===

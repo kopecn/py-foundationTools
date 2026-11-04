@@ -87,7 +87,7 @@ add_autogen_header() {
 # AUTO-GENERATED FILE — DO NOT EDIT
 # Generated from JSON Schema via quicktype. Any manual edits will be
 # overwritten the next time codegen runs (make codegen-all).
-# To modify, update the source schema in schema/schemas/ and re-run codegen.
+# To modify, update the source schema in schema/schemas/schemas/ and re-run codegen.
 # ============================================================================='
 
     {

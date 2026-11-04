@@ -176,9 +176,7 @@ class TestTimeoutValidationOrder:
             def _fail_if_called(
                 *_args: object, **_kwargs: object
             ) -> socket.socket:  # pragma: no cover - must never run
-                raise AssertionError(
-                    "socket.socket must not be created before timeout validation"
-                )
+                raise AssertionError("socket.socket must not be created before timeout validation")
 
             monkeypatch.setattr(socket, "socket", _fail_if_called)
 

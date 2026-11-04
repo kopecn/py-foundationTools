@@ -5,13 +5,13 @@ set -euo pipefail
 # =============================================================================
 # Generate FlowchartDiagram Python types from JSON Schema (Mermaid diagram body).
 # One script -> one diagram type, per the golden template (generateDiskUsage.sh).
-# This folder mirrors schema/schemas/Mermaid/diagrams/: one script per diagram
+# This folder mirrors schema/schemas/schemas/Mermaid/diagrams/: one script per diagram
 # schema, each emitting a single file into mermaidTypes/diagrams/.
 # =============================================================================
 
 # === Input schema (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/Mermaid/diagrams/flowchart-schema.json"
+  "schema/schemas/schemas/Mermaid/diagrams/flowchart-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===

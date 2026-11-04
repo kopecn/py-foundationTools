@@ -70,9 +70,7 @@ def test_frame_transform_round_trips_through_math_carrier() -> None:
 
 
 def test_component_transform_round_trips_through_math_carrier() -> None:
-    comp = Component.from_dict(
-        {"id": "comp1", "definition": "def1", "transform": _TRANSFORM}
-    )
+    comp = Component.from_dict({"id": "comp1", "definition": "def1", "transform": _TRANSFORM})
     assert isinstance(comp.transform, SpatialTransformType)
     assert comp.transform.to_dict() == _TRANSFORM
 

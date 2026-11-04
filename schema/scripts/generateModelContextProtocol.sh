@@ -8,8 +8,8 @@ set -euo pipefail
 
 # === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-    "schema/schemas/ModelContextProtocolTypes-schema.json"
-    "schema/schemas/MCP/ModelContextProtocol-2025-06-18-schema.json"
+    "schema/schemas/schemas/ModelContextProtocolTypes-schema.json"
+    "schema/schemas/schemas/MCP/ModelContextProtocol-2025-06-18-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===
