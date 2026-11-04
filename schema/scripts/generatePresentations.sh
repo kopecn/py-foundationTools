@@ -8,10 +8,10 @@ set -euo pipefail
 
 # === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/Presentations/PresentationColorTheme-schema.json"
-  "schema/schemas/Presentations/PresentationMetadata-schema.json"
-  "schema/schemas/Presentations/PresentationSlideLayouts-schema.json"
-  "schema/schemas/Presentations/PresentationDeck-schema.json"
+  "schema/schemas/schemas/Presentations/PresentationColorTheme-schema.json"
+  "schema/schemas/schemas/Presentations/PresentationMetadata-schema.json"
+  "schema/schemas/schemas/Presentations/PresentationSlideLayouts-schema.json"
+  "schema/schemas/schemas/Presentations/PresentationDeck-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===

@@ -1,5 +1,6 @@
 """
-Every committed ``schema/schemas/*-schema.json`` file MUST be loadable JSON.
+Every ``schema/schemas/schemas/*-schema.json`` file (the foundationSchemas
+submodule mounted at ``schema/schemas``) MUST be loadable JSON.
 
 Regression test for fix-01: ``ModelContextProtocolTypes-schema.json`` carried a
 trailing comma that made it fail ``json.load``, silently breaking any tooling
@@ -13,7 +14,7 @@ import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCHEMA_ROOT = REPO_ROOT / "schema" / "schemas"
+SCHEMA_ROOT = REPO_ROOT / "schema" / "schemas" / "schemas"
 
 
 def _all_schema_files() -> list[Path]:

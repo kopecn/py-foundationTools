@@ -8,7 +8,7 @@ set -euo pipefail
 
 # === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/CLITools/DiskUsage-schema.json"
+  "schema/schemas/schemas/CLITools/DiskUsage-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===

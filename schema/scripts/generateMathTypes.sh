@@ -22,22 +22,22 @@ set -euo pipefail
 #     readability; quicktype's --src-lang schema resolves the full $ref graph and
 #     is not order-sensitive. ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/Math/NumericSign-schema.json"
-  "schema/schemas/Math/Timescale-schema.json"
-  "schema/schemas/Math/ReferenceFrame-schema.json"
-  "schema/schemas/Math/PrecisionTimeInterval-schema.json"
-  "schema/schemas/Math/PrecisionTimestamp-schema.json"
-  "schema/schemas/Math/Position-schema.json"
-  "schema/schemas/Math/Quaternion-schema.json"
-  "schema/schemas/Math/UnitSphericalArc-schema.json"
-  "schema/schemas/Math/UnitSphericalSmallCircle-schema.json"
-  "schema/schemas/Math/SpatialTransform-schema.json"
-  "schema/schemas/Math/PositionWaveform-schema.json"
-  "schema/schemas/Math/QuaternionWaveform-schema.json"
-  "schema/schemas/Math/SpatialTransformWaveform-schema.json"
-  "schema/schemas/Math/ScalarWaveform-schema.json"
-  "schema/schemas/Math/UnitSphericalArcWaveform-schema.json"
-  "schema/schemas/Math/UnitSphericalSmallCircleWaveform-schema.json"
+  "schema/schemas/schemas/Math/NumericSign-schema.json"
+  "schema/schemas/schemas/Math/Timescale-schema.json"
+  "schema/schemas/schemas/Math/ReferenceFrame-schema.json"
+  "schema/schemas/schemas/Math/PrecisionTimeInterval-schema.json"
+  "schema/schemas/schemas/Math/PrecisionTimestamp-schema.json"
+  "schema/schemas/schemas/Math/Position-schema.json"
+  "schema/schemas/schemas/Math/Quaternion-schema.json"
+  "schema/schemas/schemas/Math/UnitSphericalArc-schema.json"
+  "schema/schemas/schemas/Math/UnitSphericalSmallCircle-schema.json"
+  "schema/schemas/schemas/Math/SpatialTransform-schema.json"
+  "schema/schemas/schemas/Math/PositionWaveform-schema.json"
+  "schema/schemas/schemas/Math/QuaternionWaveform-schema.json"
+  "schema/schemas/schemas/Math/SpatialTransformWaveform-schema.json"
+  "schema/schemas/schemas/Math/ScalarWaveform-schema.json"
+  "schema/schemas/schemas/Math/UnitSphericalArcWaveform-schema.json"
+  "schema/schemas/schemas/Math/UnitSphericalSmallCircleWaveform-schema.json"
 )
 
 # === Output (relative to src/foundationTypes) ===

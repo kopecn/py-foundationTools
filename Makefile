@@ -1,5 +1,5 @@
 # MARK: - Configuration
-.PHONY: help version checkCleanGit open-github \
+.PHONY: help version checkCleanGit open-github update-submodules \
 	clean clean-build clean-artifacts clean-test clean-node clean-venv \
 	bump-patch bump-minor bump-major \
 	check-uv install-uv list-uv \
@@ -110,6 +110,9 @@ checkCleanGit:  ## Verify that the Git working tree is clean
 bump-patch bump-minor bump-major: bump-%:  ## Bump the version and update HISTORY.md
 	$(BUMPVERSION) $*
 	$(call roll_changelog)
+
+update-submodules:  ## Init and fast-forward submodules (e.g. schema/schemas) to their tracked branch
+	git submodule update --init --recursive --remote
 
 open-github:  ## Open the GitHub repository in the default browser (macOS/Linux)
 	@remote=$$(git remote | head -1); \

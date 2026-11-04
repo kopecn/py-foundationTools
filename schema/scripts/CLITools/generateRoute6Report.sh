@@ -9,7 +9,7 @@ set -euo pipefail
 
 # === Input schema (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/CLITools/Route6Report-schema.json"
+  "schema/schemas/schemas/CLITools/Route6Report-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===

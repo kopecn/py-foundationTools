@@ -7,11 +7,11 @@ set -euo pipefail
 # =============================================================================
 
 # === Input schemas (relative to repo root) ===
-# The root file's $ref chain pulls in every file under schema/schemas/Robot/
+# The root file's $ref chain pulls in every file under schema/schemas/schemas/Robot/
 # (Common/, Units/, Geometry/, Mechanism/, Structure/, Joints/, Constraints/,
 # Composition/, Kinematics/); quicktype resolves those relative $refs itself.
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/Robot/robot-mechanism.schema.json"
+  "schema/schemas/schemas/Robot/robot-mechanism.schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===

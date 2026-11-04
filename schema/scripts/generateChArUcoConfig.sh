@@ -8,9 +8,9 @@ set -euo pipefail
 
 # === Input schemas (relative to repo root) ===
 INPUT_SCHEMA_FILES=(
-  "schema/schemas/ComputerVisions/ChArUcoBoard-schema.json"
-  "schema/schemas/ComputerVisions/ChArUcoRenderOptions-schema.json"
-  "schema/schemas/ComputerVisions/ChArUcoConfig-schema.json"
+  "schema/schemas/schemas/ComputerVisions/ChArUcoBoard-schema.json"
+  "schema/schemas/schemas/ComputerVisions/ChArUcoRenderOptions-schema.json"
+  "schema/schemas/schemas/ComputerVisions/ChArUcoConfig-schema.json"
 )
 
 # === Classes that should inherit from DataModelHelper ===
