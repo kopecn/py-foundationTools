@@ -7,7 +7,7 @@ from typing import Any
 from foundation_tools.presentation.theme_resolver import resolve_color
 from foundationTypes.presentationTypes.Presentations import PresentationColorTheme
 
-SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schema" / "schemas" / "Presentations"
+SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schema" / "schemas" / "schemas" / "Presentations"
 
 _ACCENT_NAMES = (
     "accentGrey",

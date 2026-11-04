@@ -20,7 +20,7 @@ from foundationTypes.presentationTypes.Presentations import (
     Region,
 )
 
-SCHEMA_DIR = Path(__file__).resolve().parents[1] / "schema" / "schemas" / "Presentations"
+SCHEMA_DIR = Path(__file__).resolve().parents[1] / "schema" / "schemas" / "schemas" / "Presentations"
 
 
 def test_fit_field_roundtrip_with_default() -> None:

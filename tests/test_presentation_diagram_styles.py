@@ -23,7 +23,7 @@ from foundationTypes.presentationTypes.Presentations import (
     ThemeColorRef,
 )
 
-SCHEMA_DIR = Path(__file__).resolve().parents[1] / "schema" / "schemas" / "Presentations"
+SCHEMA_DIR = Path(__file__).resolve().parents[1] / "schema" / "schemas" / "schemas" / "Presentations"
 
 
 def test_diagram_style_semantic_refs_roundtrip() -> None:
