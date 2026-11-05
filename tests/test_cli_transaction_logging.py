@@ -4,7 +4,7 @@ import json
 import subprocess
 import sys
 from io import StringIO
-from logging import DEBUG, INFO
+from logging import DEBUG, INFO, StreamHandler
 from pathlib import Path
 from unittest.mock import patch
 
@@ -27,9 +27,11 @@ async def test_command_and_output_logs_mask_environment_values(
 
     stream = StringIO()
     logger = StandardizedLogger(name="cli-test", level=level, log_dir=tmp_path)
-    logger.handlers[0].setStream(stream)  # type: ignore[attr-defined]  # Console handler is a StreamHandler.
+    console_handler = logger.handlers[0]
+    assert isinstance(console_handler, StreamHandler)
+    console_handler.setStream(stream)
     monkeypatch.setattr(cli_module, "_log", logger)
-    secret = "test-secret-long"
+    secret = "test-secret-long.*[token]"
     script = (
         "import os, sys; print(sys.argv[1]); "
         "print(os.environ['TOKEN'], file=sys.stderr); sys.stdin.read()"
@@ -39,12 +41,14 @@ async def test_command_and_output_logs_mask_environment_values(
     try:
         if as_async:
             result = await CLITransact.run_async(
-                command, env={"TOKEN": secret, "OVERLAP": "test-secret", "EMPTY": ""},
+                command,
+                env={"TOKEN": secret, "OVERLAP": "test-secret", "EMPTY": ""},
                 input="private-stdin-text",
             )
         else:
             result = CLITransact.run_sync(
-                command, env={"TOKEN": secret, "OVERLAP": "test-secret", "EMPTY": ""},
+                command,
+                env={"TOKEN": secret, "OVERLAP": "test-secret", "EMPTY": ""},
                 input="private-stdin-text",
             )
     finally:
@@ -61,7 +65,10 @@ async def test_command_and_output_logs_mask_environment_values(
         assert "private-stdin-text" not in text
         records = [json.loads(line) for line in text.splitlines()]
         assert records[0]["level"] == "INFO"
-        expected_argv = [part.replace(secret, "[REDACTED]") for part in (shlex.split(command) if isinstance(command, str) else command)]
+        expected_argv = [
+            part.replace(secret, "[REDACTED]")
+            for part in (shlex.split(command) if isinstance(command, str) else command)
+        ]
         if isinstance(command, str):
             expected_argv = ["bash", "-c", command.replace(secret, "[REDACTED]")]
         assert records[0]["argv"] == expected_argv

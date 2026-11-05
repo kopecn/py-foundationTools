@@ -4,7 +4,7 @@ scope: project
 status: active
 applies_to: src/foundation_tools/cli_transaction/cliTransact.py
 last_updated: 2026-11-05
-semver: 0.6.0
+semver: 0.7.0
 author: Nicholas Bergantz
 frontmatter_schema_semver: 1.1.1
 structured_language: creative
@@ -165,6 +165,16 @@ form raises `ValueError` eagerly, before any subprocess runs, when the model's
 programmer-contract violation caught at resolution time, not an execution
 failure, so it is not contained like execution/parsing failures are (see
 [Model Extension Layer](#model-extension-layer)).
+
+## Execution Logging
+
+`CLITransact` must use `StandardizedLogger` with structured fields. Immediately before each subprocess launch attempt, it must log the resolved argv at INFO. This includes the explicit shell prefix for string commands and the SSH command assembled by `SSHTransact`. Each retry attempt produces its own issuance event.
+
+Captured stdout and stderr must be logged at DEBUG with the return code. Framework-error diagnostics and any partial captured output must also be logged at DEBUG. These logs must preserve the existing execution and result semantics. Async cancellation retains its existing warning, with the child PID as a structured field.
+
+Logs must not contain environment mappings or standard-input fields at any level. Before command arguments, captured output, or framework-error diagnostics enter a log, exact occurrences of every non-empty value in the supplied `env` overlay must be replaced with `[REDACTED]`. Overlapping matches must select the longest value at each position. Redaction applies only to logs; it must not change the command, environment, input, or returned result.
+
+This masking covers literal supplied environment values. It does not identify inherited environment secrets, transformed values, or unrelated secrets in command arguments and output. Standard input echoed by the child is process output and is subject to the same output masking rule.
 
 ## Child Process Context and Standard Input
 

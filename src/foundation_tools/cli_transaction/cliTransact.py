@@ -35,9 +35,11 @@ Example Usage:
 
 import asyncio
 import os
+import re
 import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from logging import DEBUG
 from typing import Generic, TypeVar, overload
 
 from foundationTypes.data_model_helper import DataModelHelper
@@ -389,10 +391,33 @@ class CLITransact:
         stripped = output.strip()
         return stripped if stripped else None
 
+    def _redact_for_log(self, text: str) -> str:
+        """Mask exact non-empty values from the supplied environment overlay."""
+        values = sorted(
+            {value for value in (self._env or {}).values() if value},
+            key=len,
+            reverse=True,
+        )
+        if not values:
+            return text
+        pattern = "|".join(re.escape(value) for value in values)
+        return re.sub(pattern, "[REDACTED]", text)
+
+    def _log_output(self, return_code: int, stdout: str | None, stderr: str | None) -> None:
+        """Log captured output without changing the transaction result."""
+        if _log.isEnabledFor(DEBUG):
+            _log.debug(
+                "CLI command output",
+                return_code=return_code,
+                stdout=self._redact_for_log(stdout) if stdout is not None else None,
+                stderr=self._redact_for_log(stderr) if stderr is not None else None,
+            )
+
     def _finalize_result(
         self, return_code: int, raw_stdout: str, raw_stderr: str
     ) -> CLITransactResult:
         """Build the result for a completed (non-framework-error) execution."""
+        self._log_output(return_code, raw_stdout, raw_stderr)
         return CLITransactResult(
             return_code=return_code,
             stdout=self._normalize_output(raw_stdout),
@@ -402,6 +427,7 @@ class CLITransact:
 
     def _framework_error(self, stderr: str, stdout: str | None = None) -> CLITransactResult:
         """Build a framework-level failure result (invalid input, timeout, contained exception)."""
+        self._log_output(ERROR_RETURN_CODE, stdout, stderr)
         return CLITransactResult(
             return_code=ERROR_RETURN_CODE,
             stdout=self._normalize_output(stdout),
@@ -453,8 +479,10 @@ class CLITransact:
             return validation_error
 
         try:
+            argv = self._build_argv(cli_command)
+            _log.info("CLI command issued", argv=[self._redact_for_log(part) for part in argv])
             process_result = subprocess.run(
-                self._build_argv(cli_command),
+                argv,
                 cwd=self._cwd,
                 env=None if self._env is None else {**os.environ, **self._env},
                 stdin=subprocess.DEVNULL if self._input is None else None,
@@ -505,8 +533,10 @@ class CLITransact:
 
         process = None
         try:
+            argv = self._build_argv(cli_command)
+            _log.info("CLI command issued", argv=[self._redact_for_log(part) for part in argv])
             process = await asyncio.create_subprocess_exec(
-                *self._build_argv(cli_command),
+                *argv,
                 cwd=self._cwd,
                 env=None if self._env is None else {**os.environ, **self._env},
                 stdin=(
