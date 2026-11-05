@@ -90,7 +90,7 @@ def test_command_is_logged_before_subprocess_starts(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(cli_module, "_log", logger)
 
     def execute(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
-        logger.info.assert_called_once_with("CLI command issued", argv=["test-command"])
+        logger.info.assert_called_once_with("CLI command issued", extra={"argv": ["test-command"]})
         return subprocess.CompletedProcess(["test-command"], 0, "", "")
 
     with patch("subprocess.run", side_effect=execute):

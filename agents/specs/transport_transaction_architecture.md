@@ -3,8 +3,8 @@ spec: TransportTransactionArchitecture
 scope: project
 status: active
 applies_to: src/foundation_tools/cli_transaction/, src/foundation_tools/builders/, src/foundation_tools/policies/, src/foundation_tools/socket_transaction/
-last_updated: 2026-09-13
-semver: 0.6.1
+last_updated: 2026-11-05
+semver: 0.7.0
 author: Nicholas Bergantz
 frontmatter_schema_semver: 1.1.1
 structured_language: creative
@@ -23,7 +23,7 @@ strict layer ownership) and one serialization bridge (`DataModelHelper`):
 
 1. **Process transactions** — one-shot external command execution.
    `CLITransact` is the execution kernel; SSH, rsync, Docker, Git, etc. are thin
-   transactional layers above it.
+   transactional layers above it. The sibling `CLIProcess` owns a long-lived child process through a synchronous lifecycle API.
 2. **Stream transports** — long-lived byte-stream connections. The TCP socket
    family is a synchronous, threaded stack built directly on `socket`/`threading`
    (see [threadedSocketTransaction.md](threadedSocketTransaction.md)); serial and
@@ -70,7 +70,10 @@ All modules live under the `foundation_tools` package:
 ```
 src/foundation_tools/
     cli_transaction/
-        cliTransact.py          # execution kernel (implemented)
+        cliTransact.py          # run-to-completion execution kernel
+        cli_process.py          # synchronous child-process owner
+        cli_process_start_result.py  # typed launch outcome
+        process_execution.py    # shared preparation and logging
         sshTransact.py          # implemented
         rsyncTransact.py        # implemented
     builders/
@@ -99,7 +102,7 @@ src/foundation_tools/
 
 # Public Surface (usability north star)
 
-End users interact with exactly two kinds of objects:
+The public surface has three kinds of objects:
 
 1. **Layer-4 transactions** — `CLITransact`, `SSHTransact`, `RsyncTransact` mirror
    the four-classmethod pattern (`run_sync` / `run_async` / `run_sync_with_model` /
@@ -108,6 +111,8 @@ End users interact with exactly two kinds of objects:
 2. **Result objects** — `CLITransactResult`, `CLITransactResultModel[T]` for the
    process family; `TransactionOutcome` for the socket family. Transaction
    surfaces return results; they never raise.
+
+3. **Process owners** — `CLIProcess` exposes synchronous start, status, wait, stop, and context management. Its typed start result contains either the owner or a launch error. Its contract is [cliProcess.md](cliProcess.md). The stateful owner is separate from the stateless transaction surfaces.
 
 Builders, policies, and codecs are **internal-but-importable**: available for
 composition by advanced users, never required for the common path. Adding a
@@ -163,6 +168,12 @@ Must never know:
 - deployment logic
 
 CLITransact is intentionally transport-agnostic.
+
+---
+
+# Long-lived process ownership
+
+`CLIProcess` may invoke `subprocess.Popen` directly and owns the immediate child lifecycle. It composes the internal `ProcessExecution` helper shared with `CLITransact`; it does not inherit from or delegate lifecycle management to `CLITransact`. The helper prepares commands, overlays the environment, and applies logging and redaction. It does not execute processes. Transaction wrappers continue to delegate run-to-completion commands to `CLITransact`. See [cliProcess.md](cliProcess.md).
 
 ---
 

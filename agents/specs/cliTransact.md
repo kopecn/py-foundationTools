@@ -4,7 +4,7 @@ scope: project
 status: active
 applies_to: src/foundation_tools/cli_transaction/cliTransact.py
 last_updated: 2026-11-05
-semver: 0.7.0
+semver: 0.8.0
 author: Nicholas Bergantz
 frontmatter_schema_semver: 1.1.1
 structured_language: creative
@@ -35,9 +35,7 @@ document_type: specification
 ## Overview
 
 `cliTransact.py` provides the unified execution kernel for CLI commands. It is the
-single source of truth for subprocess execution: all higher-level wrappers (SSH, rsync,
-deployment tooling) MUST delegate execution to `CLITransact` and MUST NOT call
-`subprocess` directly.
+execution kernel for run-to-completion commands: all higher-level transaction wrappers (SSH, rsync, deployment tooling) MUST delegate these commands to `CLITransact` and MUST NOT call `subprocess` directly. The separate synchronous [CLIProcess](cliProcess.md) owns long-lived child processes. Both classes compose the internal `ProcessExecution` helper for command preparation, environment overlays, and logging.
 
 It is responsible for:
 

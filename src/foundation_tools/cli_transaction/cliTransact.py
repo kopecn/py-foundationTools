@@ -35,15 +35,14 @@ Example Usage:
 
 import asyncio
 import os
-import re
 import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from logging import DEBUG
 from typing import Generic, TypeVar, overload
 
 from foundationTypes.data_model_helper import DataModelHelper
 from foundation_tools.standardized_logger import StandardizedLogger
+from foundation_tools.cli_transaction.process_execution import DEFAULT_SHELL, ProcessExecution
 
 _log = StandardizedLogger(name=__name__)
 
@@ -51,13 +50,6 @@ _log = StandardizedLogger(name=__name__)
 ERROR_RETURN_CODE = -1
 SUCCESS_RETURN_CODE = 0
 GRACE_PERIOD_CAP_SECONDS = 1.0
-
-# A `str` command is a shell command. It runs through this explicit, fixed shell
-# invocation on BOTH the sync and async paths — never `subprocess`'s implicit
-# `shell=True` / platform default shell, and never a shell read from the ambient
-# environment. Bash is an intentional supported dependency of this project. A
-# caller may pass an explicit `shell` override (e.g. `["zsh", "-c"]`).
-DEFAULT_SHELL: tuple[str, ...] = ("bash", "-c")
 
 # Type variable for generic serialization
 T = TypeVar("T", bound=DataModelHelper)
@@ -130,12 +122,8 @@ class CLITransact:
         input: str | None = None,
     ) -> None:
         self.success_marker = success_marker
-        self._cwd = cwd
-        self._env = env
+        self._execution = ProcessExecution(shell=shell, cwd=cwd, env=env)
         self._input = input
-        # Shell invocation prefix for `str` commands. Explicit override or the
-        # fixed `bash -c` default — never derived from the ambient environment.
-        self._shell: tuple[str, ...] = tuple(shell) if shell is not None else DEFAULT_SHELL
 
     # -----------------------------------------------------------------------
     # MARK: - Public — stateless classmethod API
@@ -372,9 +360,7 @@ class CLITransact:
         shell. The shell prefix is never derived from the ambient environment or
         platform default, and neither input type falls back to the other's mode.
         """
-        if isinstance(cli_command, str):
-            return [*self._shell, cli_command]
-        return list(cli_command)
+        return self._execution.build_argv(cli_command)
 
     def _determine_success(self, return_code: int, stdout: str) -> bool:
         """Compute semantic success: exit code 0 plus optional marker presence."""
@@ -391,27 +377,9 @@ class CLITransact:
         stripped = output.strip()
         return stripped if stripped else None
 
-    def _redact_for_log(self, text: str) -> str:
-        """Mask exact non-empty values from the supplied environment overlay."""
-        values = sorted(
-            {value for value in (self._env or {}).values() if value},
-            key=len,
-            reverse=True,
-        )
-        if not values:
-            return text
-        pattern = "|".join(re.escape(value) for value in values)
-        return re.sub(pattern, "[REDACTED]", text)
-
     def _log_output(self, return_code: int, stdout: str | None, stderr: str | None) -> None:
         """Log captured output without changing the transaction result."""
-        if _log.isEnabledFor(DEBUG):
-            _log.debug(
-                "CLI command output",
-                return_code=return_code,
-                stdout=self._redact_for_log(stdout) if stdout is not None else None,
-                stderr=self._redact_for_log(stderr) if stderr is not None else None,
-            )
+        self._execution.log_output(_log, return_code, stdout, stderr)
 
     def _finalize_result(
         self, return_code: int, raw_stdout: str, raw_stderr: str
@@ -480,11 +448,11 @@ class CLITransact:
 
         try:
             argv = self._build_argv(cli_command)
-            _log.info("CLI command issued", argv=[self._redact_for_log(part) for part in argv])
+            self._execution.log_issued(_log, argv)
             process_result = subprocess.run(
                 argv,
-                cwd=self._cwd,
-                env=None if self._env is None else {**os.environ, **self._env},
+                cwd=self._execution.cwd,
+                env=self._execution.environment(),
                 stdin=subprocess.DEVNULL if self._input is None else None,
                 input=self._input,
                 capture_output=True,
@@ -534,11 +502,11 @@ class CLITransact:
         process = None
         try:
             argv = self._build_argv(cli_command)
-            _log.info("CLI command issued", argv=[self._redact_for_log(part) for part in argv])
+            self._execution.log_issued(_log, argv)
             process = await asyncio.create_subprocess_exec(
                 *argv,
-                cwd=self._cwd,
-                env=None if self._env is None else {**os.environ, **self._env},
+                cwd=self._execution.cwd,
+                env=self._execution.environment(),
                 stdin=(
                     asyncio.subprocess.DEVNULL if self._input is None else asyncio.subprocess.PIPE
                 ),

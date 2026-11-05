@@ -5,6 +5,8 @@ Re-exports the public surface so callers import from the package rather than the
 module file: ``from foundation_tools.cli_transaction import CLITransact``.
 """
 
+from foundation_tools.cli_transaction.cli_process import CLIProcess
+from foundation_tools.cli_transaction.cli_process_start_result import CLIProcessStartResult
 from foundation_tools.cli_transaction.cliTransact import (
     CLITransact,
     CLITransactResult,
@@ -22,6 +24,8 @@ __all__ = [
     "RSYNC_PERMANENT_RETURN_CODES",
     "RSYNC_TRANSIENT_RETURN_CODES",
     "WINDOWS_SAFE_RSYNC_OPTIONS",
+    "CLIProcess",
+    "CLIProcessStartResult",
     "CLITransact",
     "CLITransactResult",
     "CLITransactResultModel",
