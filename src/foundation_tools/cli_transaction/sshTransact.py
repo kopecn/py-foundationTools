@@ -9,7 +9,7 @@ see ``.claude/specs/sshTransact.md`` for the full contract. An optional
 *select* a policy but never implements retry logic itself).
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TypeVar
 
 from foundation_tools.builders.ssh_builder import build_ssh_command
@@ -29,7 +29,7 @@ class SSHTransact:
 
     Every method builds the SSH argv, then delegates directly to the matching
     CLITransact method (optionally wrapped in ``retry_policy``) and returns its
-    result unmodified.
+    result unmodified. ``options`` supplies SSH ``-o`` settings in mapping order.
     """
 
     @classmethod
@@ -41,13 +41,19 @@ class SSHTransact:
         port: int | None = None,
         identity_file: str | None = None,
         command: str | list[str] | None = None,
+        options: Mapping[str, str] | None = None,
         timeout: int | None = None,
         success_marker: str | None = None,
         retry_policy: RetryPolicy | None = None,
     ) -> CLITransactResult:
         """Execute ``command`` on ``host`` synchronously via SSH."""
         ssh_command = build_ssh_command(
-            host=host, user=user, port=port, identity_file=identity_file, command=command
+            host=host,
+            user=user,
+            port=port,
+            identity_file=identity_file,
+            command=command,
+            options=options,
         )
 
         def _execute() -> CLITransactResult:
@@ -66,13 +72,19 @@ class SSHTransact:
         port: int | None = None,
         identity_file: str | None = None,
         command: str | list[str] | None = None,
+        options: Mapping[str, str] | None = None,
         timeout: int | None = None,
         success_marker: str | None = None,
         retry_policy: RetryPolicy | None = None,
     ) -> CLITransactResult:
         """Execute ``command`` on ``host`` asynchronously via SSH."""
         ssh_command = build_ssh_command(
-            host=host, user=user, port=port, identity_file=identity_file, command=command
+            host=host,
+            user=user,
+            port=port,
+            identity_file=identity_file,
+            command=command,
+            options=options,
         )
 
         async def _execute() -> CLITransactResult:
@@ -94,13 +106,19 @@ class SSHTransact:
         port: int | None = None,
         identity_file: str | None = None,
         command: str | list[str] | None = None,
+        options: Mapping[str, str] | None = None,
         timeout: int | None = None,
         success_marker: str | None = None,
         retry_policy: RetryPolicy | None = None,
     ) -> CLITransactResultModel[T]:
         """Execute ``command`` on ``host`` synchronously and parse stdout into a model."""
         ssh_command = build_ssh_command(
-            host=host, user=user, port=port, identity_file=identity_file, command=command
+            host=host,
+            user=user,
+            port=port,
+            identity_file=identity_file,
+            command=command,
+            options=options,
         )
 
         def _execute() -> CLITransactResultModel[T]:
@@ -122,13 +140,19 @@ class SSHTransact:
         port: int | None = None,
         identity_file: str | None = None,
         command: str | list[str] | None = None,
+        options: Mapping[str, str] | None = None,
         timeout: int | None = None,
         success_marker: str | None = None,
         retry_policy: RetryPolicy | None = None,
     ) -> CLITransactResultModel[T]:
         """Execute ``command`` on ``host`` asynchronously and parse stdout into a model."""
         ssh_command = build_ssh_command(
-            host=host, user=user, port=port, identity_file=identity_file, command=command
+            host=host,
+            user=user,
+            port=port,
+            identity_file=identity_file,
+            command=command,
+            options=options,
         )
 
         async def _execute() -> CLITransactResultModel[T]:

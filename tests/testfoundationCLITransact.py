@@ -11,6 +11,7 @@ import asyncio
 import os
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -1117,3 +1118,118 @@ class TestCLITransactIntegration:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("as_async", [False, True])
+@pytest.mark.parametrize("with_model", [False, True])
+@pytest.mark.parametrize("as_shell", [False, True])
+@pytest.mark.parametrize("input_text", [None, "", "hello 世界\n" + "x" * 200000])
+async def test_execution_context_and_stdin(
+    tmp_path: "Path",
+    monkeypatch: pytest.MonkeyPatch,
+    as_async: bool,
+    with_model: bool,
+    as_shell: bool,
+    input_text: str | None,
+) -> None:
+    """All call forms preserve context, consume text input, and reach EOF."""
+    import json
+    import shlex
+
+    monkeypatch.setenv("FOUNDATION_PARENT", "inherited")
+    monkeypatch.setenv("FOUNDATION_OVERRIDE", "parent")
+    script = (
+        "import json, os, sys; "
+        "print(json.dumps([os.getcwd(), os.environ['FOUNDATION_PARENT'], "
+        "os.environ['FOUNDATION_OVERRIDE'], os.get_blocking(0), sys.stdin.read()]))"
+    )
+    argv = [sys.executable, "-c", script]
+    command: str | list[str] = shlex.join(argv) if as_shell else argv
+    env = {"FOUNDATION_OVERRIDE": "child"}
+    result: CLITransactResult
+    if with_model:
+        if as_async:
+            result = await CLITransact.run_async_with_model(
+                command, parse_echo_output, cwd=tmp_path, env=env, input=input_text, timeout=5
+            )
+        else:
+            result = CLITransact.run_sync_with_model(
+                command, parse_echo_output, cwd=tmp_path, env=env, input=input_text, timeout=5
+            )
+        assert result.model is not None
+    elif as_async:
+        result = await CLITransact.run_async(
+            command, cwd=tmp_path, env=env, input=input_text, timeout=5
+        )
+    else:
+        result = CLITransact.run_sync(command, cwd=tmp_path, env=env, input=input_text, timeout=5)
+    assert result.success, result.stderr
+    assert result.stdout is not None
+    assert json.loads(result.stdout) == [
+        str(tmp_path.resolve()),
+        "inherited",
+        "child",
+        True,
+        input_text or "",
+    ]
+    assert os.environ["FOUNDATION_OVERRIDE"] == "parent"
+    assert env == {"FOUNDATION_OVERRIDE": "child"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("as_async", [False, True])
+async def test_invalid_cwd_returns_framework_error(tmp_path: "Path", as_async: bool) -> None:
+    """A missing working directory is an execution failure."""
+    command = [sys.executable, "-c", "pass"]
+    if as_async:
+        result = await CLITransact.run_async(command, cwd=tmp_path / "missing")
+    else:
+        result = CLITransact.run_sync(command, cwd=tmp_path / "missing")
+    assert result.return_code == ERROR_RETURN_CODE
+    assert not result.success
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("as_async", [False, True])
+async def test_model_class_invocation_preserves_context(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, as_async: bool
+) -> None:
+    """A model's wire invocation receives the same context as an explicit command."""
+    import json
+
+    script = (
+        "import json, os, sys; "
+        "print(json.dumps({'value': os.getcwd() + os.environ['FOUNDATION_CONTEXT'] "
+        "+ sys.stdin.read(), 'count': 1}))"
+    )
+    monkeypatch.setattr(MockDataModel, "wire_invoke", [sys.executable, "-c", script])
+
+    def decode(model_cls: type[MockDataModel], wire: str) -> MockDataModel:
+        return model_cls.from_dict(json.loads(wire))
+
+    monkeypatch.setattr(MockDataModel, "wire_decode", decode)
+    if as_async:
+        result = await CLITransact.run_async_with_model(
+            MockDataModel, cwd=str(tmp_path), env={"FOUNDATION_CONTEXT": "env"}, input="text"
+        )
+    else:
+        result = CLITransact.run_sync_with_model(
+            MockDataModel, cwd=str(tmp_path), env={"FOUNDATION_CONTEXT": "env"}, input="text"
+        )
+    assert result.success, result.stderr
+    assert result.model == MockDataModel(str(tmp_path.resolve()) + "envtext", 1)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("as_async", [False, True])
+async def test_input_transmission_respects_timeout(as_async: bool) -> None:
+    """A child that does not read its input cannot block past the timeout cleanup."""
+    command = [sys.executable, "-c", "import time; time.sleep(30)"]
+    if as_async:
+        result = await CLITransact.run_async(command, input="x" * 200000, timeout=1)
+    else:
+        result = CLITransact.run_sync(command, input="x" * 200000, timeout=1)
+    assert result.return_code == ERROR_RETURN_CODE
+    assert result.stderr is not None and "Timeout" in result.stderr
+    assert not result.success

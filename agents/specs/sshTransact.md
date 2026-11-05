@@ -3,8 +3,8 @@ spec: SSHTransact
 scope: project
 status: active
 applies_to: src/foundation_tools/cli_transaction/sshTransact.py
-last_updated: 2026-07-09
-semver: 0.3.1
+last_updated: 2026-11-05
+semver: 0.4.0
 author: Nicholas Bergantz
 frontmatter_schema_semver: 1.1.1
 structured_language: creative
@@ -114,6 +114,7 @@ The transport is always constructed as:
 
 ```
 ssh
+    [-o <key>=<value>]...
     [-p <port>]
     [-i <identity_file>]
     <target>
@@ -236,6 +237,12 @@ config/default chain — exactly like the user rule.
 Determinism is preserved: identical inputs always generate identical argv.
 
 ---
+
+## SSH Options
+
+`build_ssh_command` and all four `SSHTransact` methods accept keyword-only `options: Mapping[str, str] | None = None`.
+
+Each mapping entry must produce two argv elements: `-o` and `key=value`. Entries must appear in mapping order, immediately after `ssh` and before the port, identity file, target, and remote command. `None` and an empty mapping must add no options. The builder must not change the supplied mapping or add default option values.
 
 ## Identity File
 

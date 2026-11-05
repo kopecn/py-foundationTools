@@ -3,8 +3,8 @@ spec: CLITransact
 scope: project
 status: active
 applies_to: src/foundation_tools/cli_transaction/cliTransact.py
-last_updated: 2026-09-05
-semver: 0.5.0
+last_updated: 2026-11-05
+semver: 0.6.0
 author: Nicholas Bergantz
 frontmatter_schema_semver: 1.1.1
 structured_language: creative
@@ -165,6 +165,22 @@ form raises `ValueError` eagerly, before any subprocess runs, when the model's
 programmer-contract violation caught at resolution time, not an execution
 failure, so it is not contained like execution/parsing failures are (see
 [Model Extension Layer](#model-extension-layer)).
+
+## Child Process Context and Standard Input
+
+All four public methods, including both model invocation forms, accept these keyword-only parameters:
+
+| Parameter | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `cwd` | `str | os.PathLike[str] | None` | `None` | Sets the child working directory; `None` inherits the parent working directory. |
+| `env` | `Mapping[str, str] | None` | `None` | Overlays supplied values on the parent environment; `None` inherits it. |
+| `input` | `str | None` | `None` | Sends text through a pipe and closes the pipe after transmission. |
+
+The environment overlay must not change `os.environ` or the supplied mapping. An empty mapping preserves the parent environment.
+
+When `input` is `None`, standard input must use `DEVNULL` and must not inherit the parent standard input. This default applies to both synchronous and asynchronous execution. An empty input string uses a pipe and sends EOF without text. Input transmission and output capture must occur together so that a full pipe does not block the transaction indefinitely. The execution timeout applies to this communication.
+
+Failures to start a child with the supplied context must return a framework-error result under the existing execution failure contract.
 
 ## Success Evaluation
 

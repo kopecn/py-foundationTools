@@ -6,6 +6,8 @@ delegated by callers to :mod:`foundation_tools.cli_transaction`. See
 ``.claude/specs/sshTransact.md`` for the full construction contract.
 """
 
+from collections.abc import Mapping
+
 
 def build_ssh_command(
     *,
@@ -14,8 +16,12 @@ def build_ssh_command(
     port: int | None = None,
     identity_file: str | None = None,
     command: str | list[str] | None = None,
+    options: Mapping[str, str] | None = None,
 ) -> list[str]:
     """Construct a deterministic ``ssh`` command vector.
+
+    ``options`` emits one ``-o key=value`` pair per entry, in mapping order,
+    before all other arguments. No SSH options are added by default.
 
     ``-p <port>`` is emitted only when ``port`` is supplied — never a synthesized
     default, since a command-line ``-p`` overrides any ``Port`` set for the host in
@@ -27,6 +33,9 @@ def build_ssh_command(
     ``list[str]`` is appended as independent argv segments.
     """
     result = ["ssh"]
+    if options is not None:
+        for key, value in options.items():
+            result.extend(["-o", f"{key}={value}"])
     if port is not None:
         result += ["-p", str(port)]
     if identity_file is not None:

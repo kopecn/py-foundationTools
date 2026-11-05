@@ -187,3 +187,35 @@ class TestSSHTransactResultIdentity:
             result = SSHTransact.run_sync(host="example.com")
         assert result is sentinel
         assert result.stdout == "unchanged"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("as_async", [False, True])
+@pytest.mark.parametrize("with_model", [False, True])
+async def test_options_forwarded_on_every_method(as_async: bool, with_model: bool) -> None:
+    """Each SSH method preserves options through command construction."""
+    method = "run_async" if as_async else "run_sync"
+    if with_model:
+        method += "_with_model"
+    sentinel = CLITransactResult(return_code=0, success=True)
+    delegate = AsyncMock(return_value=sentinel) if as_async else MagicMock(return_value=sentinel)
+    with patch.object(CLITransact, method, delegate):
+        kwargs = {"output_parser": DataModelHelper.from_wire} if with_model else {}
+        call = getattr(SSHTransact, method)(
+            host="127.0.0.1",
+            port=2222,
+            options={"StrictHostKeyChecking": "no", "BatchMode": "yes"},
+            **kwargs,
+        )
+        result = await call if as_async else call
+    assert result is sentinel
+    assert delegate.call_args.args[0] == [
+        "ssh",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "BatchMode=yes",
+        "-p",
+        "2222",
+        "127.0.0.1",
+    ]

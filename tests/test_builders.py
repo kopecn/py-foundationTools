@@ -17,6 +17,28 @@ from foundation_tools.builders import (
 
 
 class TestBuildSshCommand:
+    def test_options_precede_transport_parameters_in_mapping_order(self) -> None:
+        assert build_ssh_command(
+            host="127.0.0.1",
+            port=2222,
+            identity_file="/keys/test",
+            options={"StrictHostKeyChecking": "no", "BatchMode": "yes"},
+        ) == [
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "BatchMode=yes",
+            "-p",
+            "2222",
+            "-i",
+            "/keys/test",
+            "127.0.0.1",
+        ]
+
+    def test_empty_options_preserve_default_command(self) -> None:
+        assert build_ssh_command(host="example.com", options={}) == ["ssh", "example.com"]
+
     def test_host_only(self) -> None:
         assert build_ssh_command(host="example.com") == ["ssh", "example.com"]
 

@@ -34,15 +34,16 @@ Example Usage:
 """
 
 import asyncio
+import os
 import subprocess
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from logging import getLogger
 from typing import Generic, TypeVar, overload
 
 from foundationTypes.data_model_helper import DataModelHelper
+from foundation_tools.standardized_logger import StandardizedLogger
 
-_log = getLogger(__name__)
+_log = StandardizedLogger(name=__name__)
 
 # Constants
 ERROR_RETURN_CODE = -1
@@ -104,6 +105,11 @@ class CLITransact:
     instance carrying the per-call ``success_marker`` and delegates to the private
     implementation. No exception escapes a public method (``BaseException`` excepted).
 
+    ``cwd`` sets the child working directory. ``env`` overlays the parent
+    environment without changing it. Standard input defaults to DEVNULL;
+    ``input`` supplies text through a pipe, which closes after the text is sent.
+    These parameters apply to all four public methods.
+
     Example:
         result = CLITransact.run_sync("echo 'Hello World'")
 
@@ -116,8 +122,15 @@ class CLITransact:
         self,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        *,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> None:
         self.success_marker = success_marker
+        self._cwd = cwd
+        self._env = env
+        self._input = input
         # Shell invocation prefix for `str` commands. Explicit override or the
         # fixed `bash -c` default — never derived from the ambient environment.
         self._shell: tuple[str, ...] = tuple(shell) if shell is not None else DEFAULT_SHELL
@@ -134,6 +147,9 @@ class CLITransact:
         timeout: int | None = None,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> "CLITransactResult":
         """Execute a command synchronously.
 
@@ -146,7 +162,9 @@ class CLITransact:
         fall back to each other. Identical semantics to :meth:`run_async` for the
         same ``str`` command.
         """
-        return cls(success_marker, shell)._run_sync(cli_command, timeout)
+        return cls(success_marker, shell, cwd=cwd, env=env, input=input)._run_sync(
+            cli_command, timeout
+        )
 
     @classmethod
     async def run_async(
@@ -156,6 +174,9 @@ class CLITransact:
         timeout: int | None = None,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> "CLITransactResult":
         """Execute a command asynchronously.
 
@@ -167,7 +188,9 @@ class CLITransact:
         never fall back to each other. Identical semantics to :meth:`run_sync`
         for the same ``str`` command.
         """
-        return await cls(success_marker, shell)._run_async(cli_command, timeout)
+        return await cls(success_marker, shell, cwd=cwd, env=env, input=input)._run_async(
+            cli_command, timeout
+        )
 
     @overload
     @classmethod
@@ -179,6 +202,9 @@ class CLITransact:
         timeout: int | None = None,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> "CLITransactResultModel[T]": ...
 
     @overload
@@ -191,6 +217,9 @@ class CLITransact:
         timeout: int | None = None,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> "CLITransactResultModel[T]": ...
 
     @classmethod
@@ -202,6 +231,9 @@ class CLITransact:
         timeout: int | None = None,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> "CLITransactResultModel[T]":
         """Execute synchronously and parse stdout into a data model.
 
@@ -220,7 +252,9 @@ class CLITransact:
             result = CLITransact.run_sync_with_model(["cat", "coord.json"], GeoCoordinate.from_wire)
         """
         command, parser = cls._resolve_model_invocation(cli_command, output_parser)
-        return cls(success_marker, shell)._run_sync_with_model(command, parser, timeout)
+        return cls(success_marker, shell, cwd=cwd, env=env, input=input)._run_sync_with_model(
+            command, parser, timeout
+        )
 
     @overload
     @classmethod
@@ -231,6 +265,9 @@ class CLITransact:
         timeout: int | None = None,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> "CLITransactResultModel[T]": ...
 
     @overload
@@ -243,6 +280,9 @@ class CLITransact:
         timeout: int | None = None,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> "CLITransactResultModel[T]": ...
 
     @classmethod
@@ -254,6 +294,9 @@ class CLITransact:
         timeout: int | None = None,
         success_marker: str | None = None,
         shell: Sequence[str] | None = None,
+        cwd: str | os.PathLike[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        input: str | None = None,
     ) -> "CLITransactResultModel[T]":
         """Execute asynchronously and parse stdout into a data model.
 
@@ -265,7 +308,9 @@ class CLITransact:
         output_parser)`` pair — see ``run_sync_with_model`` for the two forms.
         """
         command, parser = cls._resolve_model_invocation(cli_command, output_parser)
-        return await cls(success_marker, shell)._run_async_with_model(command, parser, timeout)
+        return await cls(
+            success_marker, shell, cwd=cwd, env=env, input=input
+        )._run_async_with_model(command, parser, timeout)
 
     @staticmethod
     def _resolve_model_invocation(
@@ -410,6 +455,10 @@ class CLITransact:
         try:
             process_result = subprocess.run(
                 self._build_argv(cli_command),
+                cwd=self._cwd,
+                env=None if self._env is None else {**os.environ, **self._env},
+                stdin=subprocess.DEVNULL if self._input is None else None,
+                input=self._input,
                 capture_output=True,
                 text=True,
                 errors="replace",
@@ -458,12 +507,22 @@ class CLITransact:
         try:
             process = await asyncio.create_subprocess_exec(
                 *self._build_argv(cli_command),
+                cwd=self._cwd,
+                env=None if self._env is None else {**os.environ, **self._env},
+                stdin=(
+                    asyncio.subprocess.DEVNULL if self._input is None else asyncio.subprocess.PIPE
+                ),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout)
+                communication = (
+                    process.communicate()
+                    if self._input is None
+                    else process.communicate(self._input.encode())
+                )
+                stdout, stderr = await asyncio.wait_for(communication, timeout)
             except asyncio.TimeoutError:
                 # Forceful cleanup cascade: ask politely first (SIGTERM), escalate to
                 # SIGKILL only if the process ignores the graceful signal. The reverse
@@ -521,8 +580,8 @@ class CLITransact:
                     # Best-effort reaping; the child may already be gone.
                     pass
                 _log.warning(
-                    "CLITransact async child pid=%s terminated and reaped after task cancellation",
-                    child_pid,
+                    "CLITransact async child terminated and reaped after task cancellation",
+                    pid=child_pid,
                 )
             raise
         except Exception as exec_error:  # pylint: disable=broad-exception-caught
